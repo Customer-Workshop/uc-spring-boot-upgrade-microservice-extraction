@@ -64,7 +64,7 @@ The monolith includes `InventoryServiceClient` (HTTP client with circuit breaker
 
 ```properties
 inventory.service.url=http://inventory-service:8080
-inventory.service.timeout=10
+inventory.service.timeout=15
 ```
 
 ## Platform Engineering
