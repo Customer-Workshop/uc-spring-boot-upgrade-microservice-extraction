@@ -5,10 +5,9 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -28,11 +27,11 @@ public class InventoryServiceClient {
   private final String inventoryServiceUrl;
   private final int timeoutSeconds;
 
-  // Circuit breaker state
+  // Circuit breaker state (thread-safe)
   private volatile boolean circuitOpen = false;
-  private volatile long lastFailureTime = 0;
+  private final AtomicLong lastFailureTime = new AtomicLong(0);
   private static final long CIRCUIT_RESET_TIMEOUT_MS = 30000; // 30 seconds
-  private volatile int failureCount = 0;
+  private final AtomicInteger failureCount = new AtomicInteger(0);
   private static final int FAILURE_THRESHOLD = 5;
 
   public InventoryServiceClient(
@@ -56,43 +55,12 @@ public class InventoryServiceClient {
    * @return JSON response string or empty if circuit is open
    */
   public Optional<String> getInventoryItems(int page, int pageSize, String search) {
-    if (isCircuitOpen()) {
-      logger.warn("Circuit breaker is open, returning fallback for getInventoryItems");
-      return Optional.empty();
+    StringBuilder path = new StringBuilder("/api/inventory?page=");
+    path.append(page).append("&pageSize=").append(pageSize);
+    if (search != null && !search.isEmpty()) {
+      path.append("&search=").append(search);
     }
-
-    try {
-      StringBuilder url = new StringBuilder(inventoryServiceUrl);
-      url.append("/api/inventory?page=").append(page).append("&pageSize=").append(pageSize);
-      if (search != null && !search.isEmpty()) {
-        url.append("&search=").append(search);
-      }
-
-      HttpRequest request =
-          HttpRequest.newBuilder()
-              .uri(URI.create(url.toString()))
-              .timeout(Duration.ofSeconds(timeoutSeconds))
-              .header("Accept", "application/json")
-              .GET()
-              .build();
-
-      HttpResponse<String> response =
-          httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
-      if (response.statusCode() == 200) {
-        resetCircuitBreaker();
-        return Optional.of(response.body());
-      } else {
-        logger.error(
-            "Inventory service returned status {}: {}", response.statusCode(), response.body());
-        recordFailure();
-        return Optional.empty();
-      }
-    } catch (Exception e) {
-      logger.error("Failed to call inventory service: {}", e.getMessage(), e);
-      recordFailure();
-      return Optional.empty();
-    }
+    return executeGet(path.toString(), "getInventoryItems");
   }
 
   /**
@@ -102,39 +70,7 @@ public class InventoryServiceClient {
    * @return JSON response string or empty if not found or circuit is open
    */
   public Optional<String> getInventoryItem(int id) {
-    if (isCircuitOpen()) {
-      logger.warn("Circuit breaker is open, returning fallback for getInventoryItem");
-      return Optional.empty();
-    }
-
-    try {
-      HttpRequest request =
-          HttpRequest.newBuilder()
-              .uri(URI.create(inventoryServiceUrl + "/api/inventory/" + id))
-              .timeout(Duration.ofSeconds(timeoutSeconds))
-              .header("Accept", "application/json")
-              .GET()
-              .build();
-
-      HttpResponse<String> response =
-          httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
-      if (response.statusCode() == 200) {
-        resetCircuitBreaker();
-        return Optional.of(response.body());
-      } else {
-        logger.error(
-            "Inventory service returned status {} for item {}",
-            response.statusCode(),
-            id);
-        recordFailure();
-        return Optional.empty();
-      }
-    } catch (Exception e) {
-      logger.error("Failed to get inventory item {}: {}", id, e.getMessage(), e);
-      recordFailure();
-      return Optional.empty();
-    }
+    return executeGet("/api/inventory/" + id, "getInventoryItem");
   }
 
   /**
@@ -144,35 +80,7 @@ public class InventoryServiceClient {
    * @return JSON response string or empty if not found or circuit is open
    */
   public Optional<String> getInventoryItemBySku(String sku) {
-    if (isCircuitOpen()) {
-      logger.warn("Circuit breaker is open, returning fallback for getInventoryItemBySku");
-      return Optional.empty();
-    }
-
-    try {
-      HttpRequest request =
-          HttpRequest.newBuilder()
-              .uri(URI.create(inventoryServiceUrl + "/api/inventory/sku/" + sku))
-              .timeout(Duration.ofSeconds(timeoutSeconds))
-              .header("Accept", "application/json")
-              .GET()
-              .build();
-
-      HttpResponse<String> response =
-          httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
-      if (response.statusCode() == 200) {
-        resetCircuitBreaker();
-        return Optional.of(response.body());
-      } else {
-        recordFailure();
-        return Optional.empty();
-      }
-    } catch (Exception e) {
-      logger.error("Failed to get inventory item by SKU {}: {}", sku, e.getMessage(), e);
-      recordFailure();
-      return Optional.empty();
-    }
+    return executeGet("/api/inventory/sku/" + sku, "getInventoryItemBySku");
   }
 
   /**
@@ -181,35 +89,7 @@ public class InventoryServiceClient {
    * @return JSON response string or empty if circuit is open
    */
   public Optional<String> getLowStockItems() {
-    if (isCircuitOpen()) {
-      logger.warn("Circuit breaker is open, returning fallback for getLowStockItems");
-      return Optional.empty();
-    }
-
-    try {
-      HttpRequest request =
-          HttpRequest.newBuilder()
-              .uri(URI.create(inventoryServiceUrl + "/api/inventory/low-stock"))
-              .timeout(Duration.ofSeconds(timeoutSeconds))
-              .header("Accept", "application/json")
-              .GET()
-              .build();
-
-      HttpResponse<String> response =
-          httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
-      if (response.statusCode() == 200) {
-        resetCircuitBreaker();
-        return Optional.of(response.body());
-      } else {
-        recordFailure();
-        return Optional.empty();
-      }
-    } catch (Exception e) {
-      logger.error("Failed to get low stock items: {}", e.getMessage(), e);
-      recordFailure();
-      return Optional.empty();
-    }
+    return executeGet("/api/inventory/low-stock", "getLowStockItems");
   }
 
   /**
@@ -237,35 +117,79 @@ public class InventoryServiceClient {
     }
   }
 
+  /**
+   * Shared GET request executor with circuit breaker logic. Eliminates duplicate HTTP call patterns
+   * across all GET endpoints.
+   *
+   * @param path the API path (appended to the base inventory service URL)
+   * @param operationName name of the calling operation for logging
+   * @return JSON response string or empty on failure/circuit open
+   */
+  private Optional<String> executeGet(String path, String operationName) {
+    if (isCircuitOpen()) {
+      logger.warn("Circuit breaker is open, returning fallback for {}", operationName);
+      return Optional.empty();
+    }
+
+    try {
+      HttpRequest request =
+          HttpRequest.newBuilder()
+              .uri(URI.create(inventoryServiceUrl + path))
+              .timeout(Duration.ofSeconds(timeoutSeconds))
+              .header("Accept", "application/json")
+              .GET()
+              .build();
+
+      HttpResponse<String> response =
+          httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+      if (response.statusCode() == 200) {
+        resetCircuitBreaker();
+        return Optional.of(response.body());
+      } else {
+        logger.error(
+            "Inventory service returned status {} for {}: {}",
+            response.statusCode(),
+            operationName,
+            response.body());
+        recordFailure();
+        return Optional.empty();
+      }
+    } catch (Exception e) {
+      logger.error("Failed to execute {} on inventory service: {}", operationName, e.getMessage());
+      recordFailure();
+      return Optional.empty();
+    }
+  }
+
   private boolean isCircuitOpen() {
     if (!circuitOpen) {
       return false;
     }
     // Check if enough time has passed to try again (half-open state)
-    if (System.currentTimeMillis() - lastFailureTime > CIRCUIT_RESET_TIMEOUT_MS) {
+    if (System.currentTimeMillis() - lastFailureTime.get() > CIRCUIT_RESET_TIMEOUT_MS) {
       logger.info("Circuit breaker entering half-open state");
       return false;
     }
     return true;
   }
 
-  private void recordFailure() {
-    failureCount++;
-    lastFailureTime = System.currentTimeMillis();
-    if (failureCount >= FAILURE_THRESHOLD) {
+  private synchronized void recordFailure() {
+    lastFailureTime.set(System.currentTimeMillis());
+    if (failureCount.incrementAndGet() >= FAILURE_THRESHOLD) {
       circuitOpen = true;
       logger.error(
           "Circuit breaker opened after {} failures. Will retry after {}ms",
-          failureCount,
+          failureCount.get(),
           CIRCUIT_RESET_TIMEOUT_MS);
     }
   }
 
-  private void resetCircuitBreaker() {
+  private synchronized void resetCircuitBreaker() {
     if (circuitOpen) {
       logger.info("Circuit breaker reset - inventory service is healthy");
     }
     circuitOpen = false;
-    failureCount = 0;
+    failureCount.set(0);
   }
 }
