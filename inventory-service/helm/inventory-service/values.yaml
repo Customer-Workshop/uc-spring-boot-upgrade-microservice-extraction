@@ -1,0 +1,106 @@
+replicaCount: 2
+
+image:
+  repository: ghcr.io/cognition-partner-workshops/inventory-service
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8080"
+  prometheus.io/path: "/health"
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  capabilities:
+    drop:
+      - ALL
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8080
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts:
+    - host: inventory.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: inventory-tls
+      hosts:
+        - inventory.example.com
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+env:
+  ASPNETCORE_ENVIRONMENT: Production
+  ASPNETCORE_URLS: "http://+:8080"
+
+secrets:
+  connectionString: ""
+  jwtSecret: ""
+
+networkPolicy:
+  enabled: true
+  allowedNamespaces:
+    - default
+    - monitoring
+    - ingress-nginx
+
+serviceMonitor:
+  enabled: true
+  interval: 30s
+  path: /health
+  labels:
+    release: prometheus
+
+configMap:
+  appsettings: |
+    {
+      "Logging": {
+        "LogLevel": {
+          "Default": "Information"
+        }
+      }
+    }

@@ -1,0 +1,32 @@
+replicaCount: 1
+
+image:
+  tag: "dev-latest"
+
+ingress:
+  hosts:
+    - host: inventory-dev.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: inventory-dev-tls
+      hosts:
+        - inventory-dev.example.com
+
+resources:
+  limits:
+    cpu: 250m
+    memory: 256Mi
+  requests:
+    cpu: 50m
+    memory: 128Mi
+
+autoscaling:
+  enabled: false
+
+env:
+  ASPNETCORE_ENVIRONMENT: Development
+
+networkPolicy:
+  enabled: true

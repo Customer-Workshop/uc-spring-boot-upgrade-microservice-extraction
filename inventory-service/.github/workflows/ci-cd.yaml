@@ -1,0 +1,163 @@
+name: Inventory Service CI/CD
+
+on:
+  push:
+    branches: [main, workshop-*]
+    paths:
+      - 'inventory-service/**'
+  pull_request:
+    branches: [main, initial-code]
+    paths:
+      - 'inventory-service/**'
+
+env:
+  DOTNET_VERSION: '8.0.x'
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/inventory-service
+
+jobs:
+  build-and-test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: inventory-service
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dependencies
+        run: dotnet restore InventoryService.sln
+
+      - name: Build
+        run: dotnet build InventoryService.sln -c Release --no-restore
+
+      - name: Run tests
+        run: dotnet test InventoryService.sln -c Release --no-build --verbosity normal --collect:"XPlat Code Coverage" --results-directory ./coverage
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: inventory-service/coverage/
+
+  docker-build:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    if: github.event_name == 'push'
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix=
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./inventory-service
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  helm-lint:
+    name: Helm Lint
+    runs-on: ubuntu-latest
+    needs: build-and-test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: v3.13.0
+
+      - name: Lint Helm chart
+        run: helm lint inventory-service/helm/inventory-service
+
+      - name: Template Helm chart (dev)
+        run: |
+          helm template inventory-service-dev \
+            inventory-service/helm/inventory-service \
+            -f inventory-service/helm/inventory-service/values.yaml \
+            -f inventory-service/helm/inventory-service/values-dev.yaml
+
+      - name: Template Helm chart (staging)
+        run: |
+          helm template inventory-service-staging \
+            inventory-service/helm/inventory-service \
+            -f inventory-service/helm/inventory-service/values.yaml \
+            -f inventory-service/helm/inventory-service/values-staging.yaml
+
+  deploy-dev:
+    name: Deploy to Dev
+    runs-on: ubuntu-latest
+    needs: [docker-build, helm-lint]
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/workshop-')
+    environment: dev
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to Dev via ArgoCD
+        run: |
+          echo "Deploying to dev environment..."
+          echo "ArgoCD application: inventory-service-dev"
+          echo "Image tag: ${{ github.sha }}"
+          echo "In a production setup, this would trigger ArgoCD sync"
+          echo "argocd app set inventory-service-dev -p image.tag=${{ github.sha }}"
+          echo "argocd app sync inventory-service-dev"
+
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [deploy-dev]
+    if: github.ref == 'refs/heads/main'
+    environment: staging
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to Staging via ArgoCD
+        run: |
+          echo "Deploying to staging environment..."
+          echo "ArgoCD application: inventory-service-staging"
+          echo "Image tag: ${{ github.sha }}"
+          echo "In a production setup, this would trigger ArgoCD sync"
+          echo "argocd app set inventory-service-staging -p image.tag=${{ github.sha }}"
+          echo "argocd app sync inventory-service-staging"
