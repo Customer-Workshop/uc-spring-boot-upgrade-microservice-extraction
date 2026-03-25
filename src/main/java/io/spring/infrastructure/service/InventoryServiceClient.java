@@ -1,9 +1,11 @@
 package io.spring.infrastructure.service;
 
 import java.net.URI;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -58,7 +60,7 @@ public class InventoryServiceClient {
     StringBuilder path = new StringBuilder("/api/inventory?page=");
     path.append(page).append("&pageSize=").append(pageSize);
     if (search != null && !search.isEmpty()) {
-      path.append("&search=").append(search);
+      path.append("&search=").append(URLEncoder.encode(search, StandardCharsets.UTF_8));
     }
     return executeGet(path.toString(), "getInventoryItems");
   }
@@ -80,7 +82,7 @@ public class InventoryServiceClient {
    * @return JSON response string or empty if not found or circuit is open
    */
   public Optional<String> getInventoryItemBySku(String sku) {
-    return executeGet("/api/inventory/sku/" + sku, "getInventoryItemBySku");
+    return executeGet("/api/inventory/sku/" + URLEncoder.encode(sku, StandardCharsets.UTF_8), "getInventoryItemBySku");
   }
 
   /**
