@@ -1,0 +1,124 @@
+<div class="inventory-list-container">
+  <div class="header">
+    <h2>Inventory Management</h2>
+    <button class="btn btn-primary" (click)="createItem()">+ Add Item</button>
+  </div>
+
+  <div class="filters">
+    <div class="search-box">
+      <input
+        type="text"
+        placeholder="Search by name, SKU, or description..."
+        [(ngModel)]="searchParams.searchTerm"
+        (keyup.enter)="onSearch()"
+      />
+      <button class="btn btn-secondary" (click)="onSearch()">Search</button>
+    </div>
+
+    <div class="filter-controls">
+      <select (change)="onCategoryChange($any($event.target).value)">
+        <option value="">All Categories</option>
+        <option *ngFor="let cat of categories" [value]="cat">{{ cat }}</option>
+      </select>
+
+      <label class="checkbox-label">
+        <input
+          type="checkbox"
+          [(ngModel)]="searchParams.lowStock"
+          (change)="onSearch()"
+        />
+        Low Stock Only
+      </label>
+    </div>
+  </div>
+
+  <div *ngIf="error" class="alert alert-error">{{ error }}</div>
+
+  <div *ngIf="loading" class="loading-spinner">
+    <div class="spinner"></div>
+    <span>Loading...</span>
+  </div>
+
+  <div *ngIf="!loading && items.length === 0" class="empty-state">
+    <p>No inventory items found.</p>
+  </div>
+
+  <table *ngIf="!loading && items.length > 0" class="inventory-table">
+    <thead>
+      <tr>
+        <th (click)="onSort('sku')" class="sortable">
+          SKU {{ getSortIcon('sku') }}
+        </th>
+        <th (click)="onSort('name')" class="sortable">
+          Name {{ getSortIcon('name') }}
+        </th>
+        <th (click)="onSort('category')" class="sortable">
+          Category {{ getSortIcon('category') }}
+        </th>
+        <th (click)="onSort('quantity')" class="sortable">
+          Quantity {{ getSortIcon('quantity') }}
+        </th>
+        <th (click)="onSort('unitprice')" class="sortable">
+          Unit Price {{ getSortIcon('unitprice') }}
+        </th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr
+        *ngFor="let item of items"
+        (click)="viewItem(item.id)"
+        [class.low-stock]="isLowStock(item)"
+        class="clickable-row"
+      >
+        <td>{{ item.sku }}</td>
+        <td>{{ item.name }}</td>
+        <td>{{ item.category }}</td>
+        <td [class.warning]="isLowStock(item)">{{ item.quantity }}</td>
+        <td>{{ item.unitPrice | currency }}</td>
+        <td>
+          <span class="badge" [class.active]="item.isActive" [class.inactive]="!item.isActive">
+            {{ item.isActive ? 'Active' : 'Inactive' }}
+          </span>
+        </td>
+        <td>
+          <button class="btn btn-sm btn-danger" (click)="deleteItem(item.id, $event)">
+            Delete
+          </button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div *ngIf="totalPages > 1" class="pagination">
+    <button
+      class="btn btn-sm"
+      [disabled]="searchParams.page === 1"
+      (click)="onPageChange((searchParams.page || 1) - 1)"
+    >
+      Previous
+    </button>
+
+    <button
+      *ngFor="let p of pages"
+      class="btn btn-sm"
+      [class.active]="p === searchParams.page"
+      (click)="onPageChange(p)"
+    >
+      {{ p }}
+    </button>
+
+    <button
+      class="btn btn-sm"
+      [disabled]="searchParams.page === totalPages"
+      (click)="onPageChange((searchParams.page || 1) + 1)"
+    >
+      Next
+    </button>
+  </div>
+
+  <div class="summary">
+    Showing {{ items.length }} of {{ totalCount }} items
+  </div>
+</div>

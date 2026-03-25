@@ -1,0 +1,68 @@
+replicaCount: 2
+
+image:
+  tag: "staging-latest"
+
+ingress:
+  enabled: true
+  hosts:
+    - host: inventory-staging.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: inventory-staging-tls
+      hosts:
+        - inventory-staging.example.com
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 75
+  targetMemoryUtilizationPercentage: 80
+
+env:
+  - name: ASPNETCORE_ENVIRONMENT
+    value: "Staging"
+  - name: ASPNETCORE_URLS
+    value: "http://+:8080"
+  - name: Logging__LogLevel__Default
+    value: "Information"
+
+networkPolicy:
+  enabled: true
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+        - podSelector:
+            matchLabels:
+              app: monolith
+      ports:
+        - protocol: TCP
+          port: 8080
+  egress:
+    - to: []
+      ports:
+        - protocol: TCP
+          port: 1433
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 53
+        - protocol: UDP
+          port: 53
+
+serviceMonitor:
+  enabled: true
+  interval: 30s

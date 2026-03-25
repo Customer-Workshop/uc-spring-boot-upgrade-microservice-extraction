@@ -1,0 +1,43 @@
+<div class="low-stock-container">
+  <h2>Low Stock Alerts</h2>
+  <p class="subtitle">Items at or below their reorder level</p>
+
+  <div *ngIf="loading" class="loading">Loading...</div>
+
+  <div *ngIf="!loading && lowStockItems.length === 0" class="empty-state">
+    <p>All items are well stocked!</p>
+  </div>
+
+  <div class="alerts-grid" *ngIf="!loading && lowStockItems.length > 0">
+    <div
+      *ngFor="let item of lowStockItems"
+      class="alert-card"
+      (click)="viewItem(item.id)"
+    >
+      <div class="alert-header">
+        <span class="sku">{{ item.sku }}</span>
+        <span class="badge critical" *ngIf="item.quantity === 0">Out of Stock</span>
+        <span class="badge warning" *ngIf="item.quantity > 0">Low Stock</span>
+      </div>
+      <h4>{{ item.name }}</h4>
+      <div class="stock-info">
+        <div class="stock-bar">
+          <div
+            class="stock-fill"
+            [style.width.%]="getStockPercentage(item)"
+            [class.critical]="item.quantity === 0"
+            [class.warning]="item.quantity > 0"
+          ></div>
+        </div>
+        <div class="stock-numbers">
+          <span>Current: <strong>{{ item.quantity }}</strong></span>
+          <span>Reorder Level: <strong>{{ item.reorderLevel }}</strong></span>
+        </div>
+      </div>
+      <div class="alert-footer">
+        <span>{{ item.category }}</span>
+        <span>{{ item.supplier || 'No supplier' }}</span>
+      </div>
+    </div>
+  </div>
+</div>

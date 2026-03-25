@@ -1,0 +1,62 @@
+<div class="adjustment-card">
+  <h3>Stock Adjustment</h3>
+
+  <div *ngIf="error" class="alert alert-error">{{ error }}</div>
+
+  <form (ngSubmit)="onSubmit()" class="adjustment-form">
+    <div class="form-row">
+      <div class="form-group">
+        <label for="movementType">Movement Type</label>
+        <select id="movementType" [(ngModel)]="adjustment.movementType" name="movementType">
+          <option value="IN">Stock In</option>
+          <option value="OUT">Stock Out</option>
+          <option value="ADJUSTMENT">Manual Adjustment</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="quantity">Quantity</label>
+        <input
+          id="quantity"
+          type="number"
+          [(ngModel)]="adjustment.quantity"
+          name="quantity"
+          required
+          min="0"
+        />
+      </div>
+    </div>
+
+    <div class="preview">
+      <span>Current: {{ currentQuantity }}</span>
+      <span>→</span>
+      <span [class.warning]="previewQuantity < 0">New: {{ previewQuantity }}</span>
+    </div>
+
+    <div class="form-group">
+      <label for="reference">Reference</label>
+      <input
+        id="reference"
+        type="text"
+        [(ngModel)]="adjustment.reference"
+        name="reference"
+        placeholder="e.g., PO-12345"
+      />
+    </div>
+
+    <div class="form-group">
+      <label for="notes">Notes</label>
+      <textarea
+        id="notes"
+        [(ngModel)]="adjustment.notes"
+        name="notes"
+        rows="2"
+        placeholder="Additional notes..."
+      ></textarea>
+    </div>
+
+    <button type="submit" class="btn btn-primary" [disabled]="saving || adjustment.quantity <= 0">
+      {{ saving ? 'Processing...' : 'Apply Adjustment' }}
+    </button>
+  </form>
+</div>

@@ -1,0 +1,13 @@
+apiVersion: v2
+name: inventory-service
+description: Helm chart for the Inventory microservice decomposed from the monolith
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+maintainers:
+  - name: Platform Engineering
+keywords:
+  - inventory
+  - microservice
+  - dotnet
+  - angular

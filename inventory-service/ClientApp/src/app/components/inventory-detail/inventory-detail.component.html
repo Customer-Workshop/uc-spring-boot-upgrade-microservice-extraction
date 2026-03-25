@@ -1,0 +1,127 @@
+<div class="detail-container" *ngIf="!loading && item">
+  <div class="header">
+    <button class="btn btn-secondary" (click)="goBack()">← Back</button>
+    <h2>{{ item.name }}</h2>
+    <div class="actions">
+      <button class="btn btn-primary" (click)="toggleStockAdjustment()">
+        {{ showStockAdjustment ? 'Cancel' : 'Adjust Stock' }}
+      </button>
+      <button class="btn btn-secondary" (click)="editItem()">Edit</button>
+    </div>
+  </div>
+
+  <div *ngIf="isLowStock()" class="alert alert-warning">
+    Low stock alert: Current quantity ({{ item.quantity }}) is at or below reorder level ({{ item.reorderLevel }})
+  </div>
+
+  <app-stock-adjustment
+    *ngIf="showStockAdjustment"
+    [itemId]="item.id"
+    [currentQuantity]="item.quantity"
+    (adjusted)="onStockAdjusted()"
+  ></app-stock-adjustment>
+
+  <div class="detail-grid">
+    <div class="detail-card">
+      <h3>General Information</h3>
+      <div class="field">
+        <label>SKU</label>
+        <span>{{ item.sku }}</span>
+      </div>
+      <div class="field">
+        <label>Name</label>
+        <span>{{ item.name }}</span>
+      </div>
+      <div class="field">
+        <label>Description</label>
+        <span>{{ item.description || 'N/A' }}</span>
+      </div>
+      <div class="field">
+        <label>Category</label>
+        <span>{{ item.category }}</span>
+      </div>
+      <div class="field">
+        <label>Status</label>
+        <span class="badge" [class.active]="item.isActive" [class.inactive]="!item.isActive">
+          {{ item.isActive ? 'Active' : 'Inactive' }}
+        </span>
+      </div>
+    </div>
+
+    <div class="detail-card">
+      <h3>Stock & Pricing</h3>
+      <div class="field">
+        <label>Quantity</label>
+        <span [class.warning]="isLowStock()">{{ item.quantity }}</span>
+      </div>
+      <div class="field">
+        <label>Unit Price</label>
+        <span>{{ item.unitPrice | currency }}</span>
+      </div>
+      <div class="field">
+        <label>Reorder Level</label>
+        <span>{{ item.reorderLevel }}</span>
+      </div>
+      <div class="field">
+        <label>Total Value</label>
+        <span>{{ item.quantity * item.unitPrice | currency }}</span>
+      </div>
+    </div>
+
+    <div class="detail-card">
+      <h3>Supply Chain</h3>
+      <div class="field">
+        <label>Warehouse Location</label>
+        <span>{{ item.warehouseLocation || 'N/A' }}</span>
+      </div>
+      <div class="field">
+        <label>Supplier</label>
+        <span>{{ item.supplier || 'N/A' }}</span>
+      </div>
+      <div class="field">
+        <label>Created</label>
+        <span>{{ item.createdAt | date: 'medium' }}</span>
+      </div>
+      <div class="field">
+        <label>Updated</label>
+        <span>{{ item.updatedAt | date: 'medium' }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="movements-section">
+    <h3>Stock Movement History</h3>
+    <table *ngIf="movements.length > 0" class="movements-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Type</th>
+          <th>Quantity</th>
+          <th>Previous</th>
+          <th>New</th>
+          <th>Reference</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let m of movements">
+          <td>{{ m.createdAt | date: 'short' }}</td>
+          <td>
+            <span class="movement-type" [ngClass]="m.movementType.toLowerCase()">
+              {{ m.movementType }}
+            </span>
+          </td>
+          <td>{{ m.quantity }}</td>
+          <td>{{ m.previousQuantity }}</td>
+          <td>{{ m.newQuantity }}</td>
+          <td>{{ m.reference || '-' }}</td>
+          <td>{{ m.notes || '-' }}</td>
+        </tr>
+      </tbody>
+    </table>
+    <p *ngIf="movements.length === 0" class="empty">No stock movements recorded.</p>
+  </div>
+</div>
+
+<div *ngIf="loading" class="loading">Loading...</div>
+<div *ngIf="error" class="alert alert-error">{{ error }}</div>
