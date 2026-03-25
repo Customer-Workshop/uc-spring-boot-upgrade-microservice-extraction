@@ -38,7 +38,7 @@ public class InventoryServiceClient {
 
   public InventoryServiceClient(
       @Value("${inventory.service.url:http://localhost:5062}") String inventoryServiceUrl,
-      @Value("${inventory.service.timeout:10}") int timeoutSeconds) {
+      @Value("${inventory.service.timeout:15}") int timeoutSeconds) {
     this.inventoryServiceUrl = inventoryServiceUrl;
     this.timeoutSeconds = timeoutSeconds;
     this.httpClient =
