@@ -42,4 +42,10 @@ public class InternalInteractionApi {
       @RequestBody List<String> articleIds, @RequestParam("userId") String userId) {
     return ResponseEntity.ok(articleFavoritesReadService.userFavorites(articleIds, userId));
   }
+
+  @GetMapping("/by-user/{userId}")
+  public ResponseEntity<List<String>> getArticlesFavoritedByUser(
+      @PathVariable("userId") String userId) {
+    return ResponseEntity.ok(articleFavoritesReadService.articlesFavoritedByUser(userId));
+  }
 }

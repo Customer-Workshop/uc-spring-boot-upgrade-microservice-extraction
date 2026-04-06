@@ -11,11 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.validation.Valid;
-import javax.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import com.fasterxml.jackson.annotation.JsonRootName;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -96,13 +92,4 @@ public class CommentsApi {
       }
     };
   }
-}
-
-@Getter
-@NoArgsConstructor
-@AllArgsConstructor
-@JsonRootName("comment")
-class NewCommentParam {
-  @NotBlank(message = "can't be empty")
-  private String body;
 }

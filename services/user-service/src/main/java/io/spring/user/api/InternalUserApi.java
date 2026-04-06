@@ -56,6 +56,23 @@ public class InternalUserApi {
     return ResponseEntity.ok(profiles);
   }
 
+  @GetMapping("/by-username/{username}")
+  public ResponseEntity<ProfileData> getUserByUsername(
+      @PathVariable("username") String username) {
+    UserData userData = userReadService.findByUsername(username);
+    if (userData == null) {
+      return ResponseEntity.notFound().build();
+    }
+    ProfileData profileData =
+        new ProfileData(
+            userData.getId(),
+            userData.getUsername(),
+            userData.getBio(),
+            userData.getImage(),
+            false);
+    return ResponseEntity.ok(profileData);
+  }
+
   @GetMapping("/{id}/following/{targetId}")
   public ResponseEntity<Boolean> isFollowing(
       @PathVariable("id") String userId, @PathVariable("targetId") String targetId) {

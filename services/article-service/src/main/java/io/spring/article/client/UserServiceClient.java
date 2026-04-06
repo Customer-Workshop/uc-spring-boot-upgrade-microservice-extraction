@@ -52,6 +52,17 @@ public class UserServiceClient {
     }
   }
 
+  public String getUserIdByUsername(String username) {
+    try {
+      ProfileData profile =
+          restTemplate.getForObject(
+              userServiceUrl + "/internal/users/by-username/" + username, ProfileData.class);
+      return profile != null ? profile.getId() : null;
+    } catch (Exception e) {
+      return null;
+    }
+  }
+
   public List<String> getFollowedUsers(String userId) {
     try {
       String[] users =
