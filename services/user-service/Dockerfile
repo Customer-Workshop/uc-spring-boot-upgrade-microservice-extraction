@@ -7,7 +7,7 @@ COPY user-service ./user-service
 RUN gradle :user-service:bootJar --no-daemon -x test
 
 # Stage 2: Runtime
-FROM openjdk:11-jre-slim
+FROM eclipse-temurin:11-jre
 WORKDIR /app
 COPY --from=build /app/user-service/build/libs/*.jar app.jar
 EXPOSE 8081

@@ -7,7 +7,7 @@ COPY article-service ./article-service
 RUN gradle :article-service:bootJar --no-daemon -x test
 
 # Stage 2: Runtime
-FROM openjdk:11-jre-slim
+FROM eclipse-temurin:11-jre
 WORKDIR /app
 COPY --from=build /app/article-service/build/libs/*.jar app.jar
 EXPOSE 8082

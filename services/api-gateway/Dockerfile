@@ -7,7 +7,7 @@ COPY api-gateway ./api-gateway
 RUN gradle :api-gateway:bootJar --no-daemon -x test
 
 # Stage 2: Runtime
-FROM openjdk:11-jre-slim
+FROM eclipse-temurin:11-jre
 WORKDIR /app
 COPY --from=build /app/api-gateway/build/libs/*.jar app.jar
 EXPOSE 8080
