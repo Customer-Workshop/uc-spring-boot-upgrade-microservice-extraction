@@ -76,6 +76,7 @@ services:
       DATABASE_USERNAME: postgres
       DATABASE_PASSWORD: postgres
       USER_SERVICE_URL: http://user-service:8081
+      INTERACTION_SERVICE_URL: http://interaction-service:8083
     depends_on:
       articledb:
         condition: service_healthy
