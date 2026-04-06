@@ -4,7 +4,7 @@ COPY build.gradle settings.gradle ./
 COPY src ./src
 RUN gradle bootJar --no-daemon
 
-FROM openjdk:11-jre-slim
+FROM eclipse-temurin:11-jre
 RUN apt-get update && apt-get install -y --no-install-recommends wget && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=build /app/build/libs/*.jar app.jar
