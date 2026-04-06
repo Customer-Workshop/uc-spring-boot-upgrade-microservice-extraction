@@ -11,8 +11,10 @@ import io.spring.graphql.DgsConstants.MUTATION;
 import io.spring.graphql.exception.AuthenticationException;
 import io.spring.graphql.types.Profile;
 import io.spring.graphql.types.ProfilePayload;
+import javax.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.web.client.RestTemplate;
 
@@ -22,14 +24,17 @@ public class RelationMutation {
   private final ProfileQueryService profileQueryService;
   private final RestTemplate restTemplate;
   private final String userServiceUrl;
+  private final HttpServletRequest httpServletRequest;
 
   public RelationMutation(
       ProfileQueryService profileQueryService,
       RestTemplate restTemplate,
-      @Value("${user-service.url}") String userServiceUrl) {
+      @Value("${user-service.url}") String userServiceUrl,
+      HttpServletRequest httpServletRequest) {
     this.profileQueryService = profileQueryService;
     this.restTemplate = restTemplate;
     this.userServiceUrl = userServiceUrl;
+    this.httpServletRequest = httpServletRequest;
   }
 
   @DgsData(parentType = MUTATION.TYPE_NAME, field = MUTATION.FollowUser)
@@ -37,9 +42,11 @@ public class RelationMutation {
     User user = SecurityUtil.getCurrentUser().orElseThrow(AuthenticationException::new);
 
     // Delegate follow operation to user-service
+    HttpHeaders headers = buildAuthHeaders();
+    HttpEntity<Void> authEntity = new HttpEntity<>(headers);
     restTemplate.postForObject(
         userServiceUrl + "/profiles/{username}/follow",
-        HttpEntity.EMPTY,
+        authEntity,
         String.class,
         username);
 
@@ -52,15 +59,26 @@ public class RelationMutation {
     User user = SecurityUtil.getCurrentUser().orElseThrow(AuthenticationException::new);
 
     // Delegate unfollow operation to user-service
+    HttpHeaders unfollowHeaders = buildAuthHeaders();
+    HttpEntity<Void> unfollowEntity = new HttpEntity<>(unfollowHeaders);
     restTemplate.exchange(
         userServiceUrl + "/profiles/{username}/follow",
         HttpMethod.DELETE,
-        HttpEntity.EMPTY,
+        unfollowEntity,
         String.class,
         username);
 
     Profile profile = buildProfile(username, user);
     return ProfilePayload.newBuilder().profile(profile).build();
+  }
+
+  private HttpHeaders buildAuthHeaders() {
+    HttpHeaders headers = new HttpHeaders();
+    String authHeader = httpServletRequest.getHeader("Authorization");
+    if (authHeader != null) {
+      headers.set("Authorization", authHeader);
+    }
+    return headers;
   }
 
   private Profile buildProfile(String username, User current) {

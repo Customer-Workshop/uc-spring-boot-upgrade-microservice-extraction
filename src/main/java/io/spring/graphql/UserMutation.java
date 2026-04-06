@@ -15,14 +15,17 @@ import io.spring.graphql.types.UserResult;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import javax.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 @DgsComponent
@@ -32,16 +35,19 @@ public class UserMutation {
   private final PasswordEncoder encryptService;
   private final RestTemplate restTemplate;
   private final String userServiceUrl;
+  private final HttpServletRequest httpServletRequest;
 
   public UserMutation(
       UserRepository userRepository,
       PasswordEncoder encryptService,
       RestTemplate restTemplate,
-      @Value("${user-service.url}") String userServiceUrl) {
+      @Value("${user-service.url}") String userServiceUrl,
+      HttpServletRequest httpServletRequest) {
     this.userRepository = userRepository;
     this.encryptService = encryptService;
     this.restTemplate = restTemplate;
     this.userServiceUrl = userServiceUrl;
+    this.httpServletRequest = httpServletRequest;
   }
 
   @DgsData(parentType = MUTATION.TYPE_NAME, field = MUTATION.CreateUser)
@@ -57,7 +63,11 @@ public class UserMutation {
     headers.setContentType(MediaType.APPLICATION_JSON);
     HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
 
-    restTemplate.postForObject(userServiceUrl + "/users", request, Map.class);
+    try {
+      restTemplate.postForObject(userServiceUrl + "/users", request, Map.class);
+    } catch (HttpClientErrorException e) {
+      throw new InvalidAuthenticationException();
+    }
 
     Optional<User> userOpt = userRepository.findByEmail(input.getEmail());
     if (userOpt.isPresent()) {
@@ -97,16 +107,43 @@ public class UserMutation {
     io.spring.core.user.User currentUser =
         (io.spring.core.user.User) authentication.getPrincipal();
 
-    currentUser.update(
-        updateUserInput.getEmail(),
-        updateUserInput.getUsername(),
-        updateUserInput.getPassword(),
-        updateUserInput.getBio(),
-        updateUserInput.getImage());
+    // Forward the update to user-service via REST
+    Map<String, Object> body = new HashMap<>();
+    Map<String, String> userFields = new HashMap<>();
+    if (updateUserInput.getEmail() != null) userFields.put("email", updateUserInput.getEmail());
+    if (updateUserInput.getUsername() != null) userFields.put("username", updateUserInput.getUsername());
+    if (updateUserInput.getPassword() != null) userFields.put("password", updateUserInput.getPassword());
+    if (updateUserInput.getBio() != null) userFields.put("bio", updateUserInput.getBio());
+    if (updateUserInput.getImage() != null) userFields.put("image", updateUserInput.getImage());
+    body.put("user", userFields);
+
+    HttpHeaders headers = buildAuthHeaders();
+    headers.setContentType(MediaType.APPLICATION_JSON);
+    HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+
+    try {
+      restTemplate.exchange(
+          userServiceUrl + "/user", HttpMethod.PUT, request, Map.class);
+    } catch (HttpClientErrorException e) {
+      throw new InvalidAuthenticationException();
+    }
+
+    // Re-fetch updated user from user-service
+    Optional<User> updatedUser = userRepository.findById(currentUser.getId());
+    User resolvedUser = updatedUser.orElse(currentUser);
 
     return DataFetcherResult.<UserPayload>newResult()
         .data(UserPayload.newBuilder().build())
-        .localContext(currentUser)
+        .localContext(resolvedUser)
         .build();
+  }
+
+  private HttpHeaders buildAuthHeaders() {
+    HttpHeaders headers = new HttpHeaders();
+    String authHeader = httpServletRequest.getHeader("Authorization");
+    if (authHeader != null) {
+      headers.set("Authorization", authHeader);
+    }
+    return headers;
   }
 }
