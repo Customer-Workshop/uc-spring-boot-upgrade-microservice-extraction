@@ -5,50 +5,70 @@ import com.netflix.graphql.dgs.DgsData;
 import com.netflix.graphql.dgs.InputArgument;
 import graphql.execution.DataFetcherResult;
 import io.spring.api.exception.InvalidAuthenticationException;
-import io.spring.application.user.RegisterParam;
-import io.spring.application.user.UpdateUserCommand;
-import io.spring.application.user.UpdateUserParam;
-import io.spring.application.user.UserService;
 import io.spring.core.user.User;
 import io.spring.core.user.UserRepository;
 import io.spring.graphql.DgsConstants.MUTATION;
-import io.spring.graphql.exception.GraphQLCustomizeExceptionHandler;
 import io.spring.graphql.types.CreateUserInput;
 import io.spring.graphql.types.UpdateUserInput;
 import io.spring.graphql.types.UserPayload;
 import io.spring.graphql.types.UserResult;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
-import javax.validation.ConstraintViolationException;
-import lombok.AllArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.client.RestTemplate;
 
 @DgsComponent
-@AllArgsConstructor
 public class UserMutation {
 
-  private UserRepository userRepository;
-  private PasswordEncoder encryptService;
-  private UserService userService;
+  private final UserRepository userRepository;
+  private final PasswordEncoder encryptService;
+  private final RestTemplate restTemplate;
+  private final String userServiceUrl;
+
+  public UserMutation(
+      UserRepository userRepository,
+      PasswordEncoder encryptService,
+      RestTemplate restTemplate,
+      @Value("${user-service.url}") String userServiceUrl) {
+    this.userRepository = userRepository;
+    this.encryptService = encryptService;
+    this.restTemplate = restTemplate;
+    this.userServiceUrl = userServiceUrl;
+  }
 
   @DgsData(parentType = MUTATION.TYPE_NAME, field = MUTATION.CreateUser)
   public DataFetcherResult<UserResult> createUser(@InputArgument("input") CreateUserInput input) {
-    RegisterParam registerParam =
-        new RegisterParam(input.getEmail(), input.getUsername(), input.getPassword());
-    User user;
-    try {
-      user = userService.createUser(registerParam);
-    } catch (ConstraintViolationException cve) {
+    Map<String, Object> body = new HashMap<>();
+    Map<String, String> userFields = new HashMap<>();
+    userFields.put("email", input.getEmail());
+    userFields.put("username", input.getUsername());
+    userFields.put("password", input.getPassword());
+    body.put("user", userFields);
+
+    HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.APPLICATION_JSON);
+    HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+
+    restTemplate.postForObject(userServiceUrl + "/users", request, Map.class);
+
+    Optional<User> userOpt = userRepository.findByEmail(input.getEmail());
+    if (userOpt.isPresent()) {
       return DataFetcherResult.<UserResult>newResult()
-          .data(GraphQLCustomizeExceptionHandler.getErrorsAsData(cve))
+          .data(UserPayload.newBuilder().build())
+          .localContext(userOpt.get())
           .build();
     }
 
     return DataFetcherResult.<UserResult>newResult()
         .data(UserPayload.newBuilder().build())
-        .localContext(user)
         .build();
   }
 
@@ -74,17 +94,16 @@ public class UserMutation {
         || authentication.getPrincipal() == null) {
       return null;
     }
-    io.spring.core.user.User currentUser = (io.spring.core.user.User) authentication.getPrincipal();
-    UpdateUserParam param =
-        UpdateUserParam.builder()
-            .username(updateUserInput.getUsername())
-            .email(updateUserInput.getEmail())
-            .bio(updateUserInput.getBio())
-            .password(updateUserInput.getPassword())
-            .image(updateUserInput.getImage())
-            .build();
+    io.spring.core.user.User currentUser =
+        (io.spring.core.user.User) authentication.getPrincipal();
 
-    userService.updateUser(new UpdateUserCommand(currentUser, param));
+    currentUser.update(
+        updateUserInput.getEmail(),
+        updateUserInput.getUsername(),
+        updateUserInput.getPassword(),
+        updateUserInput.getBio(),
+        updateUserInput.getImage());
+
     return DataFetcherResult.<UserPayload>newResult()
         .data(UserPayload.newBuilder().build())
         .localContext(currentUser)

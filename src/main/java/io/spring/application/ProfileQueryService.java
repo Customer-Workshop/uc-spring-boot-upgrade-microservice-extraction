@@ -7,9 +7,9 @@ import io.spring.infrastructure.mybatis.readservice.UserReadService;
 import io.spring.infrastructure.mybatis.readservice.UserRelationshipQueryService;
 import java.util.Optional;
 import lombok.AllArgsConstructor;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
-@Component
+@Service
 @AllArgsConstructor
 public class ProfileQueryService {
   private UserReadService userReadService;
@@ -19,17 +19,18 @@ public class ProfileQueryService {
     UserData userData = userReadService.findByUsername(username);
     if (userData == null) {
       return Optional.empty();
-    } else {
-      ProfileData profileData =
-          new ProfileData(
-              userData.getId(),
-              userData.getUsername(),
-              userData.getBio(),
-              userData.getImage(),
-              currentUser != null
-                  && userRelationshipQueryService.isUserFollowing(
-                      currentUser.getId(), userData.getId()));
-      return Optional.of(profileData);
     }
+    ProfileData profileData =
+        new ProfileData(
+            userData.getId(),
+            userData.getUsername(),
+            userData.getBio(),
+            userData.getImage(),
+            false);
+    if (currentUser != null) {
+      profileData.setFollowing(
+          userRelationshipQueryService.isUserFollowing(currentUser.getId(), userData.getId()));
+    }
+    return Optional.of(profileData);
   }
 }
