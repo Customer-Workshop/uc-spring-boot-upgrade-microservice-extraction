@@ -1,0 +1,8 @@
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+    api 'com.fasterxml.jackson.core:jackson-annotations:2.13.1'
+    api 'com.fasterxml.jackson.core:jackson-databind:2.13.1'
+}

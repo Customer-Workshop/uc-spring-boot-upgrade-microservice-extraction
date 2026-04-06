@@ -1,0 +1,123 @@
+version: '3.8'
+
+services:
+  # PostgreSQL databases
+  userdb:
+    image: postgres:14-alpine
+    environment:
+      POSTGRES_DB: userdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - userdb-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  articledb:
+    image: postgres:14-alpine
+    environment:
+      POSTGRES_DB: articledb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5434:5432"
+    volumes:
+      - articledb-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  interactiondb:
+    image: postgres:14-alpine
+    environment:
+      POSTGRES_DB: interactiondb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5435:5432"
+    volumes:
+      - interactiondb-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Microservices
+  user-service:
+    build:
+      context: .
+      dockerfile: user-service/Dockerfile
+    ports:
+      - "8081:8081"
+    environment:
+      DATABASE_URL: jdbc:postgresql://userdb:5432/userdb
+      DATABASE_USERNAME: postgres
+      DATABASE_PASSWORD: postgres
+    depends_on:
+      userdb:
+        condition: service_healthy
+
+  article-service:
+    build:
+      context: .
+      dockerfile: article-service/Dockerfile
+    ports:
+      - "8082:8082"
+    environment:
+      DATABASE_URL: jdbc:postgresql://articledb:5432/articledb
+      DATABASE_USERNAME: postgres
+      DATABASE_PASSWORD: postgres
+      USER_SERVICE_URL: http://user-service:8081
+    depends_on:
+      articledb:
+        condition: service_healthy
+      user-service:
+        condition: service_started
+
+  interaction-service:
+    build:
+      context: .
+      dockerfile: interaction-service/Dockerfile
+    ports:
+      - "8083:8083"
+    environment:
+      DATABASE_URL: jdbc:postgresql://interactiondb:5432/interactiondb
+      DATABASE_USERNAME: postgres
+      DATABASE_PASSWORD: postgres
+      USER_SERVICE_URL: http://user-service:8081
+      ARTICLE_SERVICE_URL: http://article-service:8082
+    depends_on:
+      interactiondb:
+        condition: service_healthy
+      user-service:
+        condition: service_started
+      article-service:
+        condition: service_started
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: api-gateway/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      USER_SERVICE_URL: http://user-service:8081
+      ARTICLE_SERVICE_URL: http://article-service:8082
+      INTERACTION_SERVICE_URL: http://interaction-service:8083
+    depends_on:
+      - user-service
+      - article-service
+      - interaction-service
+
+volumes:
+  userdb-data:
+  articledb-data:
+  interactiondb-data:

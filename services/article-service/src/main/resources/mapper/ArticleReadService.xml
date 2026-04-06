@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="io.spring.article.infrastructure.mybatis.readservice.ArticleReadService">
+
+    <sql id="profileColumns">
+      A.id articleId,
+      A.user_id articleUserId,
+      A.slug articleSlug,
+      A.title articleTitle,
+      A.description articleDescription,
+      A.body articleBody,
+      A.created_at articleCreatedAt,
+      A.updated_at articleUpdatedAt,
+      T.name tagName
+    </sql>
+
+    <select id="findById" resultMap="articleData">
+        select
+        <include refid="profileColumns"/>
+        from articles A
+        left join article_tags AT2 on A.id = AT2.article_id
+        left join tags T on T.id = AT2.tag_id
+        where A.id = #{id}
+    </select>
+    <select id="findBySlug" resultMap="articleData">
+        select
+        <include refid="profileColumns"/>
+        from articles A
+        left join article_tags AT2 on A.id = AT2.article_id
+        left join tags T on T.id = AT2.tag_id
+        where A.slug = #{slug}
+    </select>
+
+    <select id="queryArticles" resultType="java.lang.String">
+        select DISTINCT(A.id) from articles A
+        <if test="tag != null">
+            left join article_tags AT2 on A.id = AT2.article_id
+            left join tags T on T.id = AT2.tag_id
+        </if>
+        <where>
+            <if test="tag != null">
+                T.name = #{tag}
+            </if>
+            <if test="author != null">
+                AND A.user_id = #{author}
+            </if>
+        </where>
+        order by A.created_at desc
+        limit #{page.limit}
+        offset #{page.offset}
+    </select>
+
+    <select id="countArticle" resultType="java.lang.Integer">
+        select count(DISTINCT A.id) from articles A
+        <if test="tag != null">
+            left join article_tags AT2 on A.id = AT2.article_id
+            left join tags T on T.id = AT2.tag_id
+        </if>
+        <where>
+            <if test="tag != null">
+                T.name = #{tag}
+            </if>
+            <if test="author != null">
+                AND A.user_id = #{author}
+            </if>
+        </where>
+    </select>
+
+    <select id="findArticles" resultMap="articleData">
+        select
+        <include refid="profileColumns"/>
+        from articles A
+        left join article_tags AT2 on A.id = AT2.article_id
+        left join tags T on T.id = AT2.tag_id
+        where A.id in
+        <foreach index="index" collection="articleIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        order by A.created_at desc
+    </select>
+
+    <select id="findArticlesOfAuthors" resultMap="articleData">
+        select
+        <include refid="profileColumns"/>
+        from articles A
+        left join article_tags AT2 on A.id = AT2.article_id
+        left join tags T on T.id = AT2.tag_id
+        where A.user_id in
+        <foreach index="index" collection="authors" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        order by A.created_at desc
+        limit #{page.limit}
+        offset #{page.offset}
+    </select>
+
+    <select id="countFeedSize" resultType="java.lang.Integer">
+        select count(1) from articles A
+        where A.user_id in
+        <foreach index="index" collection="authors" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <resultMap id="articleData" type="io.spring.article.application.data.ArticleData">
+        <id column="articleId" property="id"/>
+        <result column="articleSlug" property="slug"/>
+        <result column="articleTitle" property="title"/>
+        <result column="articleDescription" property="description"/>
+        <result column="articleBody" property="body"/>
+        <result column="articleCreatedAt" property="createdAt"/>
+        <result column="articleUpdatedAt" property="updatedAt"/>
+        <collection property="tagList" ofType="string">
+            <result column="tagName"/>
+        </collection>
+    </resultMap>
+</mapper>

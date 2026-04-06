@@ -1,0 +1,72 @@
+server:
+  port: 8080
+
+jwt:
+  secret: nRvyYC4soFxBdZ-F-5Nnzz5USXstR1YylsTd-mA0aKtI9HUlriGrtkf-TiuDapkLiUCogO3JOK7kwZisrHp6wA
+
+spring:
+  cloud:
+    gateway:
+      routes:
+        # User Service routes
+        - id: user-service-users
+          uri: ${USER_SERVICE_URL:http://localhost:8081}
+          predicates:
+            - Path=/api/users/**,/api/users/login
+          filters:
+            - StripPrefix=1
+
+        - id: user-service-user
+          uri: ${USER_SERVICE_URL:http://localhost:8081}
+          predicates:
+            - Path=/api/user,/api/user/**
+          filters:
+            - StripPrefix=1
+
+        - id: user-service-profiles
+          uri: ${USER_SERVICE_URL:http://localhost:8081}
+          predicates:
+            - Path=/api/profiles/**
+          filters:
+            - StripPrefix=1
+
+        # Interaction Service routes (must come before article routes for specificity)
+        - id: interaction-service-comments
+          uri: ${INTERACTION_SERVICE_URL:http://localhost:8083}
+          predicates:
+            - Path=/api/articles/*/comments,/api/articles/*/comments/**
+          filters:
+            - StripPrefix=1
+
+        - id: interaction-service-favorite
+          uri: ${INTERACTION_SERVICE_URL:http://localhost:8083}
+          predicates:
+            - Path=/api/articles/*/favorite
+          filters:
+            - StripPrefix=1
+
+        # Article Service routes
+        - id: article-service-articles
+          uri: ${ARTICLE_SERVICE_URL:http://localhost:8082}
+          predicates:
+            - Path=/api/articles/**,/api/articles
+          filters:
+            - StripPrefix=1
+
+        - id: article-service-tags
+          uri: ${ARTICLE_SERVICE_URL:http://localhost:8082}
+          predicates:
+            - Path=/api/tags
+          filters:
+            - StripPrefix=1
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway
+  endpoint:
+    health:
+      show-details: always
+    gateway:
+      enabled: true
