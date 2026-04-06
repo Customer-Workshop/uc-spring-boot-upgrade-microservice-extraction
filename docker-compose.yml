@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  comments-service:
+    build:
+      context: ./comments-service
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8081"
+    volumes:
+      - comments-data:/app/data
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:sqlite:/app/data/comments.db
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/api/comments/article/test"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  monolith:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      comments-service:
+        condition: service_healthy
+    environment:
+      - COMMENTS_SERVICE_URL=http://comments-service:8081
+    volumes:
+      - monolith-data:/app/data
+
+volumes:
+  comments-data:
+  monolith-data:

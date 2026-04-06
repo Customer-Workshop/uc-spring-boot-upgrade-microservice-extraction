@@ -15,9 +15,9 @@ import io.spring.application.data.CommentData;
 import io.spring.application.data.ProfileData;
 import io.spring.core.article.Article;
 import io.spring.core.article.ArticleRepository;
-import io.spring.core.comment.Comment;
-import io.spring.core.comment.CommentRepository;
 import io.spring.core.user.User;
+import io.spring.infrastructure.service.CommentServiceClient;
+import io.spring.infrastructure.service.CommentServiceClient.CommentResponse;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -36,12 +36,12 @@ public class CommentsApiTest extends TestWithCurrentUser {
 
   @MockBean private ArticleRepository articleRepository;
 
-  @MockBean private CommentRepository commentRepository;
+  @MockBean private CommentServiceClient commentServiceClient;
   @MockBean private CommentQueryService commentQueryService;
 
   private Article article;
   private CommentData commentData;
-  private Comment comment;
+  private CommentResponse commentResponse;
   @Autowired private MockMvc mvc;
 
   @BeforeEach
@@ -50,14 +50,22 @@ public class CommentsApiTest extends TestWithCurrentUser {
     super.setUp();
     article = new Article("title", "desc", "body", Arrays.asList("test", "java"), user.getId());
     when(articleRepository.findBySlug(eq(article.getSlug()))).thenReturn(Optional.of(article));
-    comment = new Comment("comment", user.getId(), article.getId());
+
+    commentResponse = new CommentResponse();
+    commentResponse.setId("comment-id");
+    commentResponse.setBody("comment");
+    commentResponse.setArticleId(article.getId());
+    commentResponse.setUserId(user.getId());
+    commentResponse.setCreatedAt("2026-01-01T00:00:00.000Z");
+    commentResponse.setUpdatedAt("2026-01-01T00:00:00.000Z");
+
     commentData =
         new CommentData(
-            comment.getId(),
-            comment.getBody(),
-            comment.getArticleId(),
-            comment.getCreatedAt(),
-            comment.getCreatedAt(),
+            commentResponse.getId(),
+            commentResponse.getBody(),
+            article.getId(),
+            new org.joda.time.DateTime(),
+            new org.joda.time.DateTime(),
             new ProfileData(
                 user.getId(), user.getUsername(), user.getBio(), user.getImage(), false));
   }
@@ -77,6 +85,8 @@ public class CommentsApiTest extends TestWithCurrentUser {
           }
         };
 
+    when(commentServiceClient.createComment(anyString(), anyString(), anyString()))
+        .thenReturn(commentResponse);
     when(commentQueryService.findById(anyString(), eq(user))).thenReturn(Optional.of(commentData));
 
     given()
@@ -130,13 +140,14 @@ public class CommentsApiTest extends TestWithCurrentUser {
 
   @Test
   public void should_delete_comment_success() throws Exception {
-    when(commentRepository.findById(eq(article.getId()), eq(comment.getId())))
-        .thenReturn(Optional.of(comment));
+    when(commentServiceClient.getCommentByIdAndArticleId(
+            eq(commentResponse.getId()), eq(article.getId())))
+        .thenReturn(Optional.of(commentResponse));
 
     given()
         .header("Authorization", "Token " + token)
         .when()
-        .delete("/articles/{slug}/comments/{id}", article.getSlug(), comment.getId())
+        .delete("/articles/{slug}/comments/{id}", article.getSlug(), commentResponse.getId())
         .then()
         .statusCode(204);
   }
@@ -151,14 +162,15 @@ public class CommentsApiTest extends TestWithCurrentUser {
     when(userRepository.findById(eq(anotherUser.getId())))
         .thenReturn(Optional.ofNullable(anotherUser));
 
-    when(commentRepository.findById(eq(article.getId()), eq(comment.getId())))
-        .thenReturn(Optional.of(comment));
+    when(commentServiceClient.getCommentByIdAndArticleId(
+            eq(commentResponse.getId()), eq(article.getId())))
+        .thenReturn(Optional.of(commentResponse));
     String token = jwtService.toToken(anotherUser);
     when(userRepository.findById(eq(anotherUser.getId()))).thenReturn(Optional.of(anotherUser));
     given()
         .header("Authorization", "Token " + token)
         .when()
-        .delete("/articles/{slug}/comments/{id}", article.getSlug(), comment.getId())
+        .delete("/articles/{slug}/comments/{id}", article.getSlug(), commentResponse.getId())
         .then()
         .statusCode(403);
   }
