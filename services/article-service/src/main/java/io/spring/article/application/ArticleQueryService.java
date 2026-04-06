@@ -5,8 +5,10 @@ import io.spring.article.application.data.ArticleDataList;
 import io.spring.article.client.InteractionServiceClient;
 import io.spring.article.client.UserServiceClient;
 import io.spring.article.infrastructure.mybatis.readservice.ArticleReadService;
+import io.spring.shared.dto.ProfileData;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
@@ -24,6 +26,7 @@ public class ArticleQueryService {
     if (articleData == null) {
       return Optional.empty();
     }
+    enrichWithAuthor(articleData);
     return Optional.of(articleData);
   }
 
@@ -32,6 +35,7 @@ public class ArticleQueryService {
     if (articleData == null) {
       return Optional.empty();
     }
+    enrichWithAuthor(articleData);
     return Optional.of(articleData);
   }
 
@@ -80,6 +84,7 @@ public class ArticleQueryService {
         return new ArticleDataList(new ArrayList<>(), 0);
       }
       List<ArticleData> articles = articleReadService.findArticles(articleIds);
+      enrichArticlesWithAuthor(articles);
       return new ArticleDataList(articles, favoritedArticleIds.size());
     }
 
@@ -90,6 +95,7 @@ public class ArticleQueryService {
       return new ArticleDataList(new ArrayList<>(), articleCount);
     } else {
       List<ArticleData> articles = articleReadService.findArticles(articleIds);
+      enrichArticlesWithAuthor(articles);
       return new ArticleDataList(articles, articleCount);
     }
   }
@@ -99,7 +105,41 @@ public class ArticleQueryService {
       return new ArticleDataList(new ArrayList<>(), 0);
     }
     List<ArticleData> articles = articleReadService.findArticlesOfAuthors(authors, page);
+    enrichArticlesWithAuthor(articles);
     int count = articleReadService.countFeedSize(authors);
     return new ArticleDataList(articles, count);
+  }
+
+  private void enrichWithAuthor(ArticleData article) {
+    if (article.getUserId() != null && article.getProfileData() == null) {
+      ProfileData profile = userServiceClient.getUserProfile(article.getUserId());
+      article.setProfileData(profile);
+    }
+  }
+
+  private void enrichArticlesWithAuthor(List<ArticleData> articles) {
+    if (articles.isEmpty()) {
+      return;
+    }
+    List<String> userIds =
+        articles.stream()
+            .map(ArticleData::getUserId)
+            .filter(id -> id != null)
+            .distinct()
+            .collect(Collectors.toList());
+    if (userIds.isEmpty()) {
+      return;
+    }
+    List<ProfileData> profiles = userServiceClient.batchGetProfiles(userIds);
+    Map<String, ProfileData> profileMap =
+        profiles.stream().collect(Collectors.toMap(ProfileData::getId, p -> p, (a, b) -> a));
+    for (ArticleData article : articles) {
+      if (article.getUserId() != null) {
+        ProfileData profile = profileMap.get(article.getUserId());
+        if (profile != null) {
+          article.setProfileData(profile);
+        }
+      }
+    }
   }
 }

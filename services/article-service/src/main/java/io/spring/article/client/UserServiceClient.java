@@ -3,7 +3,9 @@ package io.spring.article.client;
 import io.spring.shared.dto.ProfileData;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
@@ -31,9 +33,10 @@ public class UserServiceClient {
 
   public List<ProfileData> batchGetProfiles(List<String> userIds) {
     try {
+      String ids = String.join(",", userIds);
       ProfileData[] profiles =
-          restTemplate.postForObject(
-              userServiceUrl + "/internal/users/batch", userIds, ProfileData[].class);
+          restTemplate.getForObject(
+              userServiceUrl + "/internal/users/batch?ids=" + ids, ProfileData[].class);
       return profiles != null ? Arrays.asList(profiles) : Collections.emptyList();
     } catch (Exception e) {
       return Collections.emptyList();

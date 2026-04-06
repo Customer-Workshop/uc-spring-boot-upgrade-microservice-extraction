@@ -6,6 +6,7 @@ import io.spring.user.infrastructure.mybatis.readservice.UserReadService;
 import io.spring.user.infrastructure.mybatis.readservice.UserRelationshipQueryService;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -38,8 +39,9 @@ public class InternalUserApi {
     return ResponseEntity.ok(profileData);
   }
 
-  @PostMapping("/batch")
-  public ResponseEntity<List<ProfileData>> batchGetProfiles(@RequestBody List<String> userIds) {
+  @GetMapping("/batch")
+  public ResponseEntity<List<ProfileData>> batchGetProfiles(
+      @org.springframework.web.bind.annotation.RequestParam("ids") List<String> userIds) {
     List<ProfileData> profiles = new ArrayList<>();
     for (String userId : userIds) {
       UserData userData = userReadService.findById(userId);

@@ -32,20 +32,22 @@
     </select>
 
     <select id="queryArticles" resultType="java.lang.String">
-        select DISTINCT(A.id) from articles A
-        <if test="tag != null">
-            left join article_tags AT2 on A.id = AT2.article_id
-            left join tags T on T.id = AT2.tag_id
-        </if>
-        <where>
+        select id from (
+            select DISTINCT A.id, A.created_at from articles A
             <if test="tag != null">
-                T.name = #{tag}
+                left join article_tags AT2 on A.id = AT2.article_id
+                left join tags T on T.id = AT2.tag_id
             </if>
-            <if test="author != null">
-                AND A.user_id = #{author}
-            </if>
-        </where>
-        order by A.created_at desc
+            <where>
+                <if test="tag != null">
+                    T.name = #{tag}
+                </if>
+                <if test="author != null">
+                    AND A.user_id = #{author}
+                </if>
+            </where>
+            order by A.created_at desc
+        ) sub
         limit #{page.limit}
         offset #{page.offset}
     </select>
@@ -104,6 +106,7 @@
 
     <resultMap id="articleData" type="io.spring.article.application.data.ArticleData">
         <id column="articleId" property="id"/>
+        <result column="articleUserId" property="userId"/>
         <result column="articleSlug" property="slug"/>
         <result column="articleTitle" property="title"/>
         <result column="articleDescription" property="description"/>
