@@ -10,18 +10,18 @@ import static org.mockito.Mockito.when;
 import io.restassured.module.mockmvc.RestAssuredMockMvc;
 import io.spring.JacksonCustomizations;
 import io.spring.api.security.WebSecurityConfig;
-import io.spring.application.CommentQueryService;
 import io.spring.application.data.CommentData;
 import io.spring.application.data.ProfileData;
 import io.spring.core.article.Article;
 import io.spring.core.article.ArticleRepository;
-import io.spring.core.comment.Comment;
-import io.spring.core.comment.CommentRepository;
 import io.spring.core.user.User;
+import io.spring.infrastructure.service.comments.CommentServiceClient;
+import io.spring.infrastructure.service.comments.CommentServiceResponse;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import org.joda.time.DateTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,12 +36,11 @@ public class CommentsApiTest extends TestWithCurrentUser {
 
   @MockBean private ArticleRepository articleRepository;
 
-  @MockBean private CommentRepository commentRepository;
-  @MockBean private CommentQueryService commentQueryService;
+  @MockBean private CommentServiceClient commentServiceClient;
 
   private Article article;
   private CommentData commentData;
-  private Comment comment;
+  private CommentServiceResponse commentServiceResponse;
   @Autowired private MockMvc mvc;
 
   @BeforeEach
@@ -50,14 +49,20 @@ public class CommentsApiTest extends TestWithCurrentUser {
     super.setUp();
     article = new Article("title", "desc", "body", Arrays.asList("test", "java"), user.getId());
     when(articleRepository.findBySlug(eq(article.getSlug()))).thenReturn(Optional.of(article));
-    comment = new Comment("comment", user.getId(), article.getId());
+    commentServiceResponse = new CommentServiceResponse();
+    commentServiceResponse.setId("comment-id-1");
+    commentServiceResponse.setBody("comment");
+    commentServiceResponse.setArticleId(article.getId());
+    commentServiceResponse.setUserId(user.getId());
+    commentServiceResponse.setCreatedAt(new DateTime().toString());
+    commentServiceResponse.setUpdatedAt(new DateTime().toString());
     commentData =
         new CommentData(
-            comment.getId(),
-            comment.getBody(),
-            comment.getArticleId(),
-            comment.getCreatedAt(),
-            comment.getCreatedAt(),
+            commentServiceResponse.getId(),
+            commentServiceResponse.getBody(),
+            commentServiceResponse.getArticleId(),
+            new DateTime(),
+            new DateTime(),
             new ProfileData(
                 user.getId(), user.getUsername(), user.getBio(), user.getImage(), false));
   }
@@ -77,7 +82,8 @@ public class CommentsApiTest extends TestWithCurrentUser {
           }
         };
 
-    when(commentQueryService.findById(anyString(), eq(user))).thenReturn(Optional.of(commentData));
+    when(commentServiceClient.createComment(eq(article.getId()), anyString(), eq(user.getId())))
+        .thenReturn(commentServiceResponse);
 
     given()
         .contentType("application/json")
@@ -87,7 +93,7 @@ public class CommentsApiTest extends TestWithCurrentUser {
         .post("/articles/{slug}/comments", article.getSlug())
         .then()
         .statusCode(201)
-        .body("comment.body", equalTo(commentData.getBody()));
+        .body("comment.body", equalTo(commentServiceResponse.getBody()));
   }
 
   @Test
@@ -118,25 +124,28 @@ public class CommentsApiTest extends TestWithCurrentUser {
 
   @Test
   public void should_get_comments_of_article_success() throws Exception {
-    when(commentQueryService.findByArticleId(anyString(), eq(null)))
-        .thenReturn(Arrays.asList(commentData));
+    when(commentServiceClient.getCommentsByArticleId(anyString()))
+        .thenReturn(Arrays.asList(commentServiceResponse));
     RestAssuredMockMvc.when()
         .get("/articles/{slug}/comments", article.getSlug())
         .prettyPeek()
         .then()
         .statusCode(200)
-        .body("comments[0].id", equalTo(commentData.getId()));
+        .body("comments[0].id", equalTo(commentServiceResponse.getId()));
   }
 
   @Test
   public void should_delete_comment_success() throws Exception {
-    when(commentRepository.findById(eq(article.getId()), eq(comment.getId())))
-        .thenReturn(Optional.of(comment));
+    when(commentServiceClient.getComment(eq(article.getId()), eq(commentServiceResponse.getId())))
+        .thenReturn(Optional.of(commentServiceResponse));
 
     given()
         .header("Authorization", "Token " + token)
         .when()
-        .delete("/articles/{slug}/comments/{id}", article.getSlug(), comment.getId())
+        .delete(
+            "/articles/{slug}/comments/{id}",
+            article.getSlug(),
+            commentServiceResponse.getId())
         .then()
         .statusCode(204);
   }
@@ -151,14 +160,22 @@ public class CommentsApiTest extends TestWithCurrentUser {
     when(userRepository.findById(eq(anotherUser.getId())))
         .thenReturn(Optional.ofNullable(anotherUser));
 
-    when(commentRepository.findById(eq(article.getId()), eq(comment.getId())))
-        .thenReturn(Optional.of(comment));
+    CommentServiceResponse otherComment = new CommentServiceResponse();
+    otherComment.setId("other-comment-id");
+    otherComment.setBody("other comment");
+    otherComment.setArticleId(article.getId());
+    otherComment.setUserId(user.getId());
+    otherComment.setCreatedAt(new DateTime().toString());
+    otherComment.setUpdatedAt(new DateTime().toString());
+
+    when(commentServiceClient.getComment(eq(article.getId()), eq(otherComment.getId())))
+        .thenReturn(Optional.of(otherComment));
     String token = jwtService.toToken(anotherUser);
     when(userRepository.findById(eq(anotherUser.getId()))).thenReturn(Optional.of(anotherUser));
     given()
         .header("Authorization", "Token " + token)
         .when()
-        .delete("/articles/{slug}/comments/{id}", article.getSlug(), comment.getId())
+        .delete("/articles/{slug}/comments/{id}", article.getSlug(), otherComment.getId())
         .then()
         .statusCode(403);
   }
