@@ -1,6 +1,5 @@
 package io.spring.application.comment;
 
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 import io.spring.application.CommentQueryService;
