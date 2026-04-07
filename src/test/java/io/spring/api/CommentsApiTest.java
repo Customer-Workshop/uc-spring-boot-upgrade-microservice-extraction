@@ -18,6 +18,8 @@ import io.spring.core.article.ArticleRepository;
 import io.spring.core.comment.Comment;
 import io.spring.core.comment.CommentRepository;
 import io.spring.core.user.User;
+import io.spring.infrastructure.service.CommentServiceClient;
+import io.spring.infrastructure.service.CommentServiceClient.CommentResponse;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -38,6 +40,7 @@ public class CommentsApiTest extends TestWithCurrentUser {
 
   @MockBean private CommentRepository commentRepository;
   @MockBean private CommentQueryService commentQueryService;
+  @MockBean private CommentServiceClient commentServiceClient;
 
   private Article article;
   private CommentData commentData;
@@ -77,6 +80,12 @@ public class CommentsApiTest extends TestWithCurrentUser {
           }
         };
 
+    CommentResponse created = new CommentResponse();
+    created.setId(comment.getId());
+    created.setBody("comment content");
+    created.setUserId(user.getId());
+    created.setArticleId(article.getId());
+    when(commentServiceClient.createComment(anyString(), anyString(), anyString())).thenReturn(created);
     when(commentQueryService.findById(anyString(), eq(user))).thenReturn(Optional.of(commentData));
 
     given()

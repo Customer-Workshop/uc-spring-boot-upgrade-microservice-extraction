@@ -10,11 +10,12 @@ import io.spring.application.CommentQueryService;
 import io.spring.application.data.CommentData;
 import io.spring.core.article.Article;
 import io.spring.core.article.ArticleRepository;
-import io.spring.core.comment.Comment;
 import io.spring.core.comment.CommentRepository;
 import io.spring.core.service.AuthorizationService;
 import io.spring.core.user.User;
 import io.spring.graphql.DgsConstants.MUTATION;
+import io.spring.infrastructure.service.CommentServiceClient;
+import io.spring.infrastructure.service.CommentServiceClient.CommentResponse;
 import io.spring.graphql.exception.AuthenticationException;
 import io.spring.graphql.types.CommentPayload;
 import io.spring.graphql.types.DeletionStatus;
@@ -27,6 +28,7 @@ public class CommentMutation {
   private ArticleRepository articleRepository;
   private CommentRepository commentRepository;
   private CommentQueryService commentQueryService;
+  private CommentServiceClient commentServiceClient;
 
   @DgsData(parentType = MUTATION.TYPE_NAME, field = MUTATION.AddComment)
   public DataFetcherResult<CommentPayload> createComment(
@@ -34,11 +36,11 @@ public class CommentMutation {
     User user = SecurityUtil.getCurrentUser().orElseThrow(AuthenticationException::new);
     Article article =
         articleRepository.findBySlug(slug).orElseThrow(ResourceNotFoundException::new);
-    Comment comment = new Comment(body, user.getId(), article.getId());
-    commentRepository.save(comment);
+    CommentResponse created =
+        commentServiceClient.createComment(body, user.getId(), article.getId());
     CommentData commentData =
         commentQueryService
-            .findById(comment.getId(), user)
+            .findById(created.getId(), user)
             .orElseThrow(ResourceNotFoundException::new);
     return DataFetcherResult.<CommentPayload>newResult()
         .localContext(commentData)

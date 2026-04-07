@@ -1,6 +1,7 @@
-package io.spring.core.comment;
+package io.spring.comments.model;
 
 import java.util.UUID;
+import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -10,6 +11,7 @@ import org.joda.time.DateTime;
 @Getter
 @Setter
 @NoArgsConstructor
+@AllArgsConstructor
 @EqualsAndHashCode(of = "id")
 public class Comment {
   private String id;
@@ -17,6 +19,7 @@ public class Comment {
   private String userId;
   private String articleId;
   private DateTime createdAt;
+  private DateTime updatedAt;
 
   public Comment(String body, String userId, String articleId) {
     this.id = UUID.randomUUID().toString();
@@ -24,5 +27,6 @@ public class Comment {
     this.userId = userId;
     this.articleId = articleId;
     this.createdAt = new DateTime();
+    this.updatedAt = this.createdAt;
   }
 }

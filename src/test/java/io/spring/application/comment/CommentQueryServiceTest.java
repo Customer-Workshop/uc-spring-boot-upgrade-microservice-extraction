@@ -13,13 +13,18 @@ import io.spring.infrastructure.DbTestBase;
 import io.spring.infrastructure.repository.MyBatisArticleRepository;
 import io.spring.infrastructure.repository.MyBatisCommentRepository;
 import io.spring.infrastructure.repository.MyBatisUserRepository;
+import io.spring.infrastructure.service.CommentServiceClient;
+import io.spring.infrastructure.service.CommentServiceClient.CommentResponse;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 
 @Import({
@@ -37,6 +42,8 @@ public class CommentQueryServiceTest extends DbTestBase {
 
   @Autowired private ArticleRepository articleRepository;
 
+  @MockBean private CommentServiceClient commentServiceClient;
+
   private User user;
 
   @BeforeEach
@@ -49,6 +56,15 @@ public class CommentQueryServiceTest extends DbTestBase {
   public void should_read_comment_success() {
     Comment comment = new Comment("content", user.getId(), "123");
     commentRepository.save(comment);
+
+    CommentResponse response = new CommentResponse();
+    response.setId(comment.getId());
+    response.setBody(comment.getBody());
+    response.setUserId(user.getId());
+    response.setArticleId("123");
+    response.setCreatedAt(comment.getCreatedAt().getMillis());
+    response.setUpdatedAt(comment.getCreatedAt().getMillis());
+    Mockito.when(commentServiceClient.findById(comment.getId())).thenReturn(Optional.of(response));
 
     Optional<CommentData> optional = commentQueryService.findById(comment.getId(), user);
     Assertions.assertTrue(optional.isPresent());
@@ -69,6 +85,24 @@ public class CommentQueryServiceTest extends DbTestBase {
     commentRepository.save(comment1);
     Comment comment2 = new Comment("content2", user2.getId(), article.getId());
     commentRepository.save(comment2);
+
+    CommentResponse r1 = new CommentResponse();
+    r1.setId(comment1.getId());
+    r1.setBody(comment1.getBody());
+    r1.setUserId(user.getId());
+    r1.setArticleId(article.getId());
+    r1.setCreatedAt(comment1.getCreatedAt().getMillis());
+    r1.setUpdatedAt(comment1.getCreatedAt().getMillis());
+
+    CommentResponse r2 = new CommentResponse();
+    r2.setId(comment2.getId());
+    r2.setBody(comment2.getBody());
+    r2.setUserId(user2.getId());
+    r2.setArticleId(article.getId());
+    r2.setCreatedAt(comment2.getCreatedAt().getMillis());
+    r2.setUpdatedAt(comment2.getCreatedAt().getMillis());
+
+    Mockito.when(commentServiceClient.findByArticleId(article.getId())).thenReturn(Arrays.asList(r1, r2));
 
     List<CommentData> comments = commentQueryService.findByArticleId(article.getId(), user);
     Assertions.assertEquals(comments.size(), 2);
