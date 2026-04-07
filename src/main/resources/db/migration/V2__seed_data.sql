@@ -47,14 +47,14 @@ INSERT INTO article_tags (article_id, tag_id) VALUES
 ('article-5', 'tag-2'),
 ('article-5', 'tag-5');
 
--- Add some favorites
-INSERT INTO article_favorites (article_id, user_id) VALUES
-('article-1', 'user-2'),
-('article-1', 'user-3'),
-('article-2', 'user-1'),
-('article-3', 'user-2'),
-('article-4', 'user-1'),
-('article-5', 'user-3');
+-- Add some favorites (created_at within last 7 days for trending)
+INSERT INTO article_favorites (article_id, user_id, created_at) VALUES
+('article-1', 'user-2', datetime('now', '-6 days')),
+('article-1', 'user-3', datetime('now', '-5 days')),
+('article-2', 'user-1', datetime('now', '-4 days')),
+('article-3', 'user-2', datetime('now', '-3 days')),
+('article-4', 'user-1', datetime('now', '-2 days')),
+('article-5', 'user-3', datetime('now', '-1 days'));
 
 -- Add some follows
 INSERT INTO follows (user_id, follow_id) VALUES
