@@ -1,14 +1,21 @@
 import React from "react";
 
-import Navbar from "./Navbar";
-import Footer from "./Footer";
+import Sidebar from "./Sidebar";
 
 const Layout = ({ children }) => (
-  <>
-    <Navbar />
-    {children}
-    <Footer />
-  </>
+  <div style={{ display: "flex", minHeight: "100vh" }}>
+    <Sidebar />
+    <main
+      style={{
+        flex: 1,
+        marginLeft: "240px",
+        backgroundColor: "#fefbf4",
+        minHeight: "100vh",
+      }}
+    >
+      {children}
+    </main>
+  </div>
 );
 
 export default Layout;

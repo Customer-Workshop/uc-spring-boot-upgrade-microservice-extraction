@@ -10,9 +10,9 @@ import storage from "../../lib/utils/storage";
 const STATUS_OPTIONS = ["active", "completed", "on-hold"];
 
 const STATUS_STYLES = {
-  active: "bg-green-100 text-green-800 border border-green-200",
-  completed: "bg-blue-100 text-blue-800 border border-blue-200",
-  "on-hold": "bg-amber-100 text-amber-800 border border-amber-200",
+  active: "bg-emerald-100 text-emerald-800 border border-emerald-200",
+  completed: "bg-sky-100 text-sky-800 border border-sky-200",
+  "on-hold": "bg-orange-100 text-orange-800 border border-orange-200",
 };
 
 const initialFormState = {
@@ -133,11 +133,11 @@ const Projects = () => {
         <title>Projects | NEXT REALWORLD</title>
       </Head>
       <div className="tw">
-        <div style={{ maxWidth: "960px", margin: "0 auto", padding: "32px 16px", fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}>
+        <div style={{ maxWidth: "960px", margin: "0 auto", padding: "40px 32px", fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}>
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight text-foreground">Projects</h1>
+              <h1 className="text-3xl font-bold tracking-tight text-foreground" style={{ color: '#78350f' }}>Projects</h1>
               <p className="text-sm text-muted-foreground mt-1">Manage your projects and track their progress.</p>
             </div>
             {isLoggedIn && !showForm && (
