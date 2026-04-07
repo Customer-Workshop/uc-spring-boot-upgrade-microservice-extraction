@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="io.spring.infrastructure.mybatis.mapper.ProjectMapper">
+    <insert id="insert">
+        insert into projects(id, name, description, client, start_date, status, user_id, created_at, updated_at)
+        values(
+          #{project.id},
+          #{project.name},
+          #{project.description},
+          #{project.client},
+          #{project.startDate},
+          #{project.status},
+          #{project.userId},
+          #{project.createdAt},
+          #{project.updatedAt})
+    </insert>
+    <update id="update">
+        update projects
+          <set>
+              <if test="project.name != null and project.name != ''">name = #{project.name},</if>
+              <if test="project.description != null and project.description != ''">description = #{project.description},</if>
+              <if test="project.client != null and project.client != ''">client = #{project.client},</if>
+              <if test="project.startDate != null">start_date = #{project.startDate},</if>
+              <if test="project.status != null and project.status != ''">status = #{project.status},</if>
+              updated_at = #{project.updatedAt}
+          </set>
+        where id = #{project.id}
+    </update>
+    <delete id="delete">
+        delete from projects where id = #{id}
+    </delete>
+
+    <select id="findById" resultMap="project">
+        select
+        id projectId,
+        name projectName,
+        description projectDescription,
+        client projectClient,
+        start_date projectStartDate,
+        status projectStatus,
+        user_id projectUserId,
+        created_at projectCreatedAt,
+        updated_at projectUpdatedAt
+        from projects
+        where id = #{id}
+    </select>
+
+    <resultMap id="project" type="io.spring.core.project.Project">
+        <id column="projectId" property="id"/>
+        <result column="projectName" property="name"/>
+        <result column="projectDescription" property="description"/>
+        <result column="projectClient" property="client"/>
+        <result column="projectStartDate" property="startDate"/>
+        <result column="projectStatus" property="status"/>
+        <result column="projectUserId" property="userId"/>
+        <result column="projectCreatedAt" property="createdAt"/>
+        <result column="projectUpdatedAt" property="updatedAt"/>
+    </resultMap>
+</mapper>

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="io.spring.infrastructure.mybatis.readservice.ProjectReadService">
+    <sql id="selectProjectData">
+        select
+        P.id projectId,
+        P.name projectName,
+        P.description projectDescription,
+        P.client projectClient,
+        P.start_date projectStartDate,
+        P.status projectStatus,
+        P.user_id projectUserId,
+        P.created_at projectCreatedAt,
+        P.updated_at projectUpdatedAt
+        from projects P
+    </sql>
+
+    <select id="findById" resultMap="projectData">
+        <include refid="selectProjectData"/>
+        where P.id = #{id}
+    </select>
+
+    <select id="findAll" resultMap="projectData">
+        <include refid="selectProjectData"/>
+        order by P.created_at desc
+    </select>
+
+    <select id="countAll" resultType="java.lang.Integer">
+        select count(1) from projects
+    </select>
+
+    <resultMap id="projectData" type="io.spring.application.data.ProjectData">
+        <id column="projectId" property="id"/>
+        <result column="projectName" property="name"/>
+        <result column="projectDescription" property="description"/>
+        <result column="projectClient" property="client"/>
+        <result column="projectStartDate" property="startDate"/>
+        <result column="projectStatus" property="status"/>
+        <result column="projectUserId" property="userId"/>
+        <result column="projectCreatedAt" property="createdAt"/>
+        <result column="projectUpdatedAt" property="updatedAt"/>
+    </resultMap>
+</mapper>
