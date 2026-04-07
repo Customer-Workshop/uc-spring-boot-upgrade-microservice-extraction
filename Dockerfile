@@ -1,6 +1,6 @@
 FROM gradle:7.4-jdk11 AS build
 WORKDIR /app
-COPY build.gradle settings.gradle ./
+COPY build.gradle ./
 COPY gradle ./gradle
 COPY src ./src
 RUN gradle bootJar --no-daemon -x test

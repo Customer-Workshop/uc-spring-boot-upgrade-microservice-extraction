@@ -10,7 +10,7 @@ services:
     environment:
       - SERVER_PORT=8081
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8081/api/comments?articleId=health"]
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8081/api/comments?articleId=health"]
       interval: 10s
       timeout: 5s
       retries: 5
