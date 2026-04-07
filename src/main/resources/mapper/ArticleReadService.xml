@@ -154,6 +154,16 @@
         limit #{page.queryLimit}
     </select>
 
+    <select id="findTrendingArticleIds" resultType="java.lang.String">
+        SELECT A.id
+        FROM articles A
+        INNER JOIN article_favorites AF ON AF.article_id = A.id
+        WHERE A.created_at >= DATE_SUB(NOW(), INTERVAL #{days} DAY)
+        GROUP BY A.id
+        ORDER BY COUNT(*) DESC
+        LIMIT #{limit}
+    </select>
+
     <resultMap id="articleId" type="string">
         <id javaType="string" column="articleId"/>
     </resultMap>

@@ -37,6 +37,11 @@ public class ArticlesApi {
         });
   }
 
+  @GetMapping(path = "trending")
+  public ResponseEntity getTrendingArticles(@AuthenticationPrincipal User user) {
+    return ResponseEntity.ok(articleQueryService.findTrendingArticles(10, 7, user));
+  }
+
   @GetMapping(path = "feed")
   public ResponseEntity getFeed(
       @RequestParam(value = "offset", defaultValue = "0") int offset,

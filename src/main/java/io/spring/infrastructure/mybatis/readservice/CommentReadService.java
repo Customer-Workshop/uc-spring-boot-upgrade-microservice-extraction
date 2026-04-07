@@ -15,4 +15,6 @@ public interface CommentReadService {
 
   List<CommentData> findByArticleIdWithCursor(
       @Param("articleId") String articleId, @Param("page") CursorPageParameter<DateTime> page);
+
+  int countByArticleId(@Param("articleId") String articleId);
 }

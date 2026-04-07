@@ -39,4 +39,6 @@ public interface ArticleReadService {
       @Param("author") String author,
       @Param("favoritedBy") String favoritedBy,
       @Param("page") CursorPageParameter page);
+
+  List<String> findTrendingArticleIds(@Param("limit") int limit, @Param("days") int days);
 }

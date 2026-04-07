@@ -172,6 +172,16 @@ public class ArticleQueryService {
         });
   }
 
+  public ArticleDataList findTrendingArticles(int limit, int days, User currentUser) {
+    List<String> articleIds = articleReadService.findTrendingArticleIds(limit, days);
+    if (articleIds.size() == 0) {
+      return new ArticleDataList(new ArrayList<>(), 0);
+    }
+    List<ArticleData> articles = articleReadService.findArticles(articleIds);
+    fillExtraInfo(articles, currentUser);
+    return new ArticleDataList(articles, articles.size());
+  }
+
   private void fillExtraInfo(String id, User user, ArticleData articleData) {
     articleData.setFavorited(articleFavoritesReadService.isUserFavorite(user.getId(), id));
     articleData.setFavoritesCount(articleFavoritesReadService.articleFavoriteCount(id));
