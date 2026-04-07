@@ -29,6 +29,9 @@ public class CommentsController {
   public ResponseEntity<CommentResponse> createComment(
       @Valid @RequestBody CommentRequest request) {
     Comment comment = new Comment(request.getBody(), request.getUserId(), request.getArticleId());
+    if (request.getId() != null && !request.getId().isEmpty()) {
+      comment.setId(request.getId());
+    }
     commentMapper.insert(comment);
     return ResponseEntity.status(201).body(toResponse(comment));
   }

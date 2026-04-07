@@ -9,6 +9,8 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 public class CommentRequest {
+  private String id;
+
   @NotBlank(message = "can't be empty")
   private String body;
 
