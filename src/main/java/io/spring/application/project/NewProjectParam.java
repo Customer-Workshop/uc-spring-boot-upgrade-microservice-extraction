@@ -6,7 +6,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.joda.time.DateTime;
 
 @Getter
 @JsonRootName("project")
@@ -21,7 +20,7 @@ public class NewProjectParam {
 
   private String client;
 
-  private DateTime startDate;
+  private String startDate;
 
   @NotBlank(message = "can't be empty")
   private String status;
