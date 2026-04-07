@@ -4,7 +4,9 @@ import io.spring.core.comment.Comment;
 import io.spring.core.comment.CommentRepository;
 import io.spring.infrastructure.service.CommentServiceClient;
 import io.spring.infrastructure.service.CommentServiceClient.CommentResponse;
+import java.time.Instant;
 import java.util.Optional;
+import org.joda.time.DateTime;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
@@ -36,7 +38,17 @@ public class HttpCommentRepository implements CommentRepository {
   }
 
   private static Comment toComment(CommentResponse response) {
-    Comment comment = new Comment(response.getBody(), response.getUserId(), response.getArticleId());
-    return comment;
+    DateTime createdAt;
+    try {
+      createdAt = new DateTime(Instant.parse(response.getCreatedAt()).toEpochMilli());
+    } catch (Exception e) {
+      createdAt = new DateTime();
+    }
+    return new Comment(
+        response.getId(),
+        response.getBody(),
+        response.getUserId(),
+        response.getArticleId(),
+        createdAt);
   }
 }
