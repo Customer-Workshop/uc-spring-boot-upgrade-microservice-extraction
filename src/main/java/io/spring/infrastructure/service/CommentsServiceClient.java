@@ -118,6 +118,10 @@ public class CommentsServiceClient implements CommentRepository {
   }
 
   private Comment mapToComment(Map<String, Object> map) {
+    String id = (String) map.get("id");
+    if (id != null) {
+      return new Comment(id, (String) map.get("body"), (String) map.get("userId"), (String) map.get("articleId"));
+    }
     return new Comment(
         (String) map.get("body"), (String) map.get("userId"), (String) map.get("articleId"));
   }
