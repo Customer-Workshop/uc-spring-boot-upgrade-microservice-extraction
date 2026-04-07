@@ -1,9 +1,12 @@
 package io.spring.application;
 
 import io.spring.application.data.CommentData;
+import io.spring.application.data.ProfileData;
+import io.spring.core.comment.Comment;
 import io.spring.core.user.User;
-import io.spring.infrastructure.mybatis.readservice.CommentReadService;
+import io.spring.infrastructure.mybatis.readservice.UserReadService;
 import io.spring.infrastructure.mybatis.readservice.UserRelationshipQueryService;
+import io.spring.infrastructure.service.CommentServiceClient;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -17,69 +20,108 @@ import org.springframework.stereotype.Service;
 @Service
 @AllArgsConstructor
 public class CommentQueryService {
-  private CommentReadService commentReadService;
+  private CommentServiceClient commentServiceClient;
   private UserRelationshipQueryService userRelationshipQueryService;
+  private UserReadService userReadService;
 
   public Optional<CommentData> findById(String id, User user) {
-    CommentData commentData = commentReadService.findById(id);
+    Optional<Comment> commentOpt = commentServiceClient.findByIdOnly(id);
+    if (commentOpt.isEmpty()) {
+      return Optional.empty();
+    }
+    Comment comment = commentOpt.get();
+    CommentData commentData = toCommentData(comment);
     if (commentData == null) {
       return Optional.empty();
-    } else {
+    }
+    if (user != null && commentData.getProfileData() != null) {
       commentData
           .getProfileData()
           .setFollowing(
               userRelationshipQueryService.isUserFollowing(
                   user.getId(), commentData.getProfileData().getId()));
     }
-    return Optional.ofNullable(commentData);
+    return Optional.of(commentData);
   }
 
   public List<CommentData> findByArticleId(String articleId, User user) {
-    List<CommentData> comments = commentReadService.findByArticleId(articleId);
-    if (comments.size() > 0 && user != null) {
+    List<Comment> comments = commentServiceClient.findByArticleId(articleId);
+    List<CommentData> commentDataList =
+        comments.stream()
+            .map(this::toCommentData)
+            .filter(c -> c != null)
+            .collect(Collectors.toList());
+    if (commentDataList.size() > 0 && user != null) {
       Set<String> followingAuthors =
           userRelationshipQueryService.followingAuthors(
               user.getId(),
-              comments.stream()
+              commentDataList.stream()
                   .map(commentData -> commentData.getProfileData().getId())
                   .collect(Collectors.toList()));
-      comments.forEach(
+      commentDataList.forEach(
           commentData -> {
             if (followingAuthors.contains(commentData.getProfileData().getId())) {
               commentData.getProfileData().setFollowing(true);
             }
           });
     }
-    return comments;
+    return commentDataList;
   }
 
   public CursorPager<CommentData> findByArticleIdWithCursor(
       String articleId, User user, CursorPageParameter<DateTime> page) {
-    List<CommentData> comments = commentReadService.findByArticleIdWithCursor(articleId, page);
-    if (comments.isEmpty()) {
+    List<Comment> allComments = commentServiceClient.findByArticleId(articleId);
+    List<CommentData> commentDataList =
+        allComments.stream()
+            .map(this::toCommentData)
+            .filter(c -> c != null)
+            .collect(Collectors.toList());
+
+    if (commentDataList.isEmpty()) {
       return new CursorPager<>(new ArrayList<>(), page.getDirection(), false);
     }
     if (user != null) {
       Set<String> followingAuthors =
           userRelationshipQueryService.followingAuthors(
               user.getId(),
-              comments.stream()
+              commentDataList.stream()
                   .map(commentData -> commentData.getProfileData().getId())
                   .collect(Collectors.toList()));
-      comments.forEach(
+      commentDataList.forEach(
           commentData -> {
             if (followingAuthors.contains(commentData.getProfileData().getId())) {
               commentData.getProfileData().setFollowing(true);
             }
           });
     }
-    boolean hasExtra = comments.size() > page.getLimit();
+    boolean hasExtra = commentDataList.size() > page.getLimit();
     if (hasExtra) {
-      comments.remove(page.getLimit());
+      commentDataList = commentDataList.subList(0, page.getLimit());
     }
     if (!page.isNext()) {
-      Collections.reverse(comments);
+      Collections.reverse(commentDataList);
     }
-    return new CursorPager<>(comments, page.getDirection(), hasExtra);
+    return new CursorPager<>(commentDataList, page.getDirection(), hasExtra);
+  }
+
+  private CommentData toCommentData(Comment comment) {
+    io.spring.application.data.UserData userData = userReadService.findById(comment.getUserId());
+    if (userData == null) {
+      return null;
+    }
+    ProfileData profileData =
+        new ProfileData(
+            userData.getId(),
+            userData.getUsername(),
+            userData.getBio(),
+            userData.getImage(),
+            false);
+    return new CommentData(
+        comment.getId(),
+        comment.getBody(),
+        comment.getArticleId(),
+        comment.getCreatedAt(),
+        comment.getCreatedAt(),
+        profileData);
   }
 }

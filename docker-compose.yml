@@ -1,0 +1,29 @@
+version: "3.8"
+
+services:
+  comments-microservice:
+    build:
+      context: ./comments-microservice
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8081"
+    environment:
+      - SERVER_PORT=8081
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/api/comments?articleId=health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  monolith:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - COMMENTS_SERVICE_URL=http://comments-microservice:8081
+    depends_on:
+      comments-microservice:
+        condition: service_healthy
