@@ -4,9 +4,9 @@ COPY build.gradle settings.gradle* ./
 COPY gradle ./gradle
 COPY gradlew ./
 COPY src ./src
-RUN gradle build -x test -x generateJava --no-daemon
+RUN gradle build -x test -x spotlessJavaCheck -x jacocoTestReport -x jacocoTestCoverageVerification --no-daemon
 
-FROM openjdk:11-jre-slim
+FROM eclipse-temurin:11-jre
 WORKDIR /app
 COPY --from=build /app/build/libs/*.jar app.jar
 EXPOSE 8080
