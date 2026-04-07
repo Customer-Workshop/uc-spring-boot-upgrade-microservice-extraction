@@ -82,7 +82,7 @@ public class HttpCommentReadService {
     if (userId == null) {
       return new ProfileData("", "", "", "", false);
     }
-    var userData = userReadService.findById(userId);
+    io.spring.application.data.UserData userData = userReadService.findById(userId);
     if (userData == null) {
       return new ProfileData(userId, "", "", "", false);
     }
