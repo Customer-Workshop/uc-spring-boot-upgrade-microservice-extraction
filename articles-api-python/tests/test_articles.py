@@ -6,89 +6,13 @@ identical inputs.  We use an in-memory SQLite database so each test
 run starts clean.
 """
 
-import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
 
-from app.database import Base, get_db
 from app.main import app
-from app.models import Article, Tag, User, _new_id, _to_slug, article_favorites, user_follows
+from app.models import Article, User, _new_id, _to_slug, article_favorites, user_follows
+from tests.conftest import TestingSessionLocal
 
-# ---------- fixtures ----------
-
-SQLALCHEMY_DATABASE_URL = "sqlite://"
-
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL,
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
-)
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-
-def override_get_db():
-    db = TestingSessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-app.dependency_overrides[get_db] = override_get_db
-
-
-@pytest.fixture(autouse=True)
-def setup_database():
-    """Create tables before each test and drop them after."""
-    Base.metadata.create_all(bind=engine)
-    yield
-    Base.metadata.drop_all(bind=engine)
-
-
-@pytest.fixture()
-def db():
-    db = TestingSessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-@pytest.fixture()
-def seed_user(db):
-    """Create a default user (mirrors the Java test fixtures)."""
-    user = User(
-        id=_new_id(),
-        email="john@example.com",
-        username="johndoe",
-        password="password",
-        bio="A short bio",
-        image="https://example.com/photo.jpg",
-    )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-    return user
-
-
-@pytest.fixture()
-def seed_article(db, seed_user):
-    """Create a single article with tags."""
-    article = Article.create(
-        title="How to train your dragon",
-        description="Ever wonder how?",
-        body="You have to believe",
-        tag_list=["reactjs", "angularjs", "dragons"],
-        user_id=seed_user.id,
-        db=db,
-    )
-    db.add(article)
-    db.commit()
-    db.refresh(article)
-    return article
-
+# ---------- fixtures come from conftest.py ----------
 
 client = TestClient(app)
 
@@ -121,15 +45,8 @@ def assert_article_shape(article_json: dict) -> None:
 
 
 class TestListArticles:
-    def test_empty_list(self):
+    def test_empty_list(self, seed_user):
         """No articles → empty list with articlesCount 0 (same as Java)."""
-        # need a user in db for auth stub
-        db = TestingSessionLocal()
-        u = User(id=_new_id(), email="x@x.com", username="x", password="p")
-        db.add(u)
-        db.commit()
-        db.close()
-
         resp = client.get("/api/articles")
         assert resp.status_code == 200
         data = resp.json()

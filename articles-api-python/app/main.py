@@ -4,6 +4,7 @@ from fastapi import FastAPI
 
 from app.database import Base, engine
 from app.routes import router as articles_router
+from app.stats_routes import router as stats_router
 
 # Create all tables on startup (mirrors the Java auto-DDL via MyBatis schema)
 Base.metadata.create_all(bind=engine)
@@ -15,3 +16,4 @@ app = FastAPI(
 )
 
 app.include_router(articles_router)
+app.include_router(stats_router)
