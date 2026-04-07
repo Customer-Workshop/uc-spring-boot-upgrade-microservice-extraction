@@ -2,8 +2,8 @@ package io.spring.application;
 
 import io.spring.application.data.CommentData;
 import io.spring.core.user.User;
-import io.spring.infrastructure.mybatis.readservice.CommentReadService;
 import io.spring.infrastructure.mybatis.readservice.UserRelationshipQueryService;
+import io.spring.infrastructure.service.CommentsServiceClient;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -17,25 +17,27 @@ import org.springframework.stereotype.Service;
 @Service
 @AllArgsConstructor
 public class CommentQueryService {
-  private CommentReadService commentReadService;
+  private CommentsServiceClient commentsServiceClient;
   private UserRelationshipQueryService userRelationshipQueryService;
 
   public Optional<CommentData> findById(String id, User user) {
-    CommentData commentData = commentReadService.findById(id);
-    if (commentData == null) {
+    Optional<CommentData> optionalCommentData = commentsServiceClient.findCommentDataById(id);
+    if (optionalCommentData.isEmpty()) {
       return Optional.empty();
-    } else {
+    }
+    CommentData commentData = optionalCommentData.get();
+    if (user != null && commentData.getProfileData() != null) {
       commentData
           .getProfileData()
           .setFollowing(
               userRelationshipQueryService.isUserFollowing(
                   user.getId(), commentData.getProfileData().getId()));
     }
-    return Optional.ofNullable(commentData);
+    return Optional.of(commentData);
   }
 
   public List<CommentData> findByArticleId(String articleId, User user) {
-    List<CommentData> comments = commentReadService.findByArticleId(articleId);
+    List<CommentData> comments = commentsServiceClient.findCommentDataByArticleId(articleId);
     if (comments.size() > 0 && user != null) {
       Set<String> followingAuthors =
           userRelationshipQueryService.followingAuthors(
@@ -55,7 +57,7 @@ public class CommentQueryService {
 
   public CursorPager<CommentData> findByArticleIdWithCursor(
       String articleId, User user, CursorPageParameter<DateTime> page) {
-    List<CommentData> comments = commentReadService.findByArticleIdWithCursor(articleId, page);
+    List<CommentData> comments = commentsServiceClient.findCommentDataByArticleId(articleId);
     if (comments.isEmpty()) {
       return new CursorPager<>(new ArrayList<>(), page.getDirection(), false);
     }

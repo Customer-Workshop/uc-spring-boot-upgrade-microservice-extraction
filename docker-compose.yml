@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  monolith:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - COMMENTS_SERVICE_URL=http://comments-service:8081
+    depends_on:
+      comments-service:
+        condition: service_started
+
+  comments-service:
+    build:
+      context: ./comments-service
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8081"
