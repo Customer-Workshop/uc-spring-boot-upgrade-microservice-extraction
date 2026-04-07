@@ -68,12 +68,15 @@ const Projects = () => {
     }
 
     try {
-      const projectPayload = {
+      const projectPayload: any = {
         name: form.name,
         description: form.description,
         client: form.client,
         status: form.status,
       };
+      if (form.startDate) {
+        projectPayload.startDate = new Date(form.startDate).toISOString();
+      }
 
       if (editingId) {
         await ProjectAPI.update(editingId, projectPayload, currentUser?.token);
