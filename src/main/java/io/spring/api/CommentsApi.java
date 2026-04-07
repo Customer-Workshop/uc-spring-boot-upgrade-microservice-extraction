@@ -1,6 +1,7 @@
 package io.spring.api;
 
 import com.fasterxml.jackson.annotation.JsonRootName;
+import com.fasterxml.jackson.databind.JsonNode;
 import io.spring.api.exception.NoAuthorizationException;
 import io.spring.api.exception.ResourceNotFoundException;
 import io.spring.application.CommentQueryService;
@@ -11,9 +12,11 @@ import io.spring.core.comment.Comment;
 import io.spring.core.comment.CommentRepository;
 import io.spring.core.service.AuthorizationService;
 import io.spring.core.user.User;
+import io.spring.infrastructure.service.CommentServiceClient;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
@@ -36,6 +39,7 @@ public class CommentsApi {
   private ArticleRepository articleRepository;
   private CommentRepository commentRepository;
   private CommentQueryService commentQueryService;
+  private CommentServiceClient commentServiceClient;
 
   @PostMapping
   public ResponseEntity<?> createComment(
@@ -44,6 +48,17 @@ public class CommentsApi {
       @Valid @RequestBody NewCommentParam newCommentParam) {
     Article article =
         articleRepository.findBySlug(slug).orElseThrow(ResourceNotFoundException::new);
+
+    // Delegate to Comments microservice via HTTP
+    Optional<JsonNode> response =
+        commentServiceClient.createComment(
+            article.getId(), newCommentParam.getBody(), user.getId());
+
+    if (response.isPresent()) {
+      return ResponseEntity.status(201).body(response.get());
+    }
+
+    // Fallback to local if microservice is unavailable
     Comment comment = new Comment(newCommentParam.getBody(), user.getId(), article.getId());
     commentRepository.save(comment);
     return ResponseEntity.status(201)
@@ -55,6 +70,16 @@ public class CommentsApi {
       @PathVariable("slug") String slug, @AuthenticationPrincipal User user) {
     Article article =
         articleRepository.findBySlug(slug).orElseThrow(ResourceNotFoundException::new);
+
+    // Delegate to Comments microservice via HTTP
+    Optional<JsonNode> response =
+        commentServiceClient.getCommentsByArticleId(article.getId());
+
+    if (response.isPresent()) {
+      return ResponseEntity.ok(response.get());
+    }
+
+    // Fallback to local if microservice is unavailable
     List<CommentData> comments = commentQueryService.findByArticleId(article.getId(), user);
     return ResponseEntity.ok(
         new HashMap<String, Object>() {
@@ -71,6 +96,8 @@ public class CommentsApi {
       @AuthenticationPrincipal User user) {
     Article article =
         articleRepository.findBySlug(slug).orElseThrow(ResourceNotFoundException::new);
+
+    // Check authorization locally first
     return commentRepository
         .findById(article.getId(), commentId)
         .map(
@@ -78,7 +105,13 @@ public class CommentsApi {
               if (!AuthorizationService.canWriteComment(user, article, comment)) {
                 throw new NoAuthorizationException();
               }
-              commentRepository.remove(comment);
+              // Delegate deletion to Comments microservice
+              boolean deleted =
+                  commentServiceClient.deleteComment(article.getId(), commentId);
+              if (!deleted) {
+                // Fallback to local deletion
+                commentRepository.remove(comment);
+              }
               return ResponseEntity.noContent().build();
             })
         .orElseThrow(ResourceNotFoundException::new);

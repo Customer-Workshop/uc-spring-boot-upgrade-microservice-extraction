@@ -38,6 +38,7 @@ public class CommentsApiTest extends TestWithCurrentUser {
 
   @MockBean private CommentRepository commentRepository;
   @MockBean private CommentQueryService commentQueryService;
+  @MockBean private io.spring.infrastructure.service.CommentServiceClient commentServiceClient;
 
   private Article article;
   private CommentData commentData;
