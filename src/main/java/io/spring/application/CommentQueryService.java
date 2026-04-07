@@ -2,8 +2,8 @@ package io.spring.application;
 
 import io.spring.application.data.CommentData;
 import io.spring.core.user.User;
-import io.spring.infrastructure.mybatis.readservice.CommentReadService;
 import io.spring.infrastructure.mybatis.readservice.UserRelationshipQueryService;
+import io.spring.infrastructure.service.HttpCommentReadService;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -17,11 +17,11 @@ import org.springframework.stereotype.Service;
 @Service
 @AllArgsConstructor
 public class CommentQueryService {
-  private CommentReadService commentReadService;
+  private HttpCommentReadService httpCommentReadService;
   private UserRelationshipQueryService userRelationshipQueryService;
 
   public Optional<CommentData> findById(String id, User user) {
-    CommentData commentData = commentReadService.findById(id);
+    CommentData commentData = httpCommentReadService.findById(id);
     if (commentData == null) {
       return Optional.empty();
     } else {
@@ -35,7 +35,7 @@ public class CommentQueryService {
   }
 
   public List<CommentData> findByArticleId(String articleId, User user) {
-    List<CommentData> comments = commentReadService.findByArticleId(articleId);
+    List<CommentData> comments = httpCommentReadService.findByArticleId(articleId);
     if (comments.size() > 0 && user != null) {
       Set<String> followingAuthors =
           userRelationshipQueryService.followingAuthors(
@@ -55,7 +55,7 @@ public class CommentQueryService {
 
   public CursorPager<CommentData> findByArticleIdWithCursor(
       String articleId, User user, CursorPageParameter<DateTime> page) {
-    List<CommentData> comments = commentReadService.findByArticleIdWithCursor(articleId, page);
+    List<CommentData> comments = httpCommentReadService.findByArticleIdWithCursor(articleId, page);
     if (comments.isEmpty()) {
       return new CursorPager<>(new ArrayList<>(), page.getDirection(), false);
     }
