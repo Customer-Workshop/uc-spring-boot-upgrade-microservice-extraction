@@ -31,7 +31,7 @@ public class CommentController {
       @Valid @RequestBody CreateCommentRequest request) {
     CommentEntity comment =
         commentService.createComment(
-            request.getBody(), request.getUserId(), request.getArticleId());
+            request.getId(), request.getBody(), request.getUserId(), request.getArticleId());
     return ResponseEntity.status(HttpStatus.CREATED).body(CommentResponse.from(comment));
   }
 

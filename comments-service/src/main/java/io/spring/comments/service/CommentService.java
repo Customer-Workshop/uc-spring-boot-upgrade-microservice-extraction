@@ -13,8 +13,13 @@ public class CommentService {
 
   private final CommentRepository commentRepository;
 
-  public CommentEntity createComment(String body, String userId, String articleId) {
-    CommentEntity comment = new CommentEntity(body, userId, articleId);
+  public CommentEntity createComment(String id, String body, String userId, String articleId) {
+    CommentEntity comment;
+    if (id != null && !id.isBlank()) {
+      comment = new CommentEntity(id, body, userId, articleId);
+    } else {
+      comment = new CommentEntity(body, userId, articleId);
+    }
     return commentRepository.save(comment);
   }
 

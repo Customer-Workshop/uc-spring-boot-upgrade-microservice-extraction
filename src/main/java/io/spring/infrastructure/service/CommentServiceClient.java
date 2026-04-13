@@ -31,6 +31,7 @@ public class CommentServiceClient implements CommentRepository {
   public void save(Comment comment) {
     Map<String, String> request =
         Map.of(
+            "id", comment.getId(),
             "body", comment.getBody(),
             "userId", comment.getUserId(),
             "articleId", comment.getArticleId());

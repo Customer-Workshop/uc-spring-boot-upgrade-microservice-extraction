@@ -12,6 +12,8 @@ import lombok.Setter;
 @AllArgsConstructor
 public class CreateCommentRequest {
 
+  private String id;
+
   @NotBlank(message = "body can't be empty")
   private String body;
 

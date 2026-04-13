@@ -42,4 +42,13 @@ public class CommentEntity {
     this.createdAt = Instant.now();
     this.updatedAt = Instant.now();
   }
+
+  public CommentEntity(String id, String body, String userId, String articleId) {
+    this.id = id;
+    this.body = body;
+    this.userId = userId;
+    this.articleId = articleId;
+    this.createdAt = Instant.now();
+    this.updatedAt = Instant.now();
+  }
 }

@@ -65,29 +65,60 @@ public class CommentQueryService {
   public CursorPager<CommentData> findByArticleIdWithCursor(
       String articleId, User user, CursorPageParameter<DateTime> page) {
     List<Map<String, Object>> rawComments = commentServiceClient.findByArticleId(articleId);
-    List<CommentData> comments =
+    List<CommentData> allComments =
         rawComments.stream().map(this::mapToCommentData).collect(Collectors.toList());
 
-    if (comments.isEmpty()) {
+    if (allComments.isEmpty()) {
       return new CursorPager<>(new ArrayList<>(), page.getDirection(), false);
     }
-    if (user != null) {
+
+    // Apply cursor-based filtering
+    List<CommentData> filtered;
+    if (page.getCursor() != null) {
+      DateTime cursor = page.getCursor();
+      if (page.isNext()) {
+        filtered =
+            allComments.stream()
+                .filter(c -> c.getCreatedAt().isBefore(cursor))
+                .sorted((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()))
+                .collect(Collectors.toList());
+      } else {
+        filtered =
+            allComments.stream()
+                .filter(c -> c.getCreatedAt().isAfter(cursor))
+                .sorted((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()))
+                .collect(Collectors.toList());
+      }
+    } else {
+      filtered =
+          allComments.stream()
+              .sorted((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()))
+              .collect(Collectors.toList());
+    }
+
+    if (user != null && !filtered.isEmpty()) {
       Set<String> followingAuthors =
           userRelationshipQueryService.followingAuthors(
               user.getId(),
-              comments.stream()
+              filtered.stream()
                   .map(commentData -> commentData.getProfileData().getId())
                   .collect(Collectors.toList()));
-      comments.forEach(
+      filtered.forEach(
           commentData -> {
             if (followingAuthors.contains(commentData.getProfileData().getId())) {
               commentData.getProfileData().setFollowing(true);
             }
           });
     }
-    boolean hasExtra = comments.size() > page.getLimit();
-    if (hasExtra && comments.size() > page.getLimit()) {
-      comments = new ArrayList<>(comments.subList(0, page.getLimit()));
+
+    // Take limit+1 to determine hasExtra, then trim to limit
+    int queryLimit = page.getQueryLimit();
+    boolean hasExtra = filtered.size() > page.getLimit();
+    List<CommentData> comments;
+    if (filtered.size() > page.getLimit()) {
+      comments = new ArrayList<>(filtered.subList(0, page.getLimit()));
+    } else {
+      comments = filtered;
     }
     if (!page.isNext()) {
       Collections.reverse(comments);
