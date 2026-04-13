@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  monolith:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=default
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  comments-microservice:
+    build:
+      context: ./comments-microservice
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8081"
+    environment:
+      - SPRING_PROFILES_ACTIVE=default
+      - SERVER_PORT=8081
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/api/articles/test/comments"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    depends_on:
+      - monolith
