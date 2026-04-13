@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="io.spring.infrastructure.mybatis.readservice.StatsReadService">
+    <select id="getArticleStatsBySlug" resultType="map">
+        SELECT
+            A.slug,
+            A.title,
+            A.view_count AS viewCount,
+            (SELECT COUNT(1) FROM article_favorites AF WHERE AF.article_id = A.id) AS favoriteCount,
+            (SELECT COUNT(1) FROM comments C WHERE C.article_id = A.id) AS commentCount,
+            CAST(julianday('now') - julianday(A.created_at) AS INTEGER) AS daysSincePublished
+        FROM articles A
+        WHERE A.slug = #{slug}
+    </select>
+
+    <resultMap id="trendingArticleData" type="io.spring.application.data.TrendingArticleData">
+        <id column="id" property="id"/>
+        <result column="slug" property="slug"/>
+        <result column="title" property="title"/>
+        <result column="description" property="description"/>
+        <result column="favoriteCount" property="favoriteCount"/>
+    </resultMap>
+
+    <select id="getTrendingArticles" resultMap="trendingArticleData">
+        SELECT
+            A.id,
+            A.slug,
+            A.title,
+            A.description,
+            COUNT(AF.user_id) AS favoriteCount
+        FROM articles A
+        INNER JOIN article_favorites AF ON A.id = AF.article_id
+        WHERE AF.created_at >= datetime('now', '-' || #{days} || ' days')
+        GROUP BY A.id, A.slug, A.title, A.description
+        ORDER BY favoriteCount DESC
+        LIMIT #{limit}
+    </select>
+</mapper>
