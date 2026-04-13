@@ -41,6 +41,25 @@
         order by created_at desc
     </select>
 
+    <select id="findByArticleIdWithCursor" resultMap="comment">
+        select id, body, user_id, article_id, created_at, updated_at
+        from comments
+        where article_id = #{articleId}
+        <if test='cursor != null and direction == "NEXT"'>
+            AND created_at &lt; #{cursor}
+        </if>
+        <if test='cursor != null and direction == "PREV"'>
+            AND created_at > #{cursor}
+        </if>
+        <if test='direction == "NEXT"'>
+            order by created_at desc
+        </if>
+        <if test='direction == "PREV"'>
+            order by created_at asc
+        </if>
+        limit #{limit}
+    </select>
+
     <delete id="delete">
         delete from comments where id = #{id}
     </delete>

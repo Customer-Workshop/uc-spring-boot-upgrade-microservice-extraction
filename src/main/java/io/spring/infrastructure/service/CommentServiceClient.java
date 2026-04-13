@@ -82,6 +82,29 @@ public class CommentServiceClient {
     }
   }
 
+  public CursorCommentResponse getCommentsByArticleIdWithCursor(
+      String articleId, Long cursor, String direction, int limit) {
+    StringBuilder url = new StringBuilder(commentsServiceUrl);
+    url.append("/api/comments/cursor?articleId={articleId}&direction={direction}&limit={limit}");
+    if (cursor != null) {
+      url.append("&cursor={cursor}");
+      ResponseEntity<CursorCommentResponse> response =
+          restTemplate.getForEntity(
+              url.toString(),
+              CursorCommentResponse.class,
+              articleId,
+              direction,
+              limit,
+              cursor);
+      return response.getBody();
+    } else {
+      ResponseEntity<CursorCommentResponse> response =
+          restTemplate.getForEntity(
+              url.toString(), CursorCommentResponse.class, articleId, direction, limit);
+      return response.getBody();
+    }
+  }
+
   public void deleteComment(String id) {
     restTemplate.delete(commentsServiceUrl + "/api/comments/{id}", id);
   }
@@ -106,5 +129,14 @@ public class CommentServiceClient {
     private String articleId;
     private String createdAt;
     private String updatedAt;
+  }
+
+  @Getter
+  @Setter
+  @NoArgsConstructor
+  @JsonIgnoreProperties(ignoreUnknown = true)
+  public static class CursorCommentResponse {
+    private List<CommentResponse> comments;
+    private boolean hasExtra;
   }
 }

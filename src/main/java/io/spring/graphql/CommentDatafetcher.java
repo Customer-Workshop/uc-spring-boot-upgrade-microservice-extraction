@@ -8,8 +8,6 @@ import graphql.execution.DataFetcherResult;
 import graphql.relay.DefaultConnectionCursor;
 import graphql.relay.DefaultPageInfo;
 import io.spring.application.CommentEnrichmentService;
-import io.spring.application.CommentQueryService;
-import io.spring.application.CursorPageParameter;
 import io.spring.application.CursorPager;
 import io.spring.application.CursorPager.Direction;
 import io.spring.application.DateTimeCursor;
@@ -26,13 +24,13 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
+import org.joda.time.DateTime;
 import org.joda.time.format.ISODateTimeFormat;
 
 @DgsComponent
 @AllArgsConstructor
 public class CommentDatafetcher {
   private CommentEnrichmentService commentEnrichmentService;
-  private CommentQueryService commentQueryService;
 
   @DgsData(parentType = COMMENTPAYLOAD.TYPE_NAME, field = COMMENTPAYLOAD.Comment)
   public DataFetcherResult<Comment> getComment(DgsDataFetchingEnvironment dfe) {
@@ -68,17 +66,15 @@ public class CommentDatafetcher {
 
     CursorPager<CommentData> comments;
     if (first != null) {
+      DateTime cursor = DateTimeCursor.parse(after);
       comments =
-          commentQueryService.findByArticleIdWithCursor(
-              articleData.getId(),
-              current,
-              new CursorPageParameter<>(DateTimeCursor.parse(after), first, Direction.NEXT));
+          commentEnrichmentService.findByArticleIdWithCursor(
+              articleData.getId(), current, cursor, Direction.NEXT, first);
     } else {
+      DateTime cursor = DateTimeCursor.parse(before);
       comments =
-          commentQueryService.findByArticleIdWithCursor(
-              articleData.getId(),
-              current,
-              new CursorPageParameter<>(DateTimeCursor.parse(before), last, Direction.PREV));
+          commentEnrichmentService.findByArticleIdWithCursor(
+              articleData.getId(), current, cursor, Direction.PREV, last);
     }
     graphql.relay.PageInfo pageInfo = buildCommentPageInfo(comments);
     CommentsConnection result =

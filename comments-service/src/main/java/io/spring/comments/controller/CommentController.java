@@ -2,13 +2,17 @@ package io.spring.comments.controller;
 
 import io.spring.comments.mapper.CommentMapper;
 import io.spring.comments.model.Comment;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -59,6 +63,28 @@ public class CommentController {
       return ResponseEntity.notFound().build();
     }
     return ResponseEntity.ok(comment);
+  }
+
+  @GetMapping("/cursor")
+  public ResponseEntity<Map<String, Object>> getCommentsByArticleIdWithCursor(
+      @RequestParam("articleId") String articleId,
+      @RequestParam(value = "cursor", required = false) Long cursor,
+      @RequestParam(value = "direction", defaultValue = "NEXT") String direction,
+      @RequestParam(value = "limit", defaultValue = "20") int limit) {
+    DateTime cursorDateTime = cursor != null
+        ? new DateTime(cursor, DateTimeZone.UTC)
+        : null;
+    int queryLimit = limit + 1;
+    List<Comment> comments =
+        commentMapper.findByArticleIdWithCursor(articleId, cursorDateTime, direction, queryLimit);
+    boolean hasExtra = comments.size() > limit;
+    if (hasExtra) {
+      comments = comments.subList(0, limit);
+    }
+    Map<String, Object> result = new HashMap<>();
+    result.put("comments", comments);
+    result.put("hasExtra", hasExtra);
+    return ResponseEntity.ok(result);
   }
 
   @DeleteMapping("/{id}")

@@ -1,5 +1,7 @@
 package io.spring.application;
 
+import io.spring.application.CursorPager;
+import io.spring.application.CursorPager.Direction;
 import io.spring.application.data.CommentData;
 import io.spring.application.data.ProfileData;
 import io.spring.core.user.User;
@@ -7,6 +9,8 @@ import io.spring.infrastructure.mybatis.readservice.UserReadService;
 import io.spring.infrastructure.mybatis.readservice.UserRelationshipQueryService;
 import io.spring.infrastructure.service.CommentServiceClient;
 import io.spring.infrastructure.service.CommentServiceClient.CommentResponse;
+import io.spring.infrastructure.service.CommentServiceClient.CursorCommentResponse;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -63,6 +67,40 @@ public class CommentEnrichmentService {
     return comments;
   }
 
+  public CursorPager<CommentData> findByArticleIdWithCursor(
+      String articleId, User currentUser, DateTime cursor, Direction direction, int limit) {
+    Long cursorMillis = cursor != null ? cursor.getMillis() : null;
+    String dirStr = direction == Direction.NEXT ? "NEXT" : "PREV";
+    CursorCommentResponse cursorResponse =
+        commentServiceClient.getCommentsByArticleIdWithCursor(
+            articleId, cursorMillis, dirStr, limit);
+    if (cursorResponse == null || cursorResponse.getComments() == null || cursorResponse.getComments().isEmpty()) {
+      return new CursorPager<>(new ArrayList<>(), direction, false);
+    }
+    List<CommentData> comments =
+        cursorResponse.getComments().stream()
+            .map(response -> enrichComment(response, null))
+            .collect(Collectors.toList());
+    if (currentUser != null && !comments.isEmpty()) {
+      Set<String> followingAuthors =
+          userRelationshipQueryService.followingAuthors(
+              currentUser.getId(),
+              comments.stream()
+                  .map(c -> c.getProfileData().getId())
+                  .collect(Collectors.toList()));
+      comments.forEach(
+          c -> {
+            if (followingAuthors.contains(c.getProfileData().getId())) {
+              c.getProfileData().setFollowing(true);
+            }
+          });
+    }
+    if (direction != Direction.NEXT) {
+      Collections.reverse(comments);
+    }
+    return new CursorPager<>(comments, direction, cursorResponse.isHasExtra());
+  }
+
   private CommentData enrichComment(CommentResponse response, User currentUser) {
     var userData = userReadService.findById(response.getUserId());
     boolean following = false;
@@ -78,7 +116,7 @@ public class CommentEnrichmentService {
                 userData.getBio(),
                 userData.getImage(),
                 following)
-            : new ProfileData("", "", "", "", false);
+            : new ProfileData(response.getUserId(), "", "", "", false);
 
     DateTime createdAt = parseDateTime(response.getCreatedAt());
     DateTime updatedAt = parseDateTime(response.getUpdatedAt());
