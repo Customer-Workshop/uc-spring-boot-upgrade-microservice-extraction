@@ -111,8 +111,6 @@ public class CommentQueryService {
           });
     }
 
-    // Take limit+1 to determine hasExtra, then trim to limit
-    int queryLimit = page.getQueryLimit();
     boolean hasExtra = filtered.size() > page.getLimit();
     List<CommentData> comments;
     if (filtered.size() > page.getLimit()) {
