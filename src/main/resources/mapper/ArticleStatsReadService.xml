@@ -14,10 +14,6 @@
         select count(*) from comments where article_id = #{articleId}
     </select>
 
-    <insert id="recordView">
-        insert into article_views (article_id, viewed_at) values (#{articleId}, datetime('now'))
-    </insert>
-
     <select id="findTrendingArticles" resultMap="trendingArticleData">
         select
             A.slug articleSlug,
@@ -31,11 +27,7 @@
         from article_favorites AF
         inner join articles A on A.id = AF.article_id
         inner join users U on U.id = A.user_id
-        where AF.rowid in (
-            select rowid from article_favorites
-            where article_id = AF.article_id
-        )
-        and A.created_at >= datetime('now', '-' || #{days} || ' days')
+        where A.created_at >= datetime('now', '-' || #{days} || ' days')
         group by A.id
         order by favoriteCount desc
         limit #{limit}

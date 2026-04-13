@@ -22,8 +22,6 @@ public class ArticleStatsQueryService {
     int commentCount = articleStatsReadService.getCommentCount(articleId);
     long daysSincePublished = Days.daysBetween(article.getCreatedAt(), new DateTime()).getDays();
 
-    articleStatsReadService.recordView(articleId);
-
     return new ArticleStatsData(
         article.getSlug(),
         article.getTitle(),

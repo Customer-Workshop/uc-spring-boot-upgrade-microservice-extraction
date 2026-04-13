@@ -13,8 +13,6 @@ public interface ArticleStatsReadService {
 
   int getCommentCount(@Param("articleId") String articleId);
 
-  void recordView(@Param("articleId") String articleId);
-
   List<TrendingArticleData> findTrendingArticles(
       @Param("days") int days, @Param("limit") int limit);
 }
