@@ -190,8 +190,8 @@ class TestCreateArticle:
         assert resp.status_code == 422
 
         data = resp.json()
-        assert "body" in data["detail"]["errors"]
-        assert data["detail"]["errors"]["body"][0] == "can't be empty"
+        assert "body" in data["errors"]
+        assert data["errors"]["body"][0] == "can't be empty"
 
     def test_should_get_error_with_duplicated_title(self, client, db_session):
         """POST /api/articles with duplicate slug -> 422.

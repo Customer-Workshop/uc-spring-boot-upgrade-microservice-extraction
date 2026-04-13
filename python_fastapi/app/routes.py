@@ -20,6 +20,7 @@ from sqlalchemy.orm import Session
 
 from app.auth import get_current_user_optional, get_current_user_required
 from app.database import get_db
+from app.exceptions import ValidationError
 from app.models import Article, Tag, User
 from app.schemas import (
     ArticleData,
@@ -208,7 +209,7 @@ def create_article(
             errors.setdefault("title", []).append("article already exists")
 
     if errors:
-        raise HTTPException(status_code=422, detail={"errors": errors})
+        raise ValidationError(errors=errors)
 
     slug = to_slug(params.title)
     now = datetime.now(timezone.utc)
