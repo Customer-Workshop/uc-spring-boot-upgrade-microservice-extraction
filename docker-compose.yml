@@ -16,7 +16,7 @@ services:
     volumes:
       - comments-data:/data
     healthcheck:
-      test: ["CMD", "sh", "-c", "curl -f http://localhost:8081/api/comments/article/healthcheck || exit 1"]
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8081/api/comments/article/healthcheck || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5

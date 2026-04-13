@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.joda.time.DateTime;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.ParameterizedTypeReference;
@@ -111,7 +112,13 @@ public class CommentServiceClient implements CommentRepository {
   }
 
   private Comment mapToComment(Map<String, Object> map) {
+    String createdAtStr = (String) map.get("createdAt");
+    DateTime createdAt = createdAtStr != null ? DateTime.parse(createdAtStr) : new DateTime();
     return new Comment(
-        (String) map.get("body"), (String) map.get("userId"), (String) map.get("articleId"));
+        (String) map.get("id"),
+        (String) map.get("body"),
+        (String) map.get("userId"),
+        (String) map.get("articleId"),
+        createdAt);
   }
 }
