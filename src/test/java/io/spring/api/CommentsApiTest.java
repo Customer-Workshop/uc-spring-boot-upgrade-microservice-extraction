@@ -10,14 +10,15 @@ import static org.mockito.Mockito.when;
 import io.restassured.module.mockmvc.RestAssuredMockMvc;
 import io.spring.JacksonCustomizations;
 import io.spring.api.security.WebSecurityConfig;
-import io.spring.application.CommentQueryService;
+import io.spring.application.CommentEnrichmentService;
 import io.spring.application.data.CommentData;
 import io.spring.application.data.ProfileData;
 import io.spring.core.article.Article;
 import io.spring.core.article.ArticleRepository;
 import io.spring.core.comment.Comment;
-import io.spring.core.comment.CommentRepository;
 import io.spring.core.user.User;
+import io.spring.infrastructure.service.CommentServiceClient;
+import io.spring.infrastructure.service.CommentServiceClient.CommentResponse;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -36,8 +37,8 @@ public class CommentsApiTest extends TestWithCurrentUser {
 
   @MockBean private ArticleRepository articleRepository;
 
-  @MockBean private CommentRepository commentRepository;
-  @MockBean private CommentQueryService commentQueryService;
+  @MockBean private CommentServiceClient commentServiceClient;
+  @MockBean private CommentEnrichmentService commentEnrichmentService;
 
   private Article article;
   private CommentData commentData;
@@ -77,7 +78,15 @@ public class CommentsApiTest extends TestWithCurrentUser {
           }
         };
 
-    when(commentQueryService.findById(anyString(), eq(user))).thenReturn(Optional.of(commentData));
+    CommentResponse mockResponse = new CommentResponse();
+    mockResponse.setId(comment.getId());
+    mockResponse.setBody(comment.getBody());
+    mockResponse.setUserId(user.getId());
+    mockResponse.setArticleId(article.getId());
+    when(commentServiceClient.createComment(anyString(), anyString(), anyString()))
+        .thenReturn(mockResponse);
+    when(commentEnrichmentService.findById(anyString(), eq(user)))
+        .thenReturn(Optional.of(commentData));
 
     given()
         .contentType("application/json")
@@ -118,7 +127,7 @@ public class CommentsApiTest extends TestWithCurrentUser {
 
   @Test
   public void should_get_comments_of_article_success() throws Exception {
-    when(commentQueryService.findByArticleId(anyString(), eq(null)))
+    when(commentEnrichmentService.findByArticleId(anyString(), eq(null)))
         .thenReturn(Arrays.asList(commentData));
     RestAssuredMockMvc.when()
         .get("/articles/{slug}/comments", article.getSlug())
@@ -130,8 +139,9 @@ public class CommentsApiTest extends TestWithCurrentUser {
 
   @Test
   public void should_delete_comment_success() throws Exception {
-    when(commentRepository.findById(eq(article.getId()), eq(comment.getId())))
-        .thenReturn(Optional.of(comment));
+    when(commentEnrichmentService.findByIdAndArticleId(
+            eq(comment.getId()), eq(article.getId()), eq(user)))
+        .thenReturn(Optional.of(commentData));
 
     given()
         .header("Authorization", "Token " + token)
@@ -151,8 +161,17 @@ public class CommentsApiTest extends TestWithCurrentUser {
     when(userRepository.findById(eq(anotherUser.getId())))
         .thenReturn(Optional.ofNullable(anotherUser));
 
-    when(commentRepository.findById(eq(article.getId()), eq(comment.getId())))
-        .thenReturn(Optional.of(comment));
+    CommentData otherCommentData =
+        new CommentData(
+            comment.getId(),
+            comment.getBody(),
+            comment.getArticleId(),
+            comment.getCreatedAt(),
+            comment.getCreatedAt(),
+            new ProfileData(user.getId(), user.getUsername(), user.getBio(), user.getImage(), false));
+    when(commentEnrichmentService.findByIdAndArticleId(
+            eq(comment.getId()), eq(article.getId()), any()))
+        .thenReturn(Optional.of(otherCommentData));
     String token = jwtService.toToken(anotherUser);
     when(userRepository.findById(eq(anotherUser.getId()))).thenReturn(Optional.of(anotherUser));
     given()

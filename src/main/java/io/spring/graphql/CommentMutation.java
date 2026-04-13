@@ -6,18 +6,17 @@ import com.netflix.graphql.dgs.InputArgument;
 import graphql.execution.DataFetcherResult;
 import io.spring.api.exception.NoAuthorizationException;
 import io.spring.api.exception.ResourceNotFoundException;
-import io.spring.application.CommentQueryService;
+import io.spring.application.CommentEnrichmentService;
 import io.spring.application.data.CommentData;
 import io.spring.core.article.Article;
 import io.spring.core.article.ArticleRepository;
-import io.spring.core.comment.Comment;
-import io.spring.core.comment.CommentRepository;
-import io.spring.core.service.AuthorizationService;
 import io.spring.core.user.User;
 import io.spring.graphql.DgsConstants.MUTATION;
 import io.spring.graphql.exception.AuthenticationException;
 import io.spring.graphql.types.CommentPayload;
 import io.spring.graphql.types.DeletionStatus;
+import io.spring.infrastructure.service.CommentServiceClient;
+import io.spring.infrastructure.service.CommentServiceClient.CommentResponse;
 import lombok.AllArgsConstructor;
 
 @DgsComponent
@@ -25,8 +24,8 @@ import lombok.AllArgsConstructor;
 public class CommentMutation {
 
   private ArticleRepository articleRepository;
-  private CommentRepository commentRepository;
-  private CommentQueryService commentQueryService;
+  private CommentServiceClient commentServiceClient;
+  private CommentEnrichmentService commentEnrichmentService;
 
   @DgsData(parentType = MUTATION.TYPE_NAME, field = MUTATION.AddComment)
   public DataFetcherResult<CommentPayload> createComment(
@@ -34,11 +33,11 @@ public class CommentMutation {
     User user = SecurityUtil.getCurrentUser().orElseThrow(AuthenticationException::new);
     Article article =
         articleRepository.findBySlug(slug).orElseThrow(ResourceNotFoundException::new);
-    Comment comment = new Comment(body, user.getId(), article.getId());
-    commentRepository.save(comment);
+    CommentResponse created =
+        commentServiceClient.createComment(body, user.getId(), article.getId());
     CommentData commentData =
-        commentQueryService
-            .findById(comment.getId(), user)
+        commentEnrichmentService
+            .findById(created.getId(), user)
             .orElseThrow(ResourceNotFoundException::new);
     return DataFetcherResult.<CommentPayload>newResult()
         .localContext(commentData)
@@ -53,14 +52,15 @@ public class CommentMutation {
 
     Article article =
         articleRepository.findBySlug(slug).orElseThrow(ResourceNotFoundException::new);
-    return commentRepository
-        .findById(article.getId(), commentId)
+    return commentEnrichmentService
+        .findByIdAndArticleId(commentId, article.getId(), user)
         .map(
-            comment -> {
-              if (!AuthorizationService.canWriteComment(user, article, comment)) {
+            commentData -> {
+              if (!user.getId().equals(article.getUserId())
+                  && !user.getId().equals(commentData.getProfileData().getId())) {
                 throw new NoAuthorizationException();
               }
-              commentRepository.remove(comment);
+              commentServiceClient.deleteComment(commentId);
               return DeletionStatus.newBuilder().success(true).build();
             })
         .orElseThrow(ResourceNotFoundException::new);

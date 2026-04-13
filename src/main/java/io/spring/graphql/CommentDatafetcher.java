@@ -7,6 +7,7 @@ import com.netflix.graphql.dgs.InputArgument;
 import graphql.execution.DataFetcherResult;
 import graphql.relay.DefaultConnectionCursor;
 import graphql.relay.DefaultPageInfo;
+import io.spring.application.CommentEnrichmentService;
 import io.spring.application.CommentQueryService;
 import io.spring.application.CursorPageParameter;
 import io.spring.application.CursorPager;
@@ -30,6 +31,7 @@ import org.joda.time.format.ISODateTimeFormat;
 @DgsComponent
 @AllArgsConstructor
 public class CommentDatafetcher {
+  private CommentEnrichmentService commentEnrichmentService;
   private CommentQueryService commentQueryService;
 
   @DgsData(parentType = COMMENTPAYLOAD.TYPE_NAME, field = COMMENTPAYLOAD.Comment)
