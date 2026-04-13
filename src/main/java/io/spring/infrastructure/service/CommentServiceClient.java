@@ -53,7 +53,12 @@ public class CommentServiceClient implements CommentRepository {
           return Optional.empty();
         }
         Comment comment =
-            new Comment((String) body.get("body"), (String) body.get("userId"), responseArticleId);
+            new Comment(
+                (String) body.get("id"),
+                (String) body.get("body"),
+                (String) body.get("userId"),
+                responseArticleId,
+                new org.joda.time.DateTime());
         return Optional.of(comment);
       }
     } catch (HttpClientErrorException.NotFound e) {
