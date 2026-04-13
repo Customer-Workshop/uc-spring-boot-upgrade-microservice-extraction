@@ -41,6 +41,7 @@ public class CommentServiceClient implements CommentRepository {
     headers.setContentType(MediaType.APPLICATION_JSON);
 
     Map<String, String> body = new HashMap<>();
+    body.put("id", comment.getId());
     body.put("body", comment.getBody());
     body.put("userId", comment.getUserId());
     body.put("articleId", comment.getArticleId());

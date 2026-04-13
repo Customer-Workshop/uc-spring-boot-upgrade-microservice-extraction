@@ -31,7 +31,14 @@ public class CommentController {
   @PostMapping
   public ResponseEntity<Map<String, Object>> createComment(
       @Valid @RequestBody CreateCommentRequest request) {
-    Comment comment = new Comment(request.getBody(), request.getUserId(), request.getArticleId());
+    Comment comment;
+    if (request.getId() != null && !request.getId().isEmpty()) {
+      comment =
+          new Comment(
+              request.getId(), request.getBody(), request.getUserId(), request.getArticleId());
+    } else {
+      comment = new Comment(request.getBody(), request.getUserId(), request.getArticleId());
+    }
     commentMapper.insert(comment);
     Comment saved = commentMapper.findByIdOnly(comment.getId());
     Map<String, Object> response = new HashMap<>();
@@ -97,6 +104,8 @@ public class CommentController {
 @Setter
 @NoArgsConstructor
 class CreateCommentRequest {
+  private String id;
+
   @NotBlank(message = "can't be empty")
   private String body;
 

@@ -83,8 +83,28 @@ public class RemoteCommentQueryService extends CommentQueryService {
     if (allComments.isEmpty()) {
       return new CursorPager<>(new ArrayList<>(), page.getDirection(), false);
     }
+
+    DateTime cursor = page.getCursor();
     int limit = page.getLimit();
-    List<CommentData> result = allComments.stream().limit(limit + 1).collect(Collectors.toList());
+
+    List<CommentData> filtered;
+    if (cursor != null) {
+      if (page.isNext()) {
+        filtered =
+            allComments.stream()
+                .filter(c -> c.getCreatedAt().isAfter(cursor))
+                .collect(Collectors.toList());
+      } else {
+        filtered =
+            allComments.stream()
+                .filter(c -> c.getCreatedAt().isBefore(cursor))
+                .collect(Collectors.toList());
+      }
+    } else {
+      filtered = allComments;
+    }
+
+    List<CommentData> result = filtered.stream().limit(limit + 1).collect(Collectors.toList());
     boolean hasExtra = result.size() > limit;
     if (hasExtra) {
       result = result.subList(0, limit);
