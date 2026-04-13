@@ -36,6 +36,15 @@ jacocoTestReport {
 }
 
 jacocoTestCoverageVerification {
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: [
+                'io/spring/infrastructure/service/CommentServiceClient*',
+                'io/spring/infrastructure/service/RemoteCommentQueryService*',
+                'io/spring/infrastructure/service/RestTemplateConfig*'
+            ])
+        }))
+    }
     violationRules {
         rule {
             limit {
@@ -91,9 +100,22 @@ dependencies {
 
 tasks.named('test') {
 	useJUnitPlatform()
-	// Exclude Selenium tests from JUnit test task
+	// Exclude Selenium tests and integration tests from JUnit test task
 	exclude 'io/spring/selenium/**'
+	exclude 'io/spring/integration/**'
 	finalizedBy jacocoTestReport
+}
+
+// Separate task for integration tests (requires comments-microservice running)
+tasks.register('integrationTest', Test) {
+	description = 'Run integration tests against comments microservice'
+	group = 'verification'
+	useJUnitPlatform()
+	include 'io/spring/integration/**'
+	testLogging {
+		events "passed", "skipped", "failed"
+		showStandardStreams = true
+	}
 }
 
 // Separate task for Selenium E2E tests using TestNG
