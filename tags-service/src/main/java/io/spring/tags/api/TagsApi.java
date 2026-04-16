@@ -1,6 +1,6 @@
-package io.spring.api;
+package io.spring.tags.api;
 
-import io.spring.application.TagsQueryService;
+import io.spring.tags.application.TagsQueryService;
 import java.util.HashMap;
 import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;

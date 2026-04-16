@@ -60,20 +60,40 @@ The application includes seed data with sample users, articles, tags, comments, 
 - 6 article favorites
 - 4 follow relationships between users
 
+# Microservice Architecture
+
+The Tags bounded context has been extracted into a separate microservice (`tags-service/`). See [`tags-service/README.md`](tags-service/README.md) for details.
+
+| Service       | Port | Description                              |
+|---------------|------|------------------------------------------|
+| Monolith      | 8080 | Main application (articles, users, etc.) |
+| Tags Service  | 8081 | Tags management microservice             |
+
+The monolith communicates with the Tags service via HTTP REST calls. Configure the URL in `application.properties` via `tags.service.url`.
+
 # Getting started
 
-## Backend (Spring Boot)
+## Tags Microservice
 
 You'll need Java 11 installed.
+
+    cd tags-service
+    ./gradlew bootRun
+
+The Tags service starts on port **8081**.
+
+## Backend (Spring Boot Monolith)
+
+You'll need Java 11 installed. **Start the Tags microservice first.**
 
     ./gradlew bootRun
 
 **Note**: `bootRun` automatically cleans and recreates the database with seed data on each run to avoid Flyway migration conflicts during development.
 
-To test that it works, open a browser tab at http://localhost:8080/tags .  
+To test that it works, open a browser tab at http://localhost:8081/tags .  
 Alternatively, you can run
 
-    curl http://localhost:8080/tags
+    curl http://localhost:8081/tags
 
 ## Frontend (Next.js)
 

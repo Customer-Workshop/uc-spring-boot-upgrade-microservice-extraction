@@ -32,3 +32,4 @@ frontend/.next/
 frontend/out/
 frontend/.env*.local
 frontend/.git/
+bin/

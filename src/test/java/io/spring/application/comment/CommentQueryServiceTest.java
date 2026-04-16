@@ -13,14 +13,21 @@ import io.spring.infrastructure.DbTestBase;
 import io.spring.infrastructure.repository.MyBatisArticleRepository;
 import io.spring.infrastructure.repository.MyBatisCommentRepository;
 import io.spring.infrastructure.repository.MyBatisUserRepository;
+import io.spring.infrastructure.service.TagServiceClient;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
+
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.when;
 
 @Import({
   MyBatisCommentRepository.class,
@@ -37,10 +44,15 @@ public class CommentQueryServiceTest extends DbTestBase {
 
   @Autowired private ArticleRepository articleRepository;
 
+  @MockBean private TagServiceClient tagServiceClient;
+
   private User user;
 
   @BeforeEach
   public void setUp() {
+    when(tagServiceClient.findOrCreateTag(anyString()))
+        .thenAnswer(invocation -> UUID.randomUUID().toString());
+    doNothing().when(tagServiceClient).createArticleTagRelation(anyString(), anyString());
     user = new User("aisensiy@test.com", "aisensiy", "123", "", "");
     userRepository.save(user);
   }

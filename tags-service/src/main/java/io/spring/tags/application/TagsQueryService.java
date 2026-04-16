@@ -1,6 +1,6 @@
-package io.spring.application;
+package io.spring.tags.application;
 
-import io.spring.infrastructure.mybatis.readservice.TagReadService;
+import io.spring.tags.infrastructure.mybatis.readservice.TagReadService;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
