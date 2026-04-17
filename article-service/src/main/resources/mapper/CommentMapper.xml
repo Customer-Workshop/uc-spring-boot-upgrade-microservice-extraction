@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="io.spring.article.repository.CommentMapper">
+
+    <resultMap id="commentResultMap" type="io.spring.article.domain.Comment">
+        <id column="id" property="id"/>
+        <result column="body" property="body"/>
+        <result column="user_id" property="userId"/>
+        <result column="article_id" property="articleId"/>
+        <result column="created_at" property="createdAt"
+                typeHandler="io.spring.article.config.DateTimeHandler"/>
+    </resultMap>
+
+    <insert id="insert">
+        INSERT INTO comments (id, body, user_id, article_id, created_at)
+        VALUES (
+            #{comment.id},
+            #{comment.body},
+            #{comment.userId},
+            #{comment.articleId},
+            #{comment.createdAt, typeHandler=io.spring.article.config.DateTimeHandler}
+        )
+    </insert>
+
+    <select id="findById" resultMap="commentResultMap">
+        SELECT id, body, user_id, article_id, created_at
+        FROM comments
+        WHERE article_id = #{articleId} AND id = #{id}
+    </select>
+
+    <select id="findByArticleId" resultMap="commentResultMap">
+        SELECT id, body, user_id, article_id, created_at
+        FROM comments
+        WHERE article_id = #{articleId}
+        ORDER BY created_at DESC
+    </select>
+
+    <delete id="delete">
+        DELETE FROM comments WHERE id = #{id}
+    </delete>
+
+</mapper>

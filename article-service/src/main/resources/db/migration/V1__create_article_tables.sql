@@ -1,0 +1,32 @@
+CREATE TABLE IF NOT EXISTS articles (
+  id VARCHAR(255) PRIMARY KEY,
+  user_id VARCHAR(255) NOT NULL,
+  slug VARCHAR(255) UNIQUE NOT NULL,
+  title VARCHAR(255) NOT NULL,
+  description TEXT,
+  body TEXT,
+  created_at TIMESTAMP NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS tags (
+  id VARCHAR(255) PRIMARY KEY,
+  name VARCHAR(255) UNIQUE NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS article_tags (
+  article_id VARCHAR(255) NOT NULL,
+  tag_id VARCHAR(255) NOT NULL,
+  PRIMARY KEY (article_id, tag_id),
+  FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE,
+  FOREIGN KEY (tag_id) REFERENCES tags(id)
+);
+
+CREATE TABLE IF NOT EXISTS comments (
+  id VARCHAR(255) PRIMARY KEY,
+  body TEXT NOT NULL,
+  user_id VARCHAR(255) NOT NULL,
+  article_id VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP NOT NULL,
+  FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE
+);

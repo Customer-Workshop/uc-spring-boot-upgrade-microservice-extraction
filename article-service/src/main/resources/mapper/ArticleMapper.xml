@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="io.spring.article.repository.ArticleMapper">
+
+    <resultMap id="articleResultMap" type="io.spring.article.domain.Article">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="slug" property="slug"/>
+        <result column="title" property="title"/>
+        <result column="description" property="description"/>
+        <result column="body" property="body"/>
+        <result column="created_at" property="createdAt"
+                typeHandler="io.spring.article.config.DateTimeHandler"/>
+        <result column="updated_at" property="updatedAt"
+                typeHandler="io.spring.article.config.DateTimeHandler"/>
+        <collection property="tags" ofType="io.spring.article.domain.Tag">
+            <id column="tag_id" property="id"/>
+            <result column="tag_name" property="name"/>
+        </collection>
+    </resultMap>
+
+    <insert id="insert">
+        INSERT INTO articles (id, user_id, slug, title, description, body, created_at, updated_at)
+        VALUES (
+            #{article.id},
+            #{article.userId},
+            #{article.slug},
+            #{article.title},
+            #{article.description},
+            #{article.body},
+            #{article.createdAt, typeHandler=io.spring.article.config.DateTimeHandler},
+            #{article.updatedAt, typeHandler=io.spring.article.config.DateTimeHandler}
+        )
+    </insert>
+
+    <select id="findById" resultMap="articleResultMap">
+        SELECT a.id, a.user_id, a.slug, a.title, a.description, a.body,
+               a.created_at, a.updated_at,
+               t.id as tag_id, t.name as tag_name
+        FROM articles a
+        LEFT JOIN article_tags at2 ON a.id = at2.article_id
+        LEFT JOIN tags t ON at2.tag_id = t.id
+        WHERE a.id = #{id}
+    </select>
+
+    <select id="findBySlug" resultMap="articleResultMap">
+        SELECT a.id, a.user_id, a.slug, a.title, a.description, a.body,
+               a.created_at, a.updated_at,
+               t.id as tag_id, t.name as tag_name
+        FROM articles a
+        LEFT JOIN article_tags at2 ON a.id = at2.article_id
+        LEFT JOIN tags t ON at2.tag_id = t.id
+        WHERE a.slug = #{slug}
+    </select>
+
+    <select id="findTag" resultType="io.spring.article.domain.Tag">
+        SELECT id, name FROM tags WHERE name = #{tagName}
+    </select>
+
+    <insert id="insertTag">
+        INSERT INTO tags (id, name) VALUES (#{tag.id}, #{tag.name})
+    </insert>
+
+    <insert id="insertArticleTagRelation">
+        INSERT INTO article_tags (article_id, tag_id) VALUES (#{articleId}, #{tagId})
+    </insert>
+
+    <update id="update">
+        UPDATE articles SET
+            slug = #{article.slug},
+            title = #{article.title},
+            description = #{article.description},
+            body = #{article.body},
+            updated_at = #{article.updatedAt, typeHandler=io.spring.article.config.DateTimeHandler}
+        WHERE id = #{article.id}
+    </update>
+
+    <delete id="delete">
+        DELETE FROM articles WHERE id = #{id}
+    </delete>
+
+</mapper>
