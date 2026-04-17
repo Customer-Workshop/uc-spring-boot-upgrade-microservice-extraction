@@ -2,6 +2,8 @@ package io.spring.infrastructure.service;
 
 import io.spring.core.service.JwtService;
 import io.spring.core.user.User;
+import java.security.SecureRandom;
+import java.util.Base64;
 import java.util.Optional;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -11,10 +13,15 @@ public class DefaultJwtServiceTest {
 
   private JwtService jwtService;
 
+  private static String generateTestSecret() {
+    byte[] keyBytes = new byte[64]; // 512 bits for HS512
+    new SecureRandom().nextBytes(keyBytes);
+    return Base64.getUrlEncoder().withoutPadding().encodeToString(keyBytes);
+  }
+
   @BeforeEach
   public void setUp() {
-    jwtService =
-        new DefaultJwtService("123123123123123123123123123123123123123123123123123123123123", 3600);
+    jwtService = new DefaultJwtService(generateTestSecret(), 3600);
   }
 
   @Test
