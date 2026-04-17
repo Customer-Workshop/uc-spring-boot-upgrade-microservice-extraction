@@ -18,6 +18,7 @@ public class ArticleService {
       java.util.List<String> tagList, String userId) {
     Article article = new Article(title, description, body,
         tagList != null ? tagList : java.util.Collections.emptyList(), userId);
+    articleMapper.insert(article);
     for (Tag tag : article.getTags()) {
       Tag existingTag = articleMapper.findTag(tag.getName());
       if (existingTag != null) {
@@ -27,7 +28,6 @@ public class ArticleService {
         articleMapper.insertArticleTagRelation(article.getId(), tag.getId());
       }
     }
-    articleMapper.insert(article);
     return article;
   }
 

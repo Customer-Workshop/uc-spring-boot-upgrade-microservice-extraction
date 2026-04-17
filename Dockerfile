@@ -5,6 +5,7 @@ COPY gradlew .
 COPY build.gradle .
 COPY settings.gradle .
 COPY src src
+COPY article-service article-service
 RUN chmod +x gradlew && ./gradlew bootJar -x test -x generateJava --no-daemon
 
 FROM eclipse-temurin:17-jre-jammy
