@@ -48,8 +48,7 @@ public class Article {
       inverseJoinColumns = @JoinColumn(name = "tag_id"))
   private List<Tag> tags = new ArrayList<>();
 
-  public Article(String title, String description, String body, List<String> tagList,
-      String userId) {
+  public Article(String title, String description, String body, String userId) {
     this.id = UUID.randomUUID().toString();
     this.slug = toSlug(title);
     this.title = title;
@@ -58,9 +57,10 @@ public class Article {
     this.userId = userId;
     this.createdAt = Instant.now();
     this.updatedAt = this.createdAt;
-    if (tagList != null) {
-      tagList.stream().distinct().forEach(name -> this.tags.add(new Tag(name)));
-    }
+  }
+
+  public void setTags(List<Tag> tags) {
+    this.tags = tags;
   }
 
   public void update(String title, String description, String body) {

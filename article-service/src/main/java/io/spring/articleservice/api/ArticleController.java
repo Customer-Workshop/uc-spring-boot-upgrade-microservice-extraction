@@ -2,6 +2,7 @@ package io.spring.articleservice.api;
 
 import io.spring.articleservice.domain.Article;
 import io.spring.articleservice.domain.ArticleRepository;
+import io.spring.articleservice.domain.Tag;
 import io.spring.articleservice.domain.TagRepository;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -35,8 +36,15 @@ public class ArticleController {
             request.getTitle(),
             request.getDescription(),
             request.getBody(),
-            request.getTagList(),
             request.getUserId());
+    if (request.getTagList() != null) {
+      List<Tag> resolvedTags =
+          request.getTagList().stream()
+              .distinct()
+              .map(name -> tagRepository.findByName(name).orElseGet(() -> new Tag(name)))
+              .collect(Collectors.toList());
+      article.setTags(resolvedTags);
+    }
     articleRepository.save(article);
     return ResponseEntity.status(HttpStatus.CREATED).body(toDTO(article));
   }
