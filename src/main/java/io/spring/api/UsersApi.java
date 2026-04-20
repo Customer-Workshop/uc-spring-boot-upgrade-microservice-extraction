@@ -4,7 +4,6 @@ import static org.springframework.web.bind.annotation.RequestMethod.POST;
 
 import com.fasterxml.jackson.annotation.JsonRootName;
 import io.spring.api.exception.InvalidAuthenticationException;
-import io.spring.application.UserQueryService;
 import io.spring.application.data.UserData;
 import io.spring.application.data.UserWithToken;
 import io.spring.application.user.RegisterParam;
@@ -31,7 +30,6 @@ import org.springframework.web.bind.annotation.RestController;
 @AllArgsConstructor
 public class UsersApi {
   private UserRepository userRepository;
-  private UserQueryService userQueryService;
   private PasswordEncoder passwordEncoder;
   private JwtService jwtService;
   private UserService userService;
@@ -39,7 +37,7 @@ public class UsersApi {
   @RequestMapping(path = "/users", method = POST)
   public ResponseEntity createUser(@Valid @RequestBody RegisterParam registerParam) {
     User user = userService.createUser(registerParam);
-    UserData userData = userQueryService.findById(user.getId()).get();
+    UserData userData = userService.findById(user.getId()).get();
     return ResponseEntity.status(201)
         .body(userResponse(new UserWithToken(userData, jwtService.toToken(user))));
   }
@@ -49,7 +47,7 @@ public class UsersApi {
     Optional<User> optional = userRepository.findByEmail(loginParam.getEmail());
     if (optional.isPresent()
         && passwordEncoder.matches(loginParam.getPassword(), optional.get().getPassword())) {
-      UserData userData = userQueryService.findById(optional.get().getId()).get();
+      UserData userData = userService.findById(optional.get().getId()).get();
       return ResponseEntity.ok(
           userResponse(new UserWithToken(userData, jwtService.toToken(optional.get()))));
     } else {

@@ -10,7 +10,6 @@ import static org.mockito.Mockito.when;
 import io.restassured.module.mockmvc.RestAssuredMockMvc;
 import io.spring.JacksonCustomizations;
 import io.spring.api.security.WebSecurityConfig;
-import io.spring.application.UserQueryService;
 import io.spring.application.data.UserData;
 import io.spring.application.user.UserService;
 import io.spring.core.service.JwtService;
@@ -33,7 +32,6 @@ import org.springframework.test.web.servlet.MockMvc;
 @WebMvcTest(UsersApi.class)
 @Import({
   WebSecurityConfig.class,
-  UserQueryService.class,
   BCryptPasswordEncoder.class,
   JacksonCustomizations.class
 })
@@ -66,7 +64,7 @@ public class UsersApiTest {
     when(jwtService.toToken(any())).thenReturn("123");
     User user = new User(email, username, "123", "", defaultAvatar);
     UserData userData = new UserData(user.getId(), email, username, "", defaultAvatar);
-    when(userReadService.findById(any())).thenReturn(userData);
+    when(userService.findById(any())).thenReturn(Optional.of(userData));
 
     when(userService.createUser(any())).thenReturn(user);
 
@@ -199,8 +197,7 @@ public class UsersApiTest {
     UserData userData = new UserData("123", email, username, "", defaultAvatar);
 
     when(userRepository.findByEmail(eq(email))).thenReturn(Optional.of(user));
-    when(userReadService.findByUsername(eq(username))).thenReturn(userData);
-    when(userReadService.findById(eq(user.getId()))).thenReturn(userData);
+    when(userService.findById(eq(user.getId()))).thenReturn(Optional.of(userData));
     when(jwtService.toToken(any())).thenReturn("123");
 
     Map<String, Object> param =

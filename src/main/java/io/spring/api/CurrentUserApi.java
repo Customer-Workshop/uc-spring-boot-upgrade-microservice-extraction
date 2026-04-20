@@ -1,6 +1,5 @@
 package io.spring.api;
 
-import io.spring.application.UserQueryService;
 import io.spring.application.data.UserData;
 import io.spring.application.data.UserWithToken;
 import io.spring.application.user.UpdateUserCommand;
@@ -25,14 +24,13 @@ import org.springframework.web.bind.annotation.RestController;
 @AllArgsConstructor
 public class CurrentUserApi {
 
-  private UserQueryService userQueryService;
   private UserService userService;
 
   @GetMapping
   public ResponseEntity currentUser(
       @AuthenticationPrincipal User currentUser,
       @RequestHeader(value = "Authorization") String authorization) {
-    UserData userData = userQueryService.findById(currentUser.getId()).get();
+    UserData userData = userService.findById(currentUser.getId()).get();
     return ResponseEntity.ok(
         userResponse(new UserWithToken(userData, authorization.split(" ")[1])));
   }
@@ -44,7 +42,7 @@ public class CurrentUserApi {
       @Valid @RequestBody UpdateUserParam updateUserParam) {
 
     userService.updateUser(new UpdateUserCommand(currentUser, updateUserParam));
-    UserData userData = userQueryService.findById(currentUser.getId()).get();
+    UserData userData = userService.findById(currentUser.getId()).get();
     return ResponseEntity.ok(userResponse(new UserWithToken(userData, token.split(" ")[1])));
   }
 

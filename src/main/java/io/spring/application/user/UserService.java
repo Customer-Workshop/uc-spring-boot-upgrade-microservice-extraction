@@ -1,8 +1,11 @@
 package io.spring.application.user;
 
+import io.spring.application.data.UserData;
 import io.spring.core.user.User;
 import io.spring.core.user.UserRepository;
+import io.spring.infrastructure.mybatis.readservice.UserReadService;
 import java.lang.annotation.Retention;
+import java.util.Optional;
 import java.lang.annotation.RetentionPolicy;
 import javax.validation.Constraint;
 import javax.validation.ConstraintValidator;
@@ -20,15 +23,18 @@ public class UserService {
   private UserRepository userRepository;
   private String defaultImage;
   private PasswordEncoder passwordEncoder;
+  private UserReadService userReadService;
 
   @Autowired
   public UserService(
       UserRepository userRepository,
       @Value("${image.default}") String defaultImage,
-      PasswordEncoder passwordEncoder) {
+      PasswordEncoder passwordEncoder,
+      UserReadService userReadService) {
     this.userRepository = userRepository;
     this.defaultImage = defaultImage;
     this.passwordEncoder = passwordEncoder;
+    this.userReadService = userReadService;
   }
 
   public User createUser(@Valid RegisterParam registerParam) {
@@ -41,6 +47,10 @@ public class UserService {
             defaultImage);
     userRepository.save(user);
     return user;
+  }
+
+  public Optional<UserData> findById(String id) {
+    return Optional.ofNullable(userReadService.findById(id));
   }
 
   public void updateUser(@Valid UpdateUserCommand command) {

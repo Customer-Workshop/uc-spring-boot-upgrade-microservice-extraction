@@ -5,9 +5,9 @@ import com.netflix.graphql.dgs.DgsData;
 import graphql.execution.DataFetcherResult;
 import graphql.schema.DataFetchingEnvironment;
 import io.spring.api.exception.ResourceNotFoundException;
-import io.spring.application.UserQueryService;
 import io.spring.application.data.UserData;
 import io.spring.application.data.UserWithToken;
+import io.spring.application.user.UserService;
 import io.spring.core.service.JwtService;
 import io.spring.graphql.DgsConstants.QUERY;
 import io.spring.graphql.DgsConstants.USERPAYLOAD;
@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 @DgsComponent
 @AllArgsConstructor
 public class MeDatafetcher {
-  private UserQueryService userQueryService;
+  private UserService userService;
   private JwtService jwtService;
 
   @DgsData(parentType = DgsConstants.QUERY_TYPE, field = QUERY.Me)
@@ -35,7 +35,7 @@ public class MeDatafetcher {
     }
     io.spring.core.user.User user = (io.spring.core.user.User) authentication.getPrincipal();
     UserData userData =
-        userQueryService.findById(user.getId()).orElseThrow(ResourceNotFoundException::new);
+        userService.findById(user.getId()).orElseThrow(ResourceNotFoundException::new);
     UserWithToken userWithToken = new UserWithToken(userData, authorization.split(" ")[1]);
     User result =
         User.newBuilder()
