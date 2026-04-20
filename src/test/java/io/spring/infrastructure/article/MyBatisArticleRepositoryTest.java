@@ -48,10 +48,9 @@ public class MyBatisArticleRepositoryTest extends DbTestBase {
     articleRepository.save(article);
     Optional<Article> optional = articleRepository.findById(article.getId());
     Assertions.assertTrue(optional.isPresent());
-    Assertions.assertEquals(optional.get().getId(), article.getId());
-    Assertions.assertEquals(optional.get().getTitle(), article.getTitle());
-    Assertions.assertEquals(optional.get().getBody(), article.getBody());
-    // Tags are now managed by the Tags microservice, not stored locally
+    Assertions.assertEquals(optional.get(), article);
+    Assertions.assertTrue(optional.get().getTags().contains(new Tag("java")));
+    Assertions.assertTrue(optional.get().getTags().contains(new Tag("spring")));
   }
 
   @Test

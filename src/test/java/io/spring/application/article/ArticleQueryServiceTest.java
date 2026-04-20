@@ -78,7 +78,7 @@ public class ArticleQueryServiceTest extends DbTestBase {
     Assertions.assertFalse(fetched.isFavorited());
     Assertions.assertNotNull(fetched.getCreatedAt());
     Assertions.assertNotNull(fetched.getUpdatedAt());
-    // Tags are now managed by the Tags microservice, not stored locally
+    Assertions.assertTrue(fetched.getTagList().contains("java"));
   }
 
   @Test
@@ -194,13 +194,18 @@ public class ArticleQueryServiceTest extends DbTestBase {
 
   @Test
   public void should_query_article_by_tag() {
-    // Tag-based article queries now depend on the Tags microservice.
-    // With tags managed externally, the monolith's article_tags join table
-    // is no longer populated locally, so tag-based filtering returns no results.
-    // This test verifies the query executes without error.
+    Article anotherArticle =
+        new Article("new article", "desc", "body", Arrays.asList("test"), user.getId());
+    articleRepository.save(anotherArticle);
+
     ArticleDataList recentArticles =
         queryService.findRecentArticles("spring", null, null, new Page(), user);
-    Assertions.assertNotNull(recentArticles);
+    Assertions.assertEquals(recentArticles.getArticleDatas().size(), 1);
+    Assertions.assertEquals(recentArticles.getCount(), 1);
+    Assertions.assertEquals(recentArticles.getArticleDatas().get(0).getId(), article.getId());
+
+    ArticleDataList notag = queryService.findRecentArticles("notag", null, null, new Page(), user);
+    Assertions.assertEquals(notag.getCount(), 0);
   }
 
   @Test

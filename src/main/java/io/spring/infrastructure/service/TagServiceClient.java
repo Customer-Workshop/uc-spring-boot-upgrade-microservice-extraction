@@ -43,12 +43,18 @@ public class TagServiceClient {
    * @param tagName the name of the tag to create or find
    * @return the tag ID
    */
+  @SuppressWarnings("unchecked")
   public String findOrCreateTag(String tagName) {
     Map<String, String> request = new HashMap<>();
     request.put("name", tagName);
     ResponseEntity<Map> response =
         restTemplate.postForEntity(tagsServiceUrl + "/tags", request, Map.class);
-    return (String) response.getBody().get("id");
+    Map<String, Object> body = response.getBody();
+    if (body == null || !body.containsKey("id")) {
+      throw new RuntimeException(
+          "Tags service returned no body or missing 'id' for tag: " + tagName);
+    }
+    return (String) body.get("id");
   }
 
   /**

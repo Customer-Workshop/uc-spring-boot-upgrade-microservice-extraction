@@ -31,8 +31,18 @@ public class MyBatisArticleRepository implements ArticleRepository {
 
   private void createNew(Article article) {
     for (Tag tag : article.getTags()) {
-      String tagId = tagServiceClient.findOrCreateTag(tag.getName());
-      tagServiceClient.createArticleTagRelation(article.getId(), tagId);
+      // Dual-write: persist tags locally so monolith read queries (JOINs) still work,
+      // and also write to the Tags microservice as the future source of truth.
+      Tag targetTag =
+          Optional.ofNullable(articleMapper.findTag(tag.getName()))
+              .orElseGet(
+                  () -> {
+                    articleMapper.insertTag(tag);
+                    return tag;
+                  });
+      articleMapper.insertArticleTagRelation(article.getId(), targetTag.getId());
+      tagServiceClient.findOrCreateTag(tag.getName());
+      tagServiceClient.createArticleTagRelation(article.getId(), targetTag.getId());
     }
     articleMapper.insert(article);
   }
