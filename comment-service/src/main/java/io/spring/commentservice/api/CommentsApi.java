@@ -1,26 +1,15 @@
-package io.spring.api;
-
-// TODO: Comments API has been extracted to the Comment Service (comment-service/).
-// This controller should be removed once the Comment Service is fully deployed.
-// The Comment Service exposes:
-//   POST   /articles/{slug}/comments
-//   GET    /articles/{slug}/comments
-//   DELETE /articles/{slug}/comments/{id}
-// The Comment Service calls back to this monolith via:
-//   GET /api/internal/articles/by-slug/{slug} (Article Service)
-//   GET /api/internal/users/{id} (User Service)
+package io.spring.commentservice.api;
 
 import com.fasterxml.jackson.annotation.JsonRootName;
-import io.spring.api.exception.NoAuthorizationException;
-import io.spring.api.exception.ResourceNotFoundException;
-import io.spring.application.CommentQueryService;
-import io.spring.application.data.CommentData;
-import io.spring.core.article.Article;
-import io.spring.core.article.ArticleRepository;
-import io.spring.core.comment.Comment;
-import io.spring.core.comment.CommentRepository;
-import io.spring.core.service.AuthorizationService;
-import io.spring.core.user.User;
+import io.spring.commentservice.api.exception.NoAuthorizationException;
+import io.spring.commentservice.api.exception.ResourceNotFoundException;
+import io.spring.commentservice.application.CommentQueryService;
+import io.spring.commentservice.application.data.CommentData;
+import io.spring.commentservice.client.ArticleServiceClient;
+import io.spring.commentservice.client.ArticleServiceClient.ArticleResponse;
+import io.spring.commentservice.core.comment.Comment;
+import io.spring.commentservice.core.comment.CommentRepository;
+import io.spring.commentservice.core.service.AuthorizationService;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,29 +32,32 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping(path = "/articles/{slug}/comments")
 @AllArgsConstructor
 public class CommentsApi {
-  private ArticleRepository articleRepository;
+  private ArticleServiceClient articleServiceClient;
   private CommentRepository commentRepository;
   private CommentQueryService commentQueryService;
 
   @PostMapping
   public ResponseEntity<?> createComment(
       @PathVariable("slug") String slug,
-      @AuthenticationPrincipal User user,
+      @AuthenticationPrincipal io.spring.commentservice.api.security.AuthUserDetails user,
       @Valid @RequestBody NewCommentParam newCommentParam) {
-    Article article =
-        articleRepository.findBySlug(slug).orElseThrow(ResourceNotFoundException::new);
+    ArticleResponse article =
+        articleServiceClient.getArticleBySlug(slug).orElseThrow(ResourceNotFoundException::new);
     Comment comment = new Comment(newCommentParam.getBody(), user.getId(), article.getId());
     commentRepository.save(comment);
     return ResponseEntity.status(201)
-        .body(commentResponse(commentQueryService.findById(comment.getId(), user).get()));
+        .body(commentResponse(commentQueryService.findById(comment.getId(), user.getId()).get()));
   }
 
   @GetMapping
   public ResponseEntity getComments(
-      @PathVariable("slug") String slug, @AuthenticationPrincipal User user) {
-    Article article =
-        articleRepository.findBySlug(slug).orElseThrow(ResourceNotFoundException::new);
-    List<CommentData> comments = commentQueryService.findByArticleId(article.getId(), user);
+      @PathVariable("slug") String slug,
+      @AuthenticationPrincipal io.spring.commentservice.api.security.AuthUserDetails user) {
+    ArticleResponse article =
+        articleServiceClient.getArticleBySlug(slug).orElseThrow(ResourceNotFoundException::new);
+    String currentUserId = user != null ? user.getId() : null;
+    List<CommentData> comments =
+        commentQueryService.findByArticleId(article.getId(), currentUserId);
     return ResponseEntity.ok(
         new HashMap<String, Object>() {
           {
@@ -78,14 +70,15 @@ public class CommentsApi {
   public ResponseEntity deleteComment(
       @PathVariable("slug") String slug,
       @PathVariable("id") String commentId,
-      @AuthenticationPrincipal User user) {
-    Article article =
-        articleRepository.findBySlug(slug).orElseThrow(ResourceNotFoundException::new);
+      @AuthenticationPrincipal io.spring.commentservice.api.security.AuthUserDetails user) {
+    ArticleResponse article =
+        articleServiceClient.getArticleBySlug(slug).orElseThrow(ResourceNotFoundException::new);
     return commentRepository
         .findById(article.getId(), commentId)
         .map(
             comment -> {
-              if (!AuthorizationService.canWriteComment(user, article, comment)) {
+              if (!AuthorizationService.canWriteComment(
+                  user.getId(), article.getUserId(), comment)) {
                 throw new NoAuthorizationException();
               }
               commentRepository.remove(comment);

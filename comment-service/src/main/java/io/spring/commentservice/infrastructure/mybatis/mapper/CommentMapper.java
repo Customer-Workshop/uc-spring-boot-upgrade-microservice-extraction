@@ -1,9 +1,6 @@
-package io.spring.infrastructure.mybatis.mapper;
+package io.spring.commentservice.infrastructure.mybatis.mapper;
 
-// TODO: CommentMapper has been extracted to the Comment Service (comment-service/).
-// This interface should be removed once the Comment Service is fully deployed.
-
-import io.spring.core.comment.Comment;
+import io.spring.commentservice.core.comment.Comment;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 

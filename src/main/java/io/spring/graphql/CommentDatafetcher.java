@@ -1,5 +1,8 @@
 package io.spring.graphql;
 
+// TODO: CommentDatafetcher has been extracted to the Comment Service (comment-service/).
+// This class should be removed once the Comment Service is fully deployed.
+
 import com.netflix.graphql.dgs.DgsComponent;
 import com.netflix.graphql.dgs.DgsData;
 import com.netflix.graphql.dgs.DgsDataFetchingEnvironment;

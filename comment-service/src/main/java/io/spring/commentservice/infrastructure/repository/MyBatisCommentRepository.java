@@ -1,11 +1,8 @@
-package io.spring.infrastructure.repository;
+package io.spring.commentservice.infrastructure.repository;
 
-// TODO: MyBatisCommentRepository has been extracted to the Comment Service (comment-service/).
-// This class should be removed once the Comment Service is fully deployed.
-
-import io.spring.core.comment.Comment;
-import io.spring.core.comment.CommentRepository;
-import io.spring.infrastructure.mybatis.mapper.CommentMapper;
+import io.spring.commentservice.core.comment.Comment;
+import io.spring.commentservice.core.comment.CommentRepository;
+import io.spring.commentservice.infrastructure.mybatis.mapper.CommentMapper;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;

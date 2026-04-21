@@ -1,5 +1,8 @@
 package io.spring.application;
 
+// TODO: CommentQueryService has been extracted to the Comment Service (comment-service/).
+// This class should be removed once the Comment Service is fully deployed.
+
 import io.spring.application.data.CommentData;
 import io.spring.core.user.User;
 import io.spring.infrastructure.mybatis.readservice.CommentReadService;

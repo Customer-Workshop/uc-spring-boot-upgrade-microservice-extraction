@@ -1,12 +1,9 @@
-package io.spring.application.data;
-
-// TODO: CommentData has been extracted to the Comment Service (comment-service/).
-// This class should be removed once the Comment Service is fully deployed.
+package io.spring.commentservice.application.data;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.spring.application.DateTimeCursor;
-import io.spring.application.Node;
+import io.spring.commentservice.application.DateTimeCursor;
+import io.spring.commentservice.application.Node;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

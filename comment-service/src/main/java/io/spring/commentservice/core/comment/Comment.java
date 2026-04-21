@@ -1,8 +1,4 @@
-package io.spring.core.comment;
-
-// TODO: Comment entity has been extracted to the Comment Service (comment-service/).
-// This class should be removed once the Comment Service is fully deployed
-// and the monolith no longer directly manages comments.
+package io.spring.commentservice.core.comment;
 
 import java.util.UUID;
 import lombok.EqualsAndHashCode;

@@ -1,10 +1,7 @@
-package io.spring.infrastructure.mybatis.readservice;
+package io.spring.commentservice.infrastructure.mybatis.readservice;
 
-// TODO: CommentReadService has been extracted to the Comment Service (comment-service/).
-// This interface should be removed once the Comment Service is fully deployed.
-
-import io.spring.application.CursorPageParameter;
-import io.spring.application.data.CommentData;
+import io.spring.commentservice.application.CursorPageParameter;
+import io.spring.commentservice.application.data.CommentData;
 import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
