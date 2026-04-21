@@ -1,5 +1,14 @@
 package io.spring.graphql;
 
+// TODO: Article-related GraphQL mutations have been moved to the Article Service microservice.
+// Mutations moved:
+//   createArticle  -> Article Service (port 8081)
+//   updateArticle  -> Article Service (port 8081)
+//   deleteArticle  -> Article Service (port 8081)
+//
+// Favorite mutations (favoriteArticle, unfavoriteArticle) remain here until
+// the Favorite Service is extracted.
+
 import com.netflix.graphql.dgs.DgsComponent;
 import com.netflix.graphql.dgs.DgsMutation;
 import com.netflix.graphql.dgs.InputArgument;

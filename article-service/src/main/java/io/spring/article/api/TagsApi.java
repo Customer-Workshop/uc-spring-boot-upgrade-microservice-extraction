@@ -1,13 +1,6 @@
-package io.spring.api;
+package io.spring.article.api;
 
-// TODO: This controller has been moved to the Article Service microservice.
-// Endpoints moved:
-//   GET /tags -> Article Service (port 8081)
-//
-// This file can be removed once the Article Service is fully deployed and
-// an API gateway is configured to route article requests to the new service.
-
-import io.spring.application.TagsQueryService;
+import io.spring.article.application.TagsQueryService;
 import java.util.HashMap;
 import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;

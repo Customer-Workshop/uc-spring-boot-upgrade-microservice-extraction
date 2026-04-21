@@ -1,24 +1,14 @@
-package io.spring.api;
+package io.spring.article.api;
 
-// TODO: This controller has been moved to the Article Service microservice.
-// Endpoints moved:
-//   GET    /articles/{slug}  -> Article Service (port 8081)
-//   PUT    /articles/{slug}  -> Article Service (port 8081)
-//   DELETE /articles/{slug}  -> Article Service (port 8081)
-//
-// This file can be removed once the Article Service is fully deployed and
-// an API gateway is configured to route article requests to the new service.
-
-import io.spring.api.exception.NoAuthorizationException;
-import io.spring.api.exception.ResourceNotFoundException;
-import io.spring.application.ArticleQueryService;
-import io.spring.application.article.ArticleCommandService;
-import io.spring.application.article.UpdateArticleParam;
-import io.spring.application.data.ArticleData;
-import io.spring.core.article.Article;
-import io.spring.core.article.ArticleRepository;
-import io.spring.core.service.AuthorizationService;
-import io.spring.core.user.User;
+import io.spring.article.api.exception.NoAuthorizationException;
+import io.spring.article.api.exception.ResourceNotFoundException;
+import io.spring.article.application.ArticleQueryService;
+import io.spring.article.application.article.ArticleCommandService;
+import io.spring.article.application.article.UpdateArticleParam;
+import io.spring.article.application.data.ArticleData;
+import io.spring.article.core.article.Article;
+import io.spring.article.core.article.ArticleRepository;
+import io.spring.article.core.service.AuthorizationService;
 import java.util.HashMap;
 import java.util.Map;
 import javax.validation.Valid;
@@ -43,9 +33,9 @@ public class ArticleApi {
 
   @GetMapping
   public ResponseEntity<?> article(
-      @PathVariable("slug") String slug, @AuthenticationPrincipal User user) {
+      @PathVariable("slug") String slug, @AuthenticationPrincipal String userId) {
     return articleQueryService
-        .findBySlug(slug, user)
+        .findBySlug(slug, userId)
         .map(articleData -> ResponseEntity.ok(articleResponse(articleData)))
         .orElseThrow(ResourceNotFoundException::new);
   }
@@ -53,32 +43,32 @@ public class ArticleApi {
   @PutMapping
   public ResponseEntity<?> updateArticle(
       @PathVariable("slug") String slug,
-      @AuthenticationPrincipal User user,
+      @AuthenticationPrincipal String userId,
       @Valid @RequestBody UpdateArticleParam updateArticleParam) {
     return articleRepository
         .findBySlug(slug)
         .map(
             article -> {
-              if (!AuthorizationService.canWriteArticle(user, article)) {
+              if (!AuthorizationService.canWriteArticle(userId, article)) {
                 throw new NoAuthorizationException();
               }
               Article updatedArticle =
                   articleCommandService.updateArticle(article, updateArticleParam);
               return ResponseEntity.ok(
                   articleResponse(
-                      articleQueryService.findBySlug(updatedArticle.getSlug(), user).get()));
+                      articleQueryService.findBySlug(updatedArticle.getSlug(), userId).get()));
             })
         .orElseThrow(ResourceNotFoundException::new);
   }
 
   @DeleteMapping
   public ResponseEntity deleteArticle(
-      @PathVariable("slug") String slug, @AuthenticationPrincipal User user) {
+      @PathVariable("slug") String slug, @AuthenticationPrincipal String userId) {
     return articleRepository
         .findBySlug(slug)
         .map(
             article -> {
-              if (!AuthorizationService.canWriteArticle(user, article)) {
+              if (!AuthorizationService.canWriteArticle(userId, article)) {
                 throw new NoAuthorizationException();
               }
               articleRepository.remove(article);

@@ -1,0 +1,87 @@
+# Article Service GraphQL Schema
+type Query {
+    article(slug: String!): Article
+    articles(
+        first: Int,
+        after: String,
+        last: Int,
+        before: String,
+        authoredBy: String
+        favoritedBy: String
+        withTag: String
+    ): ArticlesConnection
+    feed(first: Int, after: String, last: Int, before: String): ArticlesConnection
+    tags: [String]
+}
+
+type Mutation {
+    createArticle(input: CreateArticleInput!): ArticlePayload
+    updateArticle(slug: String!, changes: UpdateArticleInput!): ArticlePayload
+    deleteArticle(slug: String!): DeletionStatus
+}
+
+schema {
+    query: Query
+    mutation: Mutation
+}
+
+### Articles
+type Article {
+    author: Profile!
+    body: String!
+    createdAt: String!
+    description: String!
+    favorited: Boolean!
+    favoritesCount: Int!
+    slug: String!
+    tagList: [String],
+    title: String!
+    updatedAt: String!
+}
+
+type ArticleEdge {
+    cursor: String!
+    node: Article
+}
+
+type ArticlesConnection {
+    edges: [ArticleEdge]
+    pageInfo: PageInfo!
+}
+
+type DeletionStatus {
+    success: Boolean!
+}
+
+type PageInfo {
+    endCursor: String
+    hasNextPage: Boolean!
+    hasPreviousPage: Boolean!
+    startCursor: String
+}
+
+### Profile (read-only reference from User Service)
+type Profile {
+    username: String!
+    bio: String
+    following: Boolean!
+    image: String
+}
+
+## Mutations
+input UpdateArticleInput {
+    body: String
+    description: String
+    title: String
+}
+
+input CreateArticleInput {
+    body: String!
+    description: String!
+    tagList: [String]
+    title: String!
+}
+
+type ArticlePayload {
+    article: Article
+}

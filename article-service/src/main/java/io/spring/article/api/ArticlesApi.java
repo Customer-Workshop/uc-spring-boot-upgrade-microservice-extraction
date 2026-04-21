@@ -1,20 +1,10 @@
-package io.spring.api;
+package io.spring.article.api;
 
-// TODO: This controller has been moved to the Article Service microservice.
-// Endpoints moved:
-//   POST /articles       -> Article Service (port 8081)
-//   GET  /articles/feed  -> Article Service (port 8081)
-//   GET  /articles       -> Article Service (port 8081)
-//
-// This file can be removed once the Article Service is fully deployed and
-// an API gateway is configured to route article requests to the new service.
-
-import io.spring.application.ArticleQueryService;
-import io.spring.application.Page;
-import io.spring.application.article.ArticleCommandService;
-import io.spring.application.article.NewArticleParam;
-import io.spring.core.article.Article;
-import io.spring.core.user.User;
+import io.spring.article.application.ArticleQueryService;
+import io.spring.article.application.Page;
+import io.spring.article.application.article.ArticleCommandService;
+import io.spring.article.application.article.NewArticleParam;
+import io.spring.article.core.article.Article;
 import java.util.HashMap;
 import javax.validation.Valid;
 import lombok.AllArgsConstructor;
@@ -36,12 +26,12 @@ public class ArticlesApi {
 
   @PostMapping
   public ResponseEntity createArticle(
-      @Valid @RequestBody NewArticleParam newArticleParam, @AuthenticationPrincipal User user) {
-    Article article = articleCommandService.createArticle(newArticleParam, user);
+      @Valid @RequestBody NewArticleParam newArticleParam, @AuthenticationPrincipal String userId) {
+    Article article = articleCommandService.createArticle(newArticleParam, userId);
     return ResponseEntity.ok(
         new HashMap<String, Object>() {
           {
-            put("article", articleQueryService.findById(article.getId(), user).get());
+            put("article", articleQueryService.findById(article.getId(), userId).get());
           }
         });
   }
@@ -50,8 +40,8 @@ public class ArticlesApi {
   public ResponseEntity getFeed(
       @RequestParam(value = "offset", defaultValue = "0") int offset,
       @RequestParam(value = "limit", defaultValue = "20") int limit,
-      @AuthenticationPrincipal User user) {
-    return ResponseEntity.ok(articleQueryService.findUserFeed(user, new Page(offset, limit)));
+      @AuthenticationPrincipal String userId) {
+    return ResponseEntity.ok(articleQueryService.findUserFeed(userId, new Page(offset, limit)));
   }
 
   @GetMapping
@@ -61,9 +51,9 @@ public class ArticlesApi {
       @RequestParam(value = "tag", required = false) String tag,
       @RequestParam(value = "favorited", required = false) String favoritedBy,
       @RequestParam(value = "author", required = false) String author,
-      @AuthenticationPrincipal User user) {
+      @AuthenticationPrincipal String userId) {
     return ResponseEntity.ok(
         articleQueryService.findRecentArticles(
-            tag, author, favoritedBy, new Page(offset, limit), user));
+            tag, author, favoritedBy, new Page(offset, limit), userId));
   }
 }

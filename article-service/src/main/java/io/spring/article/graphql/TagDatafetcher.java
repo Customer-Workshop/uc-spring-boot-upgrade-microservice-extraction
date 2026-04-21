@@ -1,15 +1,9 @@
-package io.spring.graphql;
-
-// TODO: This GraphQL datafetcher has been moved to the Article Service microservice.
-// Query moved:
-//   tags -> Article Service (port 8081)
-//
-// This file can be removed once the Article Service is fully deployed.
+package io.spring.article.graphql;
 
 import com.netflix.graphql.dgs.DgsComponent;
 import com.netflix.graphql.dgs.DgsData;
-import io.spring.application.TagsQueryService;
-import io.spring.graphql.DgsConstants.QUERY;
+import io.spring.article.application.TagsQueryService;
+import io.spring.article.graphql.DgsConstants.QUERY;
 import java.util.List;
 import lombok.AllArgsConstructor;
 

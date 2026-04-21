@@ -1,5 +1,15 @@
 package io.spring.graphql;
 
+// TODO: Article-related GraphQL queries have been moved to the Article Service microservice.
+// Queries moved:
+//   article(slug)  -> Article Service (port 8081)
+//   articles(...)  -> Article Service (port 8081)
+//   feed(...)      -> Article Service (port 8081)
+//
+// Profile-related article queries (userFeed, userFavorites, userArticles) and
+// comment-related article queries (getCommentArticle) remain here until those
+// services are also extracted.
+
 import com.netflix.graphql.dgs.DgsComponent;
 import com.netflix.graphql.dgs.DgsData;
 import com.netflix.graphql.dgs.DgsDataFetchingEnvironment;
