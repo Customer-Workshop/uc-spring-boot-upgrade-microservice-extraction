@@ -1,5 +1,10 @@
 package io.spring.api;
 
+// TODO: This controller has been extracted to the Profile Service (profile-service/).
+// In the microservice architecture, profile and follow endpoints are served by the Profile Service
+// on port 8082. This file can be removed once the Profile Service is fully deployed.
+// See: profile-service/src/main/java/io/spring/profileservice/api/ProfileApi.java
+
 import io.spring.api.exception.ResourceNotFoundException;
 import io.spring.application.ProfileQueryService;
 import io.spring.application.data.ProfileData;

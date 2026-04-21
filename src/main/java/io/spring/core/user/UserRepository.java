@@ -13,6 +13,9 @@ public interface UserRepository {
 
   Optional<User> findByEmail(String email);
 
+  // TODO: Follow-related methods below have been extracted to the Profile Service (profile-service/).
+  // Replace these with HTTP calls to the Profile Service's internal APIs.
+  // See: profile-service/src/main/java/io/spring/profileservice/api/InternalFollowApi.java
   void saveRelation(FollowRelation followRelation);
 
   Optional<FollowRelation> findRelation(String userId, String targetId);

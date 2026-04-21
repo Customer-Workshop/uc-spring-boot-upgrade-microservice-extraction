@@ -1,5 +1,10 @@
 package io.spring.graphql;
 
+// TODO: This GraphQL mutation has been extracted to the Profile Service (profile-service/).
+// In the microservice architecture, follow/unfollow mutations are handled by the Profile Service.
+// This file can be removed once the Profile Service is fully deployed.
+// See: profile-service/src/main/java/io/spring/profileservice/graphql/RelationMutation.java
+
 import com.netflix.graphql.dgs.DgsComponent;
 import com.netflix.graphql.dgs.DgsData;
 import com.netflix.graphql.dgs.InputArgument;

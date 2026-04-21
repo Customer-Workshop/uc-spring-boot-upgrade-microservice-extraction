@@ -1,5 +1,10 @@
 package io.spring.application;
 
+// TODO: This service has been extracted to the Profile Service (profile-service/).
+// In the microservice architecture, profile queries are handled by the Profile Service.
+// This file can be removed once the Profile Service is fully deployed.
+// See: profile-service/src/main/java/io/spring/profileservice/application/ProfileQueryService.java
+
 import io.spring.application.data.ProfileData;
 import io.spring.application.data.UserData;
 import io.spring.core.user.User;

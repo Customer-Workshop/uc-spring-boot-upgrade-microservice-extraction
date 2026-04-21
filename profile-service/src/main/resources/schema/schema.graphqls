@@ -1,0 +1,24 @@
+type Query {
+    profile(username: String!): ProfilePayload
+}
+
+type Mutation {
+    followUser(username: String!): ProfilePayload
+    unfollowUser(username: String!): ProfilePayload
+}
+
+schema {
+    query: Query
+    mutation: Mutation
+}
+
+type Profile {
+    username: String!
+    bio: String
+    following: Boolean!
+    image: String
+}
+
+type ProfilePayload {
+    profile: Profile
+}
