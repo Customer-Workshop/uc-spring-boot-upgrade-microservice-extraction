@@ -4,44 +4,49 @@ import com.netflix.graphql.dgs.DgsComponent;
 import com.netflix.graphql.dgs.DgsData;
 import com.netflix.graphql.dgs.InputArgument;
 import graphql.execution.DataFetcherResult;
-import io.spring.api.exception.NoAuthorizationException;
 import io.spring.api.exception.ResourceNotFoundException;
-import io.spring.application.CommentQueryService;
-import io.spring.application.data.CommentData;
-import io.spring.core.article.Article;
-import io.spring.core.article.ArticleRepository;
-import io.spring.core.comment.Comment;
-import io.spring.core.comment.CommentRepository;
-import io.spring.core.service.AuthorizationService;
 import io.spring.core.user.User;
 import io.spring.graphql.DgsConstants.MUTATION;
 import io.spring.graphql.exception.AuthenticationException;
 import io.spring.graphql.types.CommentPayload;
 import io.spring.graphql.types.DeletionStatus;
-import lombok.AllArgsConstructor;
+import java.util.Map;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestTemplate;
 
 @DgsComponent
-@AllArgsConstructor
 public class CommentMutation {
 
-  private ArticleRepository articleRepository;
-  private CommentRepository commentRepository;
-  private CommentQueryService commentQueryService;
+  private final RestTemplate restTemplate;
+  private final String commentServiceBaseUrl;
+
+  public CommentMutation(
+      RestTemplate restTemplate,
+      @Value("${comment-service.base-url:http://localhost:8081}") String commentServiceBaseUrl) {
+    this.restTemplate = restTemplate;
+    this.commentServiceBaseUrl = commentServiceBaseUrl;
+  }
 
   @DgsData(parentType = MUTATION.TYPE_NAME, field = MUTATION.AddComment)
+  @SuppressWarnings("unchecked")
   public DataFetcherResult<CommentPayload> createComment(
       @InputArgument("slug") String slug, @InputArgument("body") String body) {
     User user = SecurityUtil.getCurrentUser().orElseThrow(AuthenticationException::new);
-    Article article =
-        articleRepository.findBySlug(slug).orElseThrow(ResourceNotFoundException::new);
-    Comment comment = new Comment(body, user.getId(), article.getId());
-    commentRepository.save(comment);
-    CommentData commentData =
-        commentQueryService
-            .findById(comment.getId(), user)
-            .orElseThrow(ResourceNotFoundException::new);
+    try {
+      Map<String, Object> requestBody = Map.of("comment", Map.of("body", body));
+      HttpHeaders headers = new HttpHeaders();
+      headers.set("Content-Type", "application/json");
+      HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+      restTemplate.postForEntity(
+          commentServiceBaseUrl + "/articles/{slug}/comments", entity, Map.class, slug);
+    } catch (HttpClientErrorException e) {
+      throw new ResourceNotFoundException();
+    }
     return DataFetcherResult.<CommentPayload>newResult()
-        .localContext(commentData)
         .data(CommentPayload.newBuilder().build())
         .build();
   }
@@ -50,19 +55,19 @@ public class CommentMutation {
   public DeletionStatus removeComment(
       @InputArgument("slug") String slug, @InputArgument("id") String commentId) {
     User user = SecurityUtil.getCurrentUser().orElseThrow(AuthenticationException::new);
-
-    Article article =
-        articleRepository.findBySlug(slug).orElseThrow(ResourceNotFoundException::new);
-    return commentRepository
-        .findById(article.getId(), commentId)
-        .map(
-            comment -> {
-              if (!AuthorizationService.canWriteComment(user, article, comment)) {
-                throw new NoAuthorizationException();
-              }
-              commentRepository.remove(comment);
-              return DeletionStatus.newBuilder().success(true).build();
-            })
-        .orElseThrow(ResourceNotFoundException::new);
+    try {
+      HttpHeaders headers = new HttpHeaders();
+      HttpEntity<Void> entity = new HttpEntity<>(headers);
+      restTemplate.exchange(
+          commentServiceBaseUrl + "/articles/{slug}/comments/{id}",
+          HttpMethod.DELETE,
+          entity,
+          Void.class,
+          slug,
+          commentId);
+      return DeletionStatus.newBuilder().success(true).build();
+    } catch (HttpClientErrorException e) {
+      throw new ResourceNotFoundException();
+    }
   }
 }

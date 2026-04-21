@@ -5,49 +5,38 @@ import com.netflix.graphql.dgs.DgsData;
 import com.netflix.graphql.dgs.DgsDataFetchingEnvironment;
 import com.netflix.graphql.dgs.InputArgument;
 import graphql.execution.DataFetcherResult;
-import graphql.relay.DefaultConnectionCursor;
 import graphql.relay.DefaultPageInfo;
-import io.spring.application.CommentQueryService;
-import io.spring.application.CursorPageParameter;
-import io.spring.application.CursorPager;
-import io.spring.application.CursorPager.Direction;
-import io.spring.application.DateTimeCursor;
 import io.spring.application.data.ArticleData;
-import io.spring.application.data.CommentData;
-import io.spring.core.user.User;
 import io.spring.graphql.DgsConstants.ARTICLE;
-import io.spring.graphql.DgsConstants.COMMENTPAYLOAD;
 import io.spring.graphql.types.Article;
 import io.spring.graphql.types.Comment;
 import io.spring.graphql.types.CommentEdge;
 import io.spring.graphql.types.CommentsConnection;
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import lombok.AllArgsConstructor;
-import org.joda.time.format.ISODateTimeFormat;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.RestTemplate;
 
 @DgsComponent
-@AllArgsConstructor
 public class CommentDatafetcher {
-  private CommentQueryService commentQueryService;
 
-  @DgsData(parentType = COMMENTPAYLOAD.TYPE_NAME, field = COMMENTPAYLOAD.Comment)
-  public DataFetcherResult<Comment> getComment(DgsDataFetchingEnvironment dfe) {
-    CommentData comment = dfe.getLocalContext();
-    Comment commentResult = buildCommentResult(comment);
-    return DataFetcherResult.<Comment>newResult()
-        .data(commentResult)
-        .localContext(
-            new HashMap<String, Object>() {
-              {
-                put(comment.getId(), comment);
-              }
-            })
-        .build();
+  private final RestTemplate restTemplate;
+  private final String commentServiceBaseUrl;
+
+  public CommentDatafetcher(
+      RestTemplate restTemplate,
+      @Value("${comment-service.base-url:http://localhost:8081}") String commentServiceBaseUrl) {
+    this.restTemplate = restTemplate;
+    this.commentServiceBaseUrl = commentServiceBaseUrl;
   }
 
   @DgsData(parentType = ARTICLE.TYPE_NAME, field = ARTICLE.Comments)
+  @SuppressWarnings("unchecked")
   public DataFetcherResult<CommentsConnection> articleComments(
       @InputArgument("first") Integer first,
       @InputArgument("after") String after,
@@ -55,68 +44,51 @@ public class CommentDatafetcher {
       @InputArgument("before") String before,
       DgsDataFetchingEnvironment dfe) {
 
-    if (first == null && last == null) {
-      throw new IllegalArgumentException("first 和 last 必须只存在一个");
-    }
-
-    User current = SecurityUtil.getCurrentUser().orElse(null);
     Article article = dfe.getSource();
     Map<String, ArticleData> map = dfe.getLocalContext();
     ArticleData articleData = map.get(article.getSlug());
 
-    CursorPager<CommentData> comments;
-    if (first != null) {
-      comments =
-          commentQueryService.findByArticleIdWithCursor(
-              articleData.getId(),
-              current,
-              new CursorPageParameter<>(DateTimeCursor.parse(after), first, Direction.NEXT));
-    } else {
-      comments =
-          commentQueryService.findByArticleIdWithCursor(
-              articleData.getId(),
-              current,
-              new CursorPageParameter<>(DateTimeCursor.parse(before), last, Direction.PREV));
+    List<Comment> commentResults = new ArrayList<>();
+    try {
+      ResponseEntity<Map<String, Object>> response =
+          restTemplate.exchange(
+              commentServiceBaseUrl + "/articles/{slug}/comments",
+              HttpMethod.GET,
+              null,
+              new ParameterizedTypeReference<Map<String, Object>>() {},
+              articleData.getSlug());
+      if (response.getBody() != null && response.getBody().containsKey("comments")) {
+        List<Map<String, Object>> comments =
+            (List<Map<String, Object>>) response.getBody().get("comments");
+        commentResults =
+            comments.stream()
+                .map(
+                    c ->
+                        Comment.newBuilder()
+                            .id((String) c.get("id"))
+                            .body((String) c.get("body"))
+                            .createdAt((String) c.get("createdAt"))
+                            .updatedAt((String) c.get("updatedAt"))
+                            .build())
+                .collect(Collectors.toList());
+      }
+    } catch (Exception e) {
+      // fallback to empty comments on service unavailability
     }
-    graphql.relay.PageInfo pageInfo = buildCommentPageInfo(comments);
+
     CommentsConnection result =
         CommentsConnection.newBuilder()
-            .pageInfo(pageInfo)
+            .pageInfo(new DefaultPageInfo(null, null, false, false))
             .edges(
-                comments.getData().stream()
+                commentResults.stream()
                     .map(
-                        a ->
+                        c ->
                             CommentEdge.newBuilder()
-                                .cursor(a.getCursor().toString())
-                                .node(buildCommentResult(a))
+                                .cursor(c.getId())
+                                .node(c)
                                 .build())
                     .collect(Collectors.toList()))
             .build();
-    return DataFetcherResult.<CommentsConnection>newResult()
-        .data(result)
-        .localContext(
-            comments.getData().stream().collect(Collectors.toMap(CommentData::getId, c -> c)))
-        .build();
-  }
-
-  private DefaultPageInfo buildCommentPageInfo(CursorPager<CommentData> comments) {
-    return new DefaultPageInfo(
-        comments.getStartCursor() == null
-            ? null
-            : new DefaultConnectionCursor(comments.getStartCursor().toString()),
-        comments.getEndCursor() == null
-            ? null
-            : new DefaultConnectionCursor(comments.getEndCursor().toString()),
-        comments.hasPrevious(),
-        comments.hasNext());
-  }
-
-  private Comment buildCommentResult(CommentData comment) {
-    return Comment.newBuilder()
-        .id(comment.getId())
-        .body(comment.getBody())
-        .updatedAt(ISODateTimeFormat.dateTime().withZoneUTC().print(comment.getCreatedAt()))
-        .createdAt(ISODateTimeFormat.dateTime().withZoneUTC().print(comment.getCreatedAt()))
-        .build();
+    return DataFetcherResult.<CommentsConnection>newResult().data(result).build();
   }
 }
