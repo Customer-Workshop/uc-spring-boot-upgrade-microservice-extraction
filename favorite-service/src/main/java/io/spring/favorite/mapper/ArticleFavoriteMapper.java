@@ -1,11 +1,9 @@
-package io.spring.infrastructure.mybatis.mapper;
+package io.spring.favorite.mapper;
 
-import io.spring.core.favorite.ArticleFavorite;
+import io.spring.favorite.core.ArticleFavorite;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
-// TODO: This mapper has been extracted to the Favorite Service (favorite-service/).
-// Once the Favorite Service is fully deployed, remove this interface.
 @Mapper
 public interface ArticleFavoriteMapper {
   ArticleFavorite find(@Param("articleId") String articleId, @Param("userId") String userId);

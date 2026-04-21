@@ -1,12 +1,9 @@
-package io.spring.core.favorite;
+package io.spring.favorite.core;
 
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-// TODO: This entity has been extracted to the Favorite Service (favorite-service/).
-// Once the Favorite Service is fully deployed, remove this class and replace all usages
-// with HTTP calls to the Favorite Service API.
 @NoArgsConstructor
 @Getter
 @EqualsAndHashCode

@@ -18,6 +18,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+// TODO: This controller has been extracted to the Favorite Service (favorite-service/).
+// Once the Favorite Service is fully deployed, remove this class and route
+// POST/DELETE /articles/{slug}/favorite requests to the Favorite Service instead.
 @RestController
 @RequestMapping(path = "articles/{slug}/favorite")
 @AllArgsConstructor

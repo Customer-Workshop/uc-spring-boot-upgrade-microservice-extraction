@@ -1,15 +1,12 @@
-package io.spring.infrastructure.repository;
+package io.spring.favorite.repository;
 
-import io.spring.core.favorite.ArticleFavorite;
-import io.spring.core.favorite.ArticleFavoriteRepository;
-import io.spring.infrastructure.mybatis.mapper.ArticleFavoriteMapper;
+import io.spring.favorite.core.ArticleFavorite;
+import io.spring.favorite.core.ArticleFavoriteRepository;
+import io.spring.favorite.mapper.ArticleFavoriteMapper;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
-// TODO: This repository implementation has been extracted to the Favorite Service (favorite-service/).
-// Once the Favorite Service is fully deployed, remove this class and replace all usages
-// with an HTTP client that calls the Favorite Service API.
 @Repository
 public class MyBatisArticleFavoriteRepository implements ArticleFavoriteRepository {
   private ArticleFavoriteMapper mapper;

@@ -20,6 +20,13 @@ import lombok.AllArgsConstructor;
 import org.joda.time.DateTime;
 import org.springframework.stereotype.Service;
 
+// TODO: The ArticleFavoritesReadService dependency has been extracted to the Favorite Service
+// (favorite-service/). Once the Favorite Service is fully deployed, replace the direct
+// ArticleFavoritesReadService calls with HTTP calls to the Favorite Service internal APIs:
+//   GET /api/internal/favorites/count?articleIds=...
+//   GET /api/internal/favorites/check?articleIds=...&userId=...
+//   GET /api/internal/favorites/count/{articleId}
+//   GET /api/internal/favorites/is-favorited?articleId=...&userId=...
 @Service
 @AllArgsConstructor
 public class ArticleQueryService {
