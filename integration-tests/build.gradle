@@ -1,0 +1,23 @@
+plugins {
+    id 'java'
+}
+
+sourceCompatibility = '11'
+targetCompatibility = '11'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.8.2'
+    testImplementation 'com.fasterxml.jackson.core:jackson-databind:2.13.1'
+    testImplementation 'com.fasterxml.jackson.datatype:jackson-datatype-joda:2.13.1'
+    testImplementation 'joda-time:joda-time:2.10.13'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+    systemProperty 'COMMENTS_SERVICE_URL',
+        System.getenv().getOrDefault('COMMENTS_SERVICE_URL', 'http://localhost:8081')
+}
