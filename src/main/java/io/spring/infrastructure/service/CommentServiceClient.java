@@ -28,7 +28,18 @@ public class CommentServiceClient implements CommentRepository {
   public void save(Comment comment) {
     CommentRequest request =
         new CommentRequest(comment.getBody(), comment.getUserId(), comment.getArticleId());
-    restTemplate.postForEntity(commentsServiceUrl + "/api/comments", request, CommentResponse.class);
+    ResponseEntity<CommentResponse> response =
+        restTemplate.postForEntity(
+            commentsServiceUrl + "/api/comments", request, CommentResponse.class);
+    if (response.getBody() != null) {
+      try {
+        java.lang.reflect.Field idField = Comment.class.getDeclaredField("id");
+        idField.setAccessible(true);
+        idField.set(comment, response.getBody().getId());
+      } catch (NoSuchFieldException | IllegalAccessException e) {
+        throw new RuntimeException("Failed to sync comment ID from microservice", e);
+      }
+    }
   }
 
   @Override
