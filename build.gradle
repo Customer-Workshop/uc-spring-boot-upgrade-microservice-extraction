@@ -93,7 +93,20 @@ tasks.named('test') {
 	useJUnitPlatform()
 	// Exclude Selenium tests from JUnit test task
 	exclude 'io/spring/selenium/**'
+	// Exclude integration tests from unit test task
+	exclude 'io/spring/integration/**'
 	finalizedBy jacocoTestReport
+}
+
+tasks.register('integrationTest', Test) {
+	description = 'Run REST Assured integration tests'
+	group = 'verification'
+	useJUnitPlatform()
+	include 'io/spring/integration/**'
+	testLogging {
+		events "passed", "skipped", "failed"
+		showStandardStreams = true
+	}
 }
 
 // Separate task for Selenium E2E tests using TestNG
