@@ -2,8 +2,8 @@ package io.spring.application;
 
 import io.spring.application.data.CommentData;
 import io.spring.core.user.User;
-import io.spring.infrastructure.mybatis.readservice.CommentReadService;
 import io.spring.infrastructure.mybatis.readservice.UserRelationshipQueryService;
+import io.spring.infrastructure.service.CommentServiceReadClient;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -17,11 +17,11 @@ import org.springframework.stereotype.Service;
 @Service
 @AllArgsConstructor
 public class CommentQueryService {
-  private CommentReadService commentReadService;
+  private CommentServiceReadClient commentServiceReadClient;
   private UserRelationshipQueryService userRelationshipQueryService;
 
   public Optional<CommentData> findById(String id, User user) {
-    CommentData commentData = commentReadService.findById(id);
+    CommentData commentData = commentServiceReadClient.findById(id);
     if (commentData == null) {
       return Optional.empty();
     } else {
@@ -35,7 +35,7 @@ public class CommentQueryService {
   }
 
   public List<CommentData> findByArticleId(String articleId, User user) {
-    List<CommentData> comments = commentReadService.findByArticleId(articleId);
+    List<CommentData> comments = commentServiceReadClient.findByArticleId(articleId);
     if (comments.size() > 0 && user != null) {
       Set<String> followingAuthors =
           userRelationshipQueryService.followingAuthors(
@@ -55,11 +55,39 @@ public class CommentQueryService {
 
   public CursorPager<CommentData> findByArticleIdWithCursor(
       String articleId, User user, CursorPageParameter<DateTime> page) {
-    List<CommentData> comments = commentReadService.findByArticleIdWithCursor(articleId, page);
-    if (comments.isEmpty()) {
+    List<CommentData> allComments = commentServiceReadClient.findByArticleId(articleId);
+    if (allComments.isEmpty()) {
       return new CursorPager<>(new ArrayList<>(), page.getDirection(), false);
     }
-    if (user != null) {
+
+    List<CommentData> comments;
+    if (page.isNext()) {
+      allComments.sort((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()));
+      if (page.getCursor() != null) {
+        comments =
+            allComments.stream()
+                .filter(c -> c.getCreatedAt().isBefore(page.getCursor()))
+                .limit(page.getLimit() + 1)
+                .collect(Collectors.toList());
+      } else {
+        comments =
+            allComments.stream().limit(page.getLimit() + 1).collect(Collectors.toList());
+      }
+    } else {
+      allComments.sort((a, b) -> a.getCreatedAt().compareTo(b.getCreatedAt()));
+      if (page.getCursor() != null) {
+        comments =
+            allComments.stream()
+                .filter(c -> c.getCreatedAt().isAfter(page.getCursor()))
+                .limit(page.getLimit() + 1)
+                .collect(Collectors.toList());
+      } else {
+        comments =
+            allComments.stream().limit(page.getLimit() + 1).collect(Collectors.toList());
+      }
+    }
+
+    if (user != null && !comments.isEmpty()) {
       Set<String> followingAuthors =
           userRelationshipQueryService.followingAuthors(
               user.getId(),
