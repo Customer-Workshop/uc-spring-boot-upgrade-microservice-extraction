@@ -4,8 +4,6 @@ import static org.testng.Assert.*;
 
 import io.spring.selenium.pages.LoginPage;
 import io.spring.selenium.pages.ProfilePage;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;

@@ -6,8 +6,6 @@ import io.spring.selenium.pages.HomePage;
 import io.spring.selenium.pages.LoginPage;
 import io.spring.selenium.pages.RegisterPage;
 import io.spring.selenium.pages.SettingsPage;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
