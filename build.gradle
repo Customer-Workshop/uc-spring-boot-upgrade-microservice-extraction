@@ -90,10 +90,22 @@ dependencies {
 }
 
 tasks.named('test') {
-	useJUnitPlatform()
+	useJUnitPlatform() {
+		excludeTags 'integration'
+	}
 	// Exclude Selenium tests from JUnit test task
 	exclude 'io/spring/selenium/**'
 	finalizedBy jacocoTestReport
+}
+
+// Separate task for integration tests (requires comments-service running)
+tasks.register('integrationTest', Test) {
+	description = 'Run integration tests (requires comments microservice)'
+	group = 'verification'
+	useJUnitPlatform() {
+		includeTags 'integration'
+	}
+	exclude 'io/spring/selenium/**'
 }
 
 // Separate task for Selenium E2E tests using TestNG
