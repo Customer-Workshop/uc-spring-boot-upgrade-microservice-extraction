@@ -1,0 +1,8 @@
+rootProject.name = 'sure-microservices'
+
+include 'services:common'
+include 'services:user-service'
+include 'services:account-service'
+include 'services:transaction-service'
+include 'services:budget-service'
+include 'services:api-gateway'

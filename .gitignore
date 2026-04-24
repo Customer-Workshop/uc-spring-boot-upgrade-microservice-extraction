@@ -32,3 +32,10 @@ frontend/.next/
 frontend/out/
 frontend/.env*.local
 frontend/.git/
+sure-frontend/node_modules/
+sure-frontend/dist/
+
+### Build artifacts ###
+**/bin/
+**/build/
+!gradle/wrapper/
