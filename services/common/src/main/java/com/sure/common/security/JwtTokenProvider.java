@@ -5,7 +5,6 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
-import java.util.UUID;
 import javax.crypto.SecretKey;
 
 public class JwtTokenProvider {
@@ -18,15 +17,15 @@ public class JwtTokenProvider {
         this.expirationMs = expirationMs;
     }
 
-    public String generateToken(UUID userId, String email, String role, UUID familyId) {
+    public String generateToken(String userId, String email, String role, String familyId) {
         Date now = new Date();
         Date expiry = new Date(now.getTime() + expirationMs);
 
         return Jwts.builder()
-                .subject(userId.toString())
+                .subject(userId)
                 .claim("email", email)
                 .claim("role", role)
-                .claim("familyId", familyId.toString())
+                .claim("familyId", familyId)
                 .issuedAt(now)
                 .expiration(expiry)
                 .signWith(key)
@@ -41,8 +40,8 @@ public class JwtTokenProvider {
                 .getPayload();
     }
 
-    public UUID getUserId(String token) {
-        return UUID.fromString(parseToken(token).getSubject());
+    public String getUserId(String token) {
+        return parseToken(token).getSubject();
     }
 
     public String getEmail(String token) {
@@ -53,8 +52,8 @@ public class JwtTokenProvider {
         return parseToken(token).get("role", String.class);
     }
 
-    public UUID getFamilyId(String token) {
-        return UUID.fromString(parseToken(token).get("familyId", String.class));
+    public String getFamilyId(String token) {
+        return parseToken(token).get("familyId", String.class);
     }
 
     public boolean validateToken(String token) {

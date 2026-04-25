@@ -16,11 +16,11 @@ import lombok.*;
 public class Account {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    @Column(columnDefinition = "CHAR(36)")
+    private String id;
 
-    @Column(name = "family_id", nullable = false)
-    private UUID familyId;
+    @Column(name = "family_id", nullable = false, columnDefinition = "CHAR(36)")
+    private String familyId;
 
     @Column(nullable = false)
     private String name;
@@ -75,6 +75,7 @@ public class Account {
 
     @PrePersist
     protected void onCreate() {
+        if (id == null) id = UUID.randomUUID().toString();
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
     }

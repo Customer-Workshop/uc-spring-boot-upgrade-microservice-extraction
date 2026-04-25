@@ -17,8 +17,8 @@ import lombok.*;
 public class Holding {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    @Column(columnDefinition = "CHAR(36)")
+    private String id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "account_id", nullable = false)
@@ -67,6 +67,7 @@ public class Holding {
 
     @PrePersist
     protected void onCreate() {
+        if (id == null) id = UUID.randomUUID().toString();
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
     }

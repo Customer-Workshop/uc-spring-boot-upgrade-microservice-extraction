@@ -2,13 +2,12 @@ package com.sure.account.repository;
 
 import com.sure.account.entity.Account;
 import java.util.List;
-import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface AccountRepository extends JpaRepository<Account, UUID> {
-    List<Account> findByFamilyIdAndActiveTrue(UUID familyId);
+public interface AccountRepository extends JpaRepository<Account, String> {
+    List<Account> findByFamilyIdAndActiveTrue(String familyId);
 
-    List<Account> findByFamilyId(UUID familyId);
+    List<Account> findByFamilyId(String familyId);
 
-    List<Account> findByFamilyIdAndAccountType(UUID familyId, String accountType);
+    List<Account> findByFamilyIdAndAccountType(String familyId, String accountType);
 }

@@ -15,8 +15,8 @@ import lombok.*;
 public class Security {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    @Column(columnDefinition = "CHAR(36)")
+    private String id;
 
     @Column(length = 20)
     private String ticker;
@@ -43,6 +43,7 @@ public class Security {
 
     @PrePersist
     protected void onCreate() {
+        if (id == null) id = UUID.randomUUID().toString();
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
     }

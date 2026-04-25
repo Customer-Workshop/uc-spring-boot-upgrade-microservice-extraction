@@ -1,6 +1,5 @@
 package com.sure.budget.dto;
 
-import java.util.UUID;
 
 public record CategoryDto(
-        UUID id, UUID familyId, String name, String color, String icon, UUID parentId, String classification) {}
+        String id, String familyId, String name, String color, String icon, String parentId, String classification) {}

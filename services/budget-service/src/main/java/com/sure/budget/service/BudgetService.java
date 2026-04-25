@@ -8,7 +8,6 @@ import com.sure.budget.repository.BudgetRepository;
 import com.sure.budget.repository.CategoryRepository;
 import com.sure.budget.repository.TagRepository;
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,14 +29,14 @@ public class BudgetService {
     }
 
     @Transactional(readOnly = true)
-    public List<CategoryDto> getCategories(UUID familyId) {
+    public List<CategoryDto> getCategories(String familyId) {
         return categoryRepository.findByFamilyId(familyId).stream()
                 .map(this::toCategoryDto)
                 .collect(Collectors.toList());
     }
 
     @Transactional
-    public CategoryDto createCategory(UUID familyId, CreateCategoryRequest request) {
+    public CategoryDto createCategory(String familyId, CreateCategoryRequest request) {
         Category category = Category.builder()
                 .familyId(familyId)
                 .name(request.name())
@@ -51,19 +50,19 @@ public class BudgetService {
     }
 
     @Transactional
-    public void deleteCategory(UUID categoryId) {
+    public void deleteCategory(String categoryId) {
         categoryRepository.deleteById(categoryId);
     }
 
     @Transactional(readOnly = true)
-    public List<BudgetDto> getBudgets(UUID familyId) {
+    public List<BudgetDto> getBudgets(String familyId) {
         return budgetRepository.findByFamilyId(familyId).stream()
                 .map(this::toBudgetDto)
                 .collect(Collectors.toList());
     }
 
     @Transactional
-    public BudgetDto createBudget(UUID familyId, CreateBudgetRequest request) {
+    public BudgetDto createBudget(String familyId, CreateBudgetRequest request) {
         Category category = null;
         if (request.categoryId() != null) {
             category = categoryRepository.findById(request.categoryId()).orElse(null);
@@ -84,19 +83,19 @@ public class BudgetService {
     }
 
     @Transactional
-    public void deleteBudget(UUID budgetId) {
+    public void deleteBudget(String budgetId) {
         budgetRepository.deleteById(budgetId);
     }
 
     @Transactional(readOnly = true)
-    public List<TagDto> getTags(UUID familyId) {
+    public List<TagDto> getTags(String familyId) {
         return tagRepository.findByFamilyId(familyId).stream()
                 .map(this::toTagDto)
                 .collect(Collectors.toList());
     }
 
     @Transactional
-    public TagDto createTag(UUID familyId, CreateTagRequest request) {
+    public TagDto createTag(String familyId, CreateTagRequest request) {
         Tag tag = Tag.builder()
                 .familyId(familyId)
                 .name(request.name())
@@ -107,7 +106,7 @@ public class BudgetService {
     }
 
     @Transactional
-    public void deleteTag(UUID tagId) {
+    public void deleteTag(String tagId) {
         tagRepository.deleteById(tagId);
     }
 

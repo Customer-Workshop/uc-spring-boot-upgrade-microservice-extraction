@@ -15,11 +15,11 @@ import lombok.*;
 public class Category {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    @Column(columnDefinition = "CHAR(36)")
+    private String id;
 
-    @Column(name = "family_id", nullable = false)
-    private UUID familyId;
+    @Column(name = "family_id", nullable = false, columnDefinition = "CHAR(36)")
+    private String familyId;
 
     @Column(nullable = false)
     private String name;
@@ -30,8 +30,8 @@ public class Category {
     @Column(length = 50)
     private String icon;
 
-    @Column(name = "parent_id")
-    private UUID parentId;
+    @Column(name = "parent_id", columnDefinition = "CHAR(36)")
+    private String parentId;
 
     @Column(nullable = false, length = 20)
     @Builder.Default
@@ -48,6 +48,7 @@ public class Category {
 
     @PrePersist
     protected void onCreate() {
+        if (id == null) id = UUID.randomUUID().toString();
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
     }

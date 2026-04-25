@@ -1,5 +1,4 @@
 package com.sure.budget.dto;
 
-import java.util.UUID;
 
-public record TagDto(UUID id, UUID familyId, String name, String color) {}
+public record TagDto(String id, String familyId, String name, String color) {}

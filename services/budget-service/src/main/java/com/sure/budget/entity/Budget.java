@@ -17,11 +17,11 @@ import lombok.*;
 public class Budget {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    @Column(columnDefinition = "CHAR(36)")
+    private String id;
 
-    @Column(name = "family_id", nullable = false)
-    private UUID familyId;
+    @Column(name = "family_id", nullable = false, columnDefinition = "CHAR(36)")
+    private String familyId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")
@@ -55,6 +55,7 @@ public class Budget {
 
     @PrePersist
     protected void onCreate() {
+        if (id == null) id = UUID.randomUUID().toString();
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
     }

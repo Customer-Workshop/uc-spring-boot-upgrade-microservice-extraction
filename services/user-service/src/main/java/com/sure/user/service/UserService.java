@@ -5,7 +5,6 @@ import com.sure.user.dto.UpdateUserRequest;
 import com.sure.user.entity.User;
 import com.sure.user.repository.UserRepository;
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,7 +19,7 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    public List<AuthResponse.UserResponse> getFamilyMembers(UUID familyId) {
+    public List<AuthResponse.UserResponse> getFamilyMembers(String familyId) {
         return userRepository.findAll().stream()
                 .filter(u -> u.getFamily().getId().equals(familyId))
                 .map(this::toUserResponse)
@@ -28,7 +27,7 @@ public class UserService {
     }
 
     @Transactional
-    public AuthResponse.UserResponse updateUser(UUID userId, UpdateUserRequest request) {
+    public AuthResponse.UserResponse updateUser(String userId, UpdateUserRequest request) {
         User user = userRepository.findById(userId).orElseThrow(() -> new IllegalArgumentException("User not found"));
 
         if (request.firstName() != null) {
@@ -46,7 +45,7 @@ public class UserService {
     }
 
     @Transactional
-    public void deleteUser(UUID userId) {
+    public void deleteUser(String userId) {
         userRepository.deleteById(userId);
     }
 

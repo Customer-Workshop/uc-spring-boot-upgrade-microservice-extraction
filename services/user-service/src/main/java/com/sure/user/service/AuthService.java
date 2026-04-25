@@ -8,7 +8,6 @@ import com.sure.user.entity.Family;
 import com.sure.user.entity.User;
 import com.sure.user.repository.FamilyRepository;
 import com.sure.user.repository.UserRepository;
-import java.util.UUID;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -74,7 +73,7 @@ public class AuthService {
     }
 
     @Transactional(readOnly = true)
-    public AuthResponse getCurrentUser(UUID userId) {
+    public AuthResponse getCurrentUser(String userId) {
         User user = userRepository.findById(userId).orElseThrow(() -> new IllegalArgumentException("User not found"));
         String token = jwtTokenProvider.generateToken(
                 user.getId(), user.getEmail(), user.getRole(), user.getFamily().getId());

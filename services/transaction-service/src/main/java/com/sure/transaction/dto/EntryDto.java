@@ -3,11 +3,10 @@ package com.sure.transaction.dto;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 public record EntryDto(
-        UUID id,
-        UUID accountId,
+        String id,
+        String accountId,
         String entryableType,
         String name,
         LocalDate date,
@@ -21,7 +20,7 @@ public record EntryDto(
         TradeDetail trade,
         LocalDateTime createdAt) {
 
-    public record TransactionDetail(UUID id, UUID categoryId, UUID merchantId, String kind, String nature) {}
+    public record TransactionDetail(String id, String categoryId, String merchantId, String kind, String nature) {}
 
-    public record TradeDetail(UUID id, UUID securityId, BigDecimal qty, BigDecimal price, String tradeType) {}
+    public record TradeDetail(String id, String securityId, BigDecimal qty, BigDecimal price, String tradeType) {}
 }

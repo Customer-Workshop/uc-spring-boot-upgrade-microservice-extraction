@@ -6,7 +6,6 @@ import com.sure.common.dto.ApiResponse;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.UUID;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,49 +24,49 @@ public class AccountController {
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<AccountDto>>> getAccounts(Authentication auth) {
-        UUID familyId = (UUID) auth.getCredentials();
+        String familyId = (String) auth.getCredentials();
         return ResponseEntity.ok(ApiResponse.ok(accountService.getAccounts(familyId)));
     }
 
     @GetMapping("/{accountId}")
     public ResponseEntity<ApiResponse<AccountDto>> getAccount(
-            @PathVariable UUID accountId, Authentication auth) {
-        UUID familyId = (UUID) auth.getCredentials();
+            @PathVariable String accountId, Authentication auth) {
+        String familyId = (String) auth.getCredentials();
         return ResponseEntity.ok(ApiResponse.ok(accountService.getAccount(accountId, familyId)));
     }
 
     @PostMapping
     public ResponseEntity<ApiResponse<AccountDto>> createAccount(
             @Valid @RequestBody CreateAccountRequest request, Authentication auth) {
-        UUID familyId = (UUID) auth.getCredentials();
+        String familyId = (String) auth.getCredentials();
         AccountDto account = accountService.createAccount(familyId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(account));
     }
 
     @PutMapping("/{accountId}")
     public ResponseEntity<ApiResponse<AccountDto>> updateAccount(
-            @PathVariable UUID accountId, @RequestBody UpdateAccountRequest request, Authentication auth) {
-        UUID familyId = (UUID) auth.getCredentials();
+            @PathVariable String accountId, @RequestBody UpdateAccountRequest request, Authentication auth) {
+        String familyId = (String) auth.getCredentials();
         return ResponseEntity.ok(ApiResponse.ok(accountService.updateAccount(accountId, familyId, request)));
     }
 
     @DeleteMapping("/{accountId}")
-    public ResponseEntity<Void> deleteAccount(@PathVariable UUID accountId, Authentication auth) {
-        UUID familyId = (UUID) auth.getCredentials();
+    public ResponseEntity<Void> deleteAccount(@PathVariable String accountId, Authentication auth) {
+        String familyId = (String) auth.getCredentials();
         accountService.deleteAccount(accountId, familyId);
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/{accountId}/balances")
     public ResponseEntity<ApiResponse<List<BalanceDto>>> getBalanceHistory(
-            @PathVariable UUID accountId,
+            @PathVariable String accountId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end) {
         return ResponseEntity.ok(ApiResponse.ok(accountService.getBalanceHistory(accountId, start, end)));
     }
 
     @GetMapping("/{accountId}/holdings")
-    public ResponseEntity<ApiResponse<List<HoldingDto>>> getHoldings(@PathVariable UUID accountId) {
+    public ResponseEntity<ApiResponse<List<HoldingDto>>> getHoldings(@PathVariable String accountId) {
         return ResponseEntity.ok(ApiResponse.ok(accountService.getHoldings(accountId)));
     }
 }

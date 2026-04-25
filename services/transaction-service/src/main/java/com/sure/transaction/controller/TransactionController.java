@@ -6,7 +6,6 @@ import com.sure.transaction.dto.*;
 import com.sure.transaction.service.TransactionService;
 import jakarta.validation.Valid;
 import java.util.List;
-import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
@@ -25,7 +24,7 @@ public class TransactionController {
 
     @GetMapping("/entries")
     public ResponseEntity<ApiResponse<PageResponse<EntryDto>>> getEntries(
-            @RequestParam List<UUID> accountIds,
+            @RequestParam List<String> accountIds,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "25") int size) {
         Page<EntryDto> result = transactionService.getEntries(accountIds, PageRequest.of(page, size));
@@ -36,7 +35,7 @@ public class TransactionController {
     }
 
     @GetMapping("/entries/{entryId}")
-    public ResponseEntity<ApiResponse<EntryDto>> getEntry(@PathVariable UUID entryId) {
+    public ResponseEntity<ApiResponse<EntryDto>> getEntry(@PathVariable String entryId) {
         return ResponseEntity.ok(ApiResponse.ok(transactionService.getEntry(entryId)));
     }
 
@@ -49,12 +48,12 @@ public class TransactionController {
 
     @PutMapping("/entries/{entryId}")
     public ResponseEntity<ApiResponse<EntryDto>> updateTransaction(
-            @PathVariable UUID entryId, @RequestBody UpdateTransactionRequest request) {
+            @PathVariable String entryId, @RequestBody UpdateTransactionRequest request) {
         return ResponseEntity.ok(ApiResponse.ok(transactionService.updateTransaction(entryId, request)));
     }
 
     @DeleteMapping("/entries/{entryId}")
-    public ResponseEntity<Void> deleteEntry(@PathVariable UUID entryId) {
+    public ResponseEntity<Void> deleteEntry(@PathVariable String entryId) {
         transactionService.deleteEntry(entryId);
         return ResponseEntity.noContent().build();
     }

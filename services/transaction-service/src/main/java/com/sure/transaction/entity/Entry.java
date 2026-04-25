@@ -17,11 +17,11 @@ import lombok.*;
 public class Entry {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    @Column(columnDefinition = "CHAR(36)")
+    private String id;
 
-    @Column(name = "account_id", nullable = false)
-    private UUID accountId;
+    @Column(name = "account_id", nullable = false, columnDefinition = "CHAR(36)")
+    private String accountId;
 
     @Column(name = "entryable_type", nullable = false)
     private String entryableType;
@@ -57,8 +57,8 @@ public class Entry {
     @Builder.Default
     private boolean pending = false;
 
-    @Column(name = "parent_entry_id")
-    private UUID parentEntryId;
+    @Column(name = "parent_entry_id", columnDefinition = "CHAR(36)")
+    private String parentEntryId;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -68,6 +68,7 @@ public class Entry {
 
     @PrePersist
     protected void onCreate() {
+        if (id == null) id = UUID.randomUUID().toString();
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
     }

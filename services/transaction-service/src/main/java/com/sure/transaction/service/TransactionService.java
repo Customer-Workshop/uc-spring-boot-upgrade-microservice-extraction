@@ -8,7 +8,6 @@ import com.sure.transaction.repository.EntryRepository;
 import com.sure.transaction.repository.TradeRepository;
 import com.sure.transaction.repository.TransactionRepository;
 import java.util.List;
-import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -31,14 +30,14 @@ public class TransactionService {
     }
 
     @Transactional(readOnly = true)
-    public Page<EntryDto> getEntries(List<UUID> accountIds, Pageable pageable) {
+    public Page<EntryDto> getEntries(List<String> accountIds, Pageable pageable) {
         return entryRepository
                 .findByAccountIdInAndExcludedFalseOrderByDateDesc(accountIds, pageable)
                 .map(this::toEntryDto);
     }
 
     @Transactional(readOnly = true)
-    public EntryDto getEntry(UUID entryId) {
+    public EntryDto getEntry(String entryId) {
         Entry entry =
                 entryRepository.findById(entryId).orElseThrow(() -> new IllegalArgumentException("Entry not found"));
         return toEntryDto(entry);
@@ -70,7 +69,7 @@ public class TransactionService {
     }
 
     @Transactional
-    public EntryDto updateTransaction(UUID entryId, UpdateTransactionRequest request) {
+    public EntryDto updateTransaction(String entryId, UpdateTransactionRequest request) {
         Entry entry =
                 entryRepository.findById(entryId).orElseThrow(() -> new IllegalArgumentException("Entry not found"));
 
@@ -93,7 +92,7 @@ public class TransactionService {
     }
 
     @Transactional
-    public void deleteEntry(UUID entryId) {
+    public void deleteEntry(String entryId) {
         entryRepository.deleteById(entryId);
     }
 

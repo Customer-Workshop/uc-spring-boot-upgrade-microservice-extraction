@@ -6,7 +6,6 @@ import com.sure.budget.service.BudgetService;
 import com.sure.common.dto.ApiResponse;
 import jakarta.validation.Valid;
 import java.util.List;
-import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -24,20 +23,20 @@ public class TagController {
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<TagDto>>> getTags(Authentication auth) {
-        UUID familyId = (UUID) auth.getCredentials();
+        String familyId = (String) auth.getCredentials();
         return ResponseEntity.ok(ApiResponse.ok(budgetService.getTags(familyId)));
     }
 
     @PostMapping
     public ResponseEntity<ApiResponse<TagDto>> createTag(
             @Valid @RequestBody CreateTagRequest request, Authentication auth) {
-        UUID familyId = (UUID) auth.getCredentials();
+        String familyId = (String) auth.getCredentials();
         TagDto tag = budgetService.createTag(familyId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(tag));
     }
 
     @DeleteMapping("/{tagId}")
-    public ResponseEntity<Void> deleteTag(@PathVariable UUID tagId) {
+    public ResponseEntity<Void> deleteTag(@PathVariable String tagId) {
         budgetService.deleteTag(tagId);
         return ResponseEntity.noContent().build();
     }

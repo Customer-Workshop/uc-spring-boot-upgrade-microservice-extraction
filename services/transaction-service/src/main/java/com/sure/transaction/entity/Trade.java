@@ -16,15 +16,15 @@ import lombok.*;
 public class Trade {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    @Column(columnDefinition = "CHAR(36)")
+    private String id;
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "entry_id", nullable = false, unique = true)
     private Entry entry;
 
-    @Column(name = "security_id")
-    private UUID securityId;
+    @Column(name = "security_id", columnDefinition = "CHAR(36)")
+    private String securityId;
 
     @Column(nullable = false, precision = 19, scale = 6)
     @Builder.Default
@@ -50,6 +50,7 @@ public class Trade {
 
     @PrePersist
     protected void onCreate() {
+        if (id == null) id = UUID.randomUUID().toString();
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
     }

@@ -6,7 +6,6 @@ import com.sure.user.dto.LoginRequest;
 import com.sure.user.dto.RegisterRequest;
 import com.sure.user.service.AuthService;
 import jakarta.validation.Valid;
-import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -36,7 +35,7 @@ public class AuthController {
 
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<AuthResponse>> getCurrentUser(Authentication auth) {
-        UUID userId = (UUID) auth.getPrincipal();
+        String userId = (String) auth.getPrincipal();
         AuthResponse response = authService.getCurrentUser(userId);
         return ResponseEntity.ok(ApiResponse.ok(response));
     }

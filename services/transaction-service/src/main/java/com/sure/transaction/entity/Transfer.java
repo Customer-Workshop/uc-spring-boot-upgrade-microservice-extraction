@@ -15,14 +15,14 @@ import lombok.*;
 public class Transfer {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    @Column(columnDefinition = "CHAR(36)")
+    private String id;
 
-    @Column(name = "inflow_entry_id", nullable = false)
-    private UUID inflowEntryId;
+    @Column(name = "inflow_entry_id", nullable = false, columnDefinition = "CHAR(36)")
+    private String inflowEntryId;
 
-    @Column(name = "outflow_entry_id", nullable = false)
-    private UUID outflowEntryId;
+    @Column(name = "outflow_entry_id", nullable = false, columnDefinition = "CHAR(36)")
+    private String outflowEntryId;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -32,6 +32,7 @@ public class Transfer {
 
     @PrePersist
     protected void onCreate() {
+        if (id == null) id = UUID.randomUUID().toString();
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
     }

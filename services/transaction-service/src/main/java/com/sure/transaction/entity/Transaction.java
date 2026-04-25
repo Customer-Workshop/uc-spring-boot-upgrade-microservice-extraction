@@ -15,18 +15,18 @@ import lombok.*;
 public class Transaction {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    @Column(columnDefinition = "CHAR(36)")
+    private String id;
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "entry_id", nullable = false, unique = true)
     private Entry entry;
 
-    @Column(name = "category_id")
-    private UUID categoryId;
+    @Column(name = "category_id", columnDefinition = "CHAR(36)")
+    private String categoryId;
 
-    @Column(name = "merchant_id")
-    private UUID merchantId;
+    @Column(name = "merchant_id", columnDefinition = "CHAR(36)")
+    private String merchantId;
 
     @Column(nullable = false, length = 50)
     @Builder.Default
@@ -43,6 +43,7 @@ public class Transaction {
 
     @PrePersist
     protected void onCreate() {
+        if (id == null) id = UUID.randomUUID().toString();
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
     }

@@ -9,7 +9,6 @@ import com.sure.account.repository.BalanceRepository;
 import com.sure.account.repository.HoldingRepository;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,14 +30,14 @@ public class AccountService {
     }
 
     @Transactional(readOnly = true)
-    public List<AccountDto> getAccounts(UUID familyId) {
+    public List<AccountDto> getAccounts(String familyId) {
         return accountRepository.findByFamilyIdAndActiveTrue(familyId).stream()
                 .map(this::toAccountDto)
                 .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
-    public AccountDto getAccount(UUID accountId, UUID familyId) {
+    public AccountDto getAccount(String accountId, String familyId) {
         Account account = accountRepository
                 .findById(accountId)
                 .filter(a -> a.getFamilyId().equals(familyId))
@@ -47,7 +46,7 @@ public class AccountService {
     }
 
     @Transactional
-    public AccountDto createAccount(UUID familyId, CreateAccountRequest request) {
+    public AccountDto createAccount(String familyId, CreateAccountRequest request) {
         Account account = Account.builder()
                 .familyId(familyId)
                 .name(request.name())
@@ -63,7 +62,7 @@ public class AccountService {
     }
 
     @Transactional
-    public AccountDto updateAccount(UUID accountId, UUID familyId, UpdateAccountRequest request) {
+    public AccountDto updateAccount(String accountId, String familyId, UpdateAccountRequest request) {
         Account account = accountRepository
                 .findById(accountId)
                 .filter(a -> a.getFamilyId().equals(familyId))
@@ -80,7 +79,7 @@ public class AccountService {
     }
 
     @Transactional
-    public void deleteAccount(UUID accountId, UUID familyId) {
+    public void deleteAccount(String accountId, String familyId) {
         Account account = accountRepository
                 .findById(accountId)
                 .filter(a -> a.getFamilyId().equals(familyId))
@@ -91,14 +90,14 @@ public class AccountService {
     }
 
     @Transactional(readOnly = true)
-    public List<BalanceDto> getBalanceHistory(UUID accountId, LocalDate start, LocalDate end) {
+    public List<BalanceDto> getBalanceHistory(String accountId, LocalDate start, LocalDate end) {
         return balanceRepository.findByAccountIdAndDateBetweenOrderByDateAsc(accountId, start, end).stream()
                 .map(this::toBalanceDto)
                 .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
-    public List<HoldingDto> getHoldings(UUID accountId) {
+    public List<HoldingDto> getHoldings(String accountId) {
         return holdingRepository.findByAccountId(accountId).stream()
                 .map(this::toHoldingDto)
                 .collect(Collectors.toList());

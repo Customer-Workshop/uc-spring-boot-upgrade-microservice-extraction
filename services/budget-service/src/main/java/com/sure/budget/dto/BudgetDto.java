@@ -2,12 +2,11 @@ package com.sure.budget.dto;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.UUID;
 
 public record BudgetDto(
-        UUID id,
-        UUID familyId,
-        UUID categoryId,
+        String id,
+        String familyId,
+        String categoryId,
         String categoryName,
         String name,
         BigDecimal amount,
