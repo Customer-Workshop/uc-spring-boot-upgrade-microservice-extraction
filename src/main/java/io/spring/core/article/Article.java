@@ -51,6 +51,7 @@ public class Article {
   public void update(String title, String description, String body) {
     if (!Util.isEmpty(title)) {
       this.title = title;
+      this.slug = toSlug(title);
       this.updatedAt = new DateTime();
     }
     if (!Util.isEmpty(description)) {
