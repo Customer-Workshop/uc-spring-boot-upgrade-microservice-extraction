@@ -17,7 +17,6 @@ public class ArticleStatsQueryService {
 
   public ArticleStatsData getArticleStats(Article article) {
     String articleId = article.getId();
-    statsReadService.incrementViewCount(articleId);
     int viewCount = statsReadService.getViewCount(articleId);
     int favoriteCount = statsReadService.getFavoriteCount(articleId);
     int commentCount = statsReadService.getCommentCount(articleId);
