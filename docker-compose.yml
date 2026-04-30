@@ -1,0 +1,54 @@
+version: "3.8"
+
+services:
+  # ──────────────────────────────────────────────
+  # Comments Microservice
+  # ──────────────────────────────────────────────
+  comments-service:
+    build:
+      context: ./comments-service
+      dockerfile: Dockerfile
+    image: comments-service:latest
+    container_name: realworld-comments-service
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    networks:
+      - realworld-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+
+  # ──────────────────────────────────────────────
+  # Monolith (API + Frontend backend)
+  # ──────────────────────────────────────────────
+  monolith:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: realworld-monolith:latest
+    container_name: realworld-monolith
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - COMMENTS_SERVICE_URL=http://comments-service:8081
+    networks:
+      - realworld-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/tags"]
+      interval: 30s
+      timeout: 10s
+      start_period: 40s
+      retries: 5
+    depends_on:
+      comments-service:
+        condition: service_healthy
+
+networks:
+  realworld-network:
+    driver: bridge
+    name: realworld-network

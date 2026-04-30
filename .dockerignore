@@ -1,0 +1,7 @@
+build/
+.gradle/
+frontend/
+comments-service/
+*.md
+*.png
+dev.db

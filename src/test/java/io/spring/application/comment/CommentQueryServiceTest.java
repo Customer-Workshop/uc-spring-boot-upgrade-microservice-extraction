@@ -1,56 +1,59 @@
 package io.spring.application.comment;
 
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
+
 import io.spring.application.CommentQueryService;
 import io.spring.application.data.CommentData;
-import io.spring.core.article.Article;
-import io.spring.core.article.ArticleRepository;
-import io.spring.core.comment.Comment;
-import io.spring.core.comment.CommentRepository;
-import io.spring.core.user.FollowRelation;
+import io.spring.application.data.UserData;
 import io.spring.core.user.User;
-import io.spring.core.user.UserRepository;
-import io.spring.infrastructure.DbTestBase;
-import io.spring.infrastructure.repository.MyBatisArticleRepository;
-import io.spring.infrastructure.repository.MyBatisCommentRepository;
-import io.spring.infrastructure.repository.MyBatisUserRepository;
+import io.spring.infrastructure.mybatis.readservice.UserReadService;
+import io.spring.infrastructure.mybatis.readservice.UserRelationshipQueryService;
+import io.spring.infrastructure.service.CommentResponse;
+import io.spring.infrastructure.service.CommentServiceClient;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Import;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@Import({
-  MyBatisCommentRepository.class,
-  MyBatisUserRepository.class,
-  CommentQueryService.class,
-  MyBatisArticleRepository.class
-})
-public class CommentQueryServiceTest extends DbTestBase {
-  @Autowired private CommentRepository commentRepository;
+@ExtendWith(MockitoExtension.class)
+public class CommentQueryServiceTest {
 
-  @Autowired private UserRepository userRepository;
+  @Mock private CommentServiceClient commentServiceClient;
+  @Mock private UserRelationshipQueryService userRelationshipQueryService;
+  @Mock private UserReadService userReadService;
 
-  @Autowired private CommentQueryService commentQueryService;
-
-  @Autowired private ArticleRepository articleRepository;
-
+  private CommentQueryService commentQueryService;
   private User user;
 
   @BeforeEach
   public void setUp() {
+    commentQueryService =
+        new CommentQueryService(
+            commentServiceClient, userRelationshipQueryService, userReadService);
     user = new User("aisensiy@test.com", "aisensiy", "123", "", "");
-    userRepository.save(user);
   }
 
   @Test
   public void should_read_comment_success() {
-    Comment comment = new Comment("content", user.getId(), "123");
-    commentRepository.save(comment);
+    CommentResponse response = new CommentResponse();
+    response.setId("comment-1");
+    response.setBody("content");
+    response.setUserId(user.getId());
+    response.setArticleId("article-1");
+    response.setCreatedAt(Instant.now().toString());
 
-    Optional<CommentData> optional = commentQueryService.findById(comment.getId(), user);
+    when(commentServiceClient.findResponseById("comment-1")).thenReturn(Optional.of(response));
+    when(userReadService.findById(user.getId()))
+        .thenReturn(new UserData(user.getId(), user.getEmail(), user.getUsername(), "", ""));
+
+    Optional<CommentData> optional = commentQueryService.findById("comment-1", user);
     Assertions.assertTrue(optional.isPresent());
     CommentData commentData = optional.get();
     Assertions.assertEquals(commentData.getProfileData().getUsername(), user.getUsername());
@@ -58,19 +61,25 @@ public class CommentQueryServiceTest extends DbTestBase {
 
   @Test
   public void should_read_comments_of_article() {
-    Article article = new Article("title", "desc", "body", Arrays.asList("java"), user.getId());
-    articleRepository.save(article);
+    CommentResponse r1 = new CommentResponse();
+    r1.setId("c1");
+    r1.setBody("content1");
+    r1.setUserId(user.getId());
+    r1.setArticleId("article-1");
+    r1.setCreatedAt(Instant.now().toString());
 
-    User user2 = new User("user2@email.com", "user2", "123", "", "");
-    userRepository.save(user2);
-    userRepository.saveRelation(new FollowRelation(user.getId(), user2.getId()));
+    CommentResponse r2 = new CommentResponse();
+    r2.setId("c2");
+    r2.setBody("content2");
+    r2.setUserId("user-2");
+    r2.setArticleId("article-1");
+    r2.setCreatedAt(Instant.now().toString());
 
-    Comment comment1 = new Comment("content1", user.getId(), article.getId());
-    commentRepository.save(comment1);
-    Comment comment2 = new Comment("content2", user2.getId(), article.getId());
-    commentRepository.save(comment2);
+    when(commentServiceClient.findByArticleId("article-1")).thenReturn(Arrays.asList(r1, r2));
+    when(userReadService.findById(anyString()))
+        .thenReturn(new UserData(user.getId(), user.getEmail(), user.getUsername(), "", ""));
 
-    List<CommentData> comments = commentQueryService.findByArticleId(article.getId(), user);
+    List<CommentData> comments = commentQueryService.findByArticleId("article-1", user);
     Assertions.assertEquals(comments.size(), 2);
   }
 }
