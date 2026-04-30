@@ -17,8 +17,18 @@ public class MyBatisCommentRepository implements CommentRepository {
 
   @Override
   public void save(Comment comment) {
-    commentServiceClient.createComment(
-        comment.getBody(), comment.getUserId(), comment.getArticleId());
+    CommentServiceClient.CommentResponse response =
+        commentServiceClient.createComment(
+            comment.getBody(), comment.getUserId(), comment.getArticleId());
+    if (response != null) {
+      try {
+        java.lang.reflect.Field idField = Comment.class.getDeclaredField("id");
+        idField.setAccessible(true);
+        idField.set(comment, response.getId());
+      } catch (Exception e) {
+        // fallback: keep locally generated id
+      }
+    }
   }
 
   @Override

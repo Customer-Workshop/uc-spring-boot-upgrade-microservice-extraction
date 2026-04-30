@@ -115,12 +115,18 @@ public class CommentQueryService {
     } catch (Exception e) {
       createdAt = new DateTime();
     }
+    DateTime updatedAt;
+    try {
+      updatedAt = DateTime.parse(response.getUpdatedAt());
+    } catch (Exception e) {
+      updatedAt = createdAt;
+    }
     return new CommentData(
         response.getId(),
         response.getBody(),
         response.getArticleId(),
         createdAt,
-        createdAt,
+        updatedAt,
         profileData);
   }
 
