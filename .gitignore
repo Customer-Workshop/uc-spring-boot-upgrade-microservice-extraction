@@ -26,6 +26,10 @@ dist/
 nbdist/
 .nb-gradle/
 
+### Comments microservice ###
+comments-service/.gradle
+comments-service/build/
+
 ### Frontend (Node.js) ###
 frontend/node_modules/
 frontend/.next/
