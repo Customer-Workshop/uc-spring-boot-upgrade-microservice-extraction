@@ -18,7 +18,7 @@ export default function StockChart({ data, symbol }: Props) {
     let mounted = true;
     let resizeHandler: (() => void) | null = null;
 
-    import("lightweight-charts").then(({ createChart, CandlestickSeries, HistogramSeries }) => {
+    import("lightweight-charts").then(({ createChart }) => {
       if (!mounted || !containerRef.current) return;
 
       if (chartRef.current) {
@@ -43,7 +43,7 @@ export default function StockChart({ data, symbol }: Props) {
 
       chartRef.current = chart;
 
-      const candlestickSeries = chart.addSeries(CandlestickSeries, {
+      const candlestickSeries = chart.addCandlestickSeries({
         upColor: "#10b981",
         downColor: "#ef4444",
         wickUpColor: "#10b981",
@@ -61,7 +61,7 @@ export default function StockChart({ data, symbol }: Props) {
 
       candlestickSeries.setData(chartData);
 
-      const volumeSeries = chart.addSeries(HistogramSeries, {
+      const volumeSeries = chart.addHistogramSeries({
         priceFormat: { type: "volume" },
         priceScaleId: "volume",
       });

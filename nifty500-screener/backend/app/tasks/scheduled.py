@@ -3,6 +3,7 @@
 import logging
 from datetime import date
 
+import numpy as np
 import pandas as pd
 from sqlalchemy.orm import Session
 
@@ -201,7 +202,7 @@ def _build_scoring_input(db: Session, stock: Stock) -> ScoringInput:
 
 
 def _safe_float(val) -> float | None:
-    if val is None or (isinstance(val, float) and (pd.isna(val) or pd.isinf(val))):
+    if val is None or (isinstance(val, float) and (pd.isna(val) or np.isinf(val))):
         return None
     try:
         return float(val)
