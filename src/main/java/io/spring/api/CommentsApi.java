@@ -3,21 +3,24 @@ package io.spring.api;
 import com.fasterxml.jackson.annotation.JsonRootName;
 import io.spring.api.exception.NoAuthorizationException;
 import io.spring.api.exception.ResourceNotFoundException;
-import io.spring.application.CommentQueryService;
 import io.spring.application.data.CommentData;
+import io.spring.application.data.ProfileData;
 import io.spring.core.article.Article;
 import io.spring.core.article.ArticleRepository;
 import io.spring.core.user.User;
+import io.spring.core.user.UserRepository;
 import io.spring.infrastructure.service.CommentServiceClient;
 import io.spring.infrastructure.service.CommentServiceClient.CommentResponse;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.joda.time.DateTime;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -33,7 +36,7 @@ import org.springframework.web.bind.annotation.RestController;
 @AllArgsConstructor
 public class CommentsApi {
   private ArticleRepository articleRepository;
-  private CommentQueryService commentQueryService;
+  private UserRepository userRepository;
   private CommentServiceClient commentServiceClient;
 
   @PostMapping
@@ -46,18 +49,8 @@ public class CommentsApi {
     CommentResponse created =
         commentServiceClient.createComment(
             article.getId(), newCommentParam.getBody(), user.getId());
-    CommentData commentData = commentQueryService.findById(created.getId(), user).orElse(null);
-    if (commentData != null) {
-      return ResponseEntity.status(201).body(commentResponse(commentData));
-    }
-    Map<String, Object> response = new HashMap<>();
-    Map<String, Object> commentMap = new HashMap<>();
-    commentMap.put("id", created.getId());
-    commentMap.put("body", created.getBody());
-    commentMap.put("createdAt", created.getCreatedAt());
-    commentMap.put("updatedAt", created.getUpdatedAt());
-    response.put("comment", commentMap);
-    return ResponseEntity.status(201).body(response);
+    CommentData commentData = toCommentData(created, user);
+    return ResponseEntity.status(201).body(commentResponse(commentData));
   }
 
   @GetMapping
@@ -65,7 +58,16 @@ public class CommentsApi {
       @PathVariable("slug") String slug, @AuthenticationPrincipal User user) {
     Article article =
         articleRepository.findBySlug(slug).orElseThrow(ResourceNotFoundException::new);
-    List<CommentData> comments = commentQueryService.findByArticleId(article.getId(), user);
+    List<CommentResponse> remoteComments =
+        commentServiceClient.getCommentsByArticleId(article.getId());
+    List<CommentData> comments =
+        remoteComments.stream()
+            .map(
+                c -> {
+                  User author = userRepository.findById(c.getUserId()).orElse(null);
+                  return toCommentData(c, author);
+                })
+            .collect(Collectors.toList());
     return ResponseEntity.ok(
         new HashMap<String, Object>() {
           {
@@ -90,6 +92,24 @@ public class CommentsApi {
     }
     commentServiceClient.deleteComment(article.getId(), commentId);
     return ResponseEntity.noContent().build();
+  }
+
+  private CommentData toCommentData(CommentResponse response, User author) {
+    ProfileData profileData;
+    if (author != null) {
+      profileData =
+          new ProfileData(
+              author.getId(), author.getUsername(), author.getBio(), author.getImage(), false);
+    } else {
+      profileData = new ProfileData(response.getUserId(), "", "", "", false);
+    }
+    return new CommentData(
+        response.getId(),
+        response.getBody(),
+        response.getArticleId(),
+        new DateTime(),
+        new DateTime(),
+        profileData);
   }
 
   private Map<String, Object> commentResponse(CommentData commentData) {
