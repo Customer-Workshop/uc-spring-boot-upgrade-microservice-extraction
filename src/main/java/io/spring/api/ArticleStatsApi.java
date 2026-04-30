@@ -9,6 +9,7 @@ import io.spring.infrastructure.mybatis.readservice.StatsReadService;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import javax.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import org.joda.time.DateTime;
 import org.joda.time.Days;
@@ -24,7 +25,7 @@ public class ArticleStatsApi {
   private StatsReadService statsReadService;
 
   @GetMapping("/articles/{slug}/stats")
-  public ResponseEntity<?> getArticleStats(@PathVariable("slug") String slug) {
+  public ResponseEntity<?> getArticleStats(@PathVariable("slug") @Size(max = 255) String slug) {
     Article article =
         articleRepository.findBySlug(slug).orElseThrow(ResourceNotFoundException::new);
 
