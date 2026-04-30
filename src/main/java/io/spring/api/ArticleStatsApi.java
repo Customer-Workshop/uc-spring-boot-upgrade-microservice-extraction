@@ -45,7 +45,7 @@ public class ArticleStatsApi {
 
   @GetMapping("/stats/trending")
   public ResponseEntity<?> getTrendingArticles() {
-    String since = new DateTime().minusDays(7).toString("yyyy-MM-dd HH:mm:ss");
+    DateTime since = new DateTime().minusDays(7);
     List<TrendingArticleData> trending = statsReadService.findTrendingArticles(since);
 
     Map<String, Object> response = new HashMap<>();

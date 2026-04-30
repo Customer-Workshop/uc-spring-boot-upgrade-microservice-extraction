@@ -3,6 +3,7 @@ package io.spring.api;
 import static io.restassured.module.mockmvc.RestAssuredMockMvc.given;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
@@ -101,7 +102,7 @@ public class ArticleStatsApiTest extends TestWithCurrentUser {
     TrendingArticleData article1 = new TrendingArticleData("slug-1", "Title 1", "Desc 1", 15);
     TrendingArticleData article2 = new TrendingArticleData("slug-2", "Title 2", "Desc 2", 10);
 
-    when(statsReadService.findTrendingArticles(anyString()))
+    when(statsReadService.findTrendingArticles(any(DateTime.class)))
         .thenReturn(Arrays.asList(article1, article2));
 
     given()
@@ -119,7 +120,8 @@ public class ArticleStatsApiTest extends TestWithCurrentUser {
 
   @Test
   public void should_get_empty_trending_articles() throws Exception {
-    when(statsReadService.findTrendingArticles(anyString())).thenReturn(Collections.emptyList());
+    when(statsReadService.findTrendingArticles(any(DateTime.class)))
+        .thenReturn(Collections.emptyList());
 
     given().when().get("/stats/trending").then().statusCode(200).body("articles", hasSize(0));
   }

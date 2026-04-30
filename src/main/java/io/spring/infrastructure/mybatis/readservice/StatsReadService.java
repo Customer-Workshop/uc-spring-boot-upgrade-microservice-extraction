@@ -16,5 +16,5 @@ public interface StatsReadService {
 
   DateTime getArticleCreatedAt(@Param("articleId") String articleId);
 
-  List<TrendingArticleData> findTrendingArticles(@Param("since") String since);
+  List<TrendingArticleData> findTrendingArticles(@Param("since") DateTime since);
 }
