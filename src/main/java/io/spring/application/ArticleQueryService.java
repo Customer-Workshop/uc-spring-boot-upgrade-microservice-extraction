@@ -97,6 +97,15 @@ public class ArticleQueryService {
     }
   }
 
+  public List<ArticleData> findArticlesByIds(List<String> articleIds, User currentUser) {
+    if (articleIds.isEmpty()) {
+      return new ArrayList<>();
+    }
+    List<ArticleData> articles = articleReadService.findArticles(articleIds);
+    fillExtraInfo(articles, currentUser);
+    return articles;
+  }
+
   public ArticleDataList findRecentArticles(
       String tag, String author, String favoritedBy, Page page, User currentUser) {
     List<String> articleIds = articleReadService.queryArticles(tag, author, favoritedBy, page);

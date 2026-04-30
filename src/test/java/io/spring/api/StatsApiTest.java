@@ -1,6 +1,7 @@
 package io.spring.api;
 
 import static org.hamcrest.core.IsEqual.equalTo;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
@@ -10,7 +11,6 @@ import io.spring.TestHelper;
 import io.spring.api.security.WebSecurityConfig;
 import io.spring.application.ArticleQueryService;
 import io.spring.application.data.ArticleData;
-import io.spring.infrastructure.mybatis.readservice.ArticleReadService;
 import io.spring.infrastructure.mybatis.readservice.StatsReadService;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -31,8 +31,6 @@ public class StatsApiTest extends TestWithCurrentUser {
 
   @MockBean private StatsReadService statsReadService;
 
-  @MockBean private ArticleReadService articleReadService;
-
   @MockBean private ArticleQueryService articleQueryService;
 
   @Override
@@ -49,7 +47,7 @@ public class StatsApiTest extends TestWithCurrentUser {
 
     List<String> articleIds = Arrays.asList(article1.getId(), article2.getId());
     when(statsReadService.findTrendingArticleIds(eq(10))).thenReturn(articleIds);
-    when(articleReadService.findArticles(eq(articleIds)))
+    when(articleQueryService.findArticlesByIds(eq(articleIds), any()))
         .thenReturn(Arrays.asList(article1, article2));
 
     RestAssuredMockMvc.when()
@@ -64,6 +62,8 @@ public class StatsApiTest extends TestWithCurrentUser {
   @Test
   public void should_return_empty_list_when_no_trending_articles() throws Exception {
     when(statsReadService.findTrendingArticleIds(eq(10))).thenReturn(new ArrayList<>());
+    when(articleQueryService.findArticlesByIds(eq(new ArrayList<>()), any()))
+        .thenReturn(new ArrayList<>());
 
     RestAssuredMockMvc.when()
         .get("/stats/trending")
