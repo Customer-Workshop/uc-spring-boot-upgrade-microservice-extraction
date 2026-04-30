@@ -1,18 +1,19 @@
 package io.spring.application.comment;
 
+import static org.mockito.Mockito.when;
+
 import io.spring.application.CommentQueryService;
 import io.spring.application.data.CommentData;
 import io.spring.core.article.Article;
 import io.spring.core.article.ArticleRepository;
-import io.spring.core.comment.Comment;
-import io.spring.core.comment.CommentRepository;
 import io.spring.core.user.FollowRelation;
 import io.spring.core.user.User;
 import io.spring.core.user.UserRepository;
 import io.spring.infrastructure.DbTestBase;
 import io.spring.infrastructure.repository.MyBatisArticleRepository;
-import io.spring.infrastructure.repository.MyBatisCommentRepository;
 import io.spring.infrastructure.repository.MyBatisUserRepository;
+import io.spring.infrastructure.service.CommentServiceClient;
+import io.spring.infrastructure.service.CommentServiceClient.CommentDto;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -20,16 +21,13 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 
-@Import({
-  MyBatisCommentRepository.class,
-  MyBatisUserRepository.class,
-  CommentQueryService.class,
-  MyBatisArticleRepository.class
-})
+@Import({MyBatisUserRepository.class, CommentQueryService.class, MyBatisArticleRepository.class})
 public class CommentQueryServiceTest extends DbTestBase {
-  @Autowired private CommentRepository commentRepository;
+
+  @MockBean private CommentServiceClient commentServiceClient;
 
   @Autowired private UserRepository userRepository;
 
@@ -47,10 +45,15 @@ public class CommentQueryServiceTest extends DbTestBase {
 
   @Test
   public void should_read_comment_success() {
-    Comment comment = new Comment("content", user.getId(), "123");
-    commentRepository.save(comment);
+    CommentDto dto = new CommentDto();
+    dto.setId("comment-1");
+    dto.setBody("content");
+    dto.setUserId(user.getId());
+    dto.setArticleId("123");
 
-    Optional<CommentData> optional = commentQueryService.findById(comment.getId(), user);
+    when(commentServiceClient.getCommentById("comment-1")).thenReturn(Optional.of(dto));
+
+    Optional<CommentData> optional = commentQueryService.findById("comment-1", user);
     Assertions.assertTrue(optional.isPresent());
     CommentData commentData = optional.get();
     Assertions.assertEquals(commentData.getProfileData().getUsername(), user.getUsername());
@@ -65,10 +68,20 @@ public class CommentQueryServiceTest extends DbTestBase {
     userRepository.save(user2);
     userRepository.saveRelation(new FollowRelation(user.getId(), user2.getId()));
 
-    Comment comment1 = new Comment("content1", user.getId(), article.getId());
-    commentRepository.save(comment1);
-    Comment comment2 = new Comment("content2", user2.getId(), article.getId());
-    commentRepository.save(comment2);
+    CommentDto dto1 = new CommentDto();
+    dto1.setId("comment-1");
+    dto1.setBody("content1");
+    dto1.setUserId(user.getId());
+    dto1.setArticleId(article.getId());
+
+    CommentDto dto2 = new CommentDto();
+    dto2.setId("comment-2");
+    dto2.setBody("content2");
+    dto2.setUserId(user2.getId());
+    dto2.setArticleId(article.getId());
+
+    when(commentServiceClient.getCommentsByArticleId(article.getId()))
+        .thenReturn(Arrays.asList(dto1, dto2));
 
     List<CommentData> comments = commentQueryService.findByArticleId(article.getId(), user);
     Assertions.assertEquals(comments.size(), 2);

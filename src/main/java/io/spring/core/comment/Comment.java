@@ -23,4 +23,15 @@ public class Comment {
     this.articleId = articleId;
     this.createdAt = new DateTime();
   }
+
+  public static Comment reconstitute(
+      String id, String body, String userId, String articleId, DateTime createdAt) {
+    Comment comment = new Comment();
+    comment.id = id;
+    comment.body = body;
+    comment.userId = userId;
+    comment.articleId = articleId;
+    comment.createdAt = createdAt;
+    return comment;
+  }
 }
