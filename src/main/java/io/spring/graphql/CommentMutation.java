@@ -8,6 +8,7 @@ import io.spring.api.exception.NoAuthorizationException;
 import io.spring.api.exception.ResourceNotFoundException;
 import io.spring.application.CommentQueryService;
 import io.spring.application.data.CommentData;
+import io.spring.application.data.ProfileData;
 import io.spring.core.article.Article;
 import io.spring.core.article.ArticleRepository;
 import io.spring.core.user.User;
@@ -18,6 +19,7 @@ import io.spring.graphql.types.DeletionStatus;
 import io.spring.infrastructure.service.CommentServiceClient;
 import io.spring.infrastructure.service.CommentServiceClient.CommentResponse;
 import lombok.AllArgsConstructor;
+import org.joda.time.DateTime;
 
 @DgsComponent
 @AllArgsConstructor
@@ -38,7 +40,19 @@ public class CommentMutation {
     CommentData commentData =
         commentQueryService
             .findById(created.getId(), user)
-            .orElseThrow(ResourceNotFoundException::new);
+            .orElseGet(
+                () -> {
+                  ProfileData profileData =
+                      new ProfileData(
+                          user.getId(), user.getUsername(), user.getBio(), user.getImage(), false);
+                  return new CommentData(
+                      created.getId(),
+                      created.getBody(),
+                      created.getArticleId(),
+                      new DateTime(),
+                      new DateTime(),
+                      profileData);
+                });
     return DataFetcherResult.<CommentPayload>newResult()
         .localContext(commentData)
         .data(CommentPayload.newBuilder().build())

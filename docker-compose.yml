@@ -16,7 +16,7 @@ services:
     volumes:
       - comments-data:/data
     healthcheck:
-      test: ["CMD", "sh", "-c", "curl -f http://localhost:8081/api/articles/health-check/comments || exit 0"]
+      test: ["CMD", "sh", "-c", "curl -f http://localhost:8081/actuator/health || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
