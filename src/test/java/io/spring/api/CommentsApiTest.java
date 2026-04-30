@@ -2,7 +2,6 @@ package io.spring.api;
 
 import static io.restassured.module.mockmvc.RestAssuredMockMvc.given;
 import static org.hamcrest.core.IsEqual.equalTo;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
@@ -16,12 +15,14 @@ import io.spring.application.data.ProfileData;
 import io.spring.core.article.Article;
 import io.spring.core.article.ArticleRepository;
 import io.spring.core.comment.Comment;
-import io.spring.core.comment.CommentRepository;
 import io.spring.core.user.User;
+import io.spring.infrastructure.service.CommentServiceClient;
+import io.spring.infrastructure.service.CommentServiceClient.CommentResponse;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import org.joda.time.DateTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,7 +37,7 @@ public class CommentsApiTest extends TestWithCurrentUser {
 
   @MockBean private ArticleRepository articleRepository;
 
-  @MockBean private CommentRepository commentRepository;
+  @MockBean private CommentServiceClient commentServiceClient;
   @MockBean private CommentQueryService commentQueryService;
 
   private Article article;
@@ -77,6 +78,17 @@ public class CommentsApiTest extends TestWithCurrentUser {
           }
         };
 
+    CommentResponse cr = new CommentResponse();
+    cr.setId(comment.getId());
+    cr.setBody(comment.getBody());
+    cr.setArticleId(article.getId());
+    cr.setUserId(user.getId());
+    cr.setCreatedAt(new DateTime());
+    cr.setUpdatedAt(new DateTime());
+
+    when(commentServiceClient.createComment(
+            eq(article.getId()), eq("comment content"), eq(user.getId())))
+        .thenReturn(cr);
     when(commentQueryService.findById(anyString(), eq(user))).thenReturn(Optional.of(commentData));
 
     given()
@@ -130,8 +142,14 @@ public class CommentsApiTest extends TestWithCurrentUser {
 
   @Test
   public void should_delete_comment_success() throws Exception {
-    when(commentRepository.findById(eq(article.getId()), eq(comment.getId())))
-        .thenReturn(Optional.of(comment));
+    CommentResponse cr = new CommentResponse();
+    cr.setId(comment.getId());
+    cr.setBody(comment.getBody());
+    cr.setArticleId(article.getId());
+    cr.setUserId(user.getId());
+
+    when(commentServiceClient.getComment(eq(article.getId()), eq(comment.getId())))
+        .thenReturn(Optional.of(cr));
 
     given()
         .header("Authorization", "Token " + token)
@@ -147,12 +165,19 @@ public class CommentsApiTest extends TestWithCurrentUser {
     User anotherUser = new User("other@example.com", "other", "123", "", "");
     when(userRepository.findByUsername(eq(anotherUser.getUsername())))
         .thenReturn(Optional.of(anotherUser));
-    when(jwtService.getSubFromToken(any())).thenReturn(Optional.of(anotherUser.getId()));
+    when(jwtService.getSubFromToken(anyString())).thenReturn(Optional.of(anotherUser.getId()));
     when(userRepository.findById(eq(anotherUser.getId())))
         .thenReturn(Optional.ofNullable(anotherUser));
 
-    when(commentRepository.findById(eq(article.getId()), eq(comment.getId())))
-        .thenReturn(Optional.of(comment));
+    CommentResponse cr = new CommentResponse();
+    cr.setId(comment.getId());
+    cr.setBody(comment.getBody());
+    cr.setArticleId(article.getId());
+    cr.setUserId(user.getId());
+
+    when(commentServiceClient.getComment(eq(article.getId()), eq(comment.getId())))
+        .thenReturn(Optional.of(cr));
+
     String token = jwtService.toToken(anotherUser);
     when(userRepository.findById(eq(anotherUser.getId()))).thenReturn(Optional.of(anotherUser));
     given()

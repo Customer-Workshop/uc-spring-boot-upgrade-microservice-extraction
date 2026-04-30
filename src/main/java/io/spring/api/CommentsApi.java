@@ -7,10 +7,8 @@ import io.spring.application.CommentQueryService;
 import io.spring.application.data.CommentData;
 import io.spring.core.article.Article;
 import io.spring.core.article.ArticleRepository;
-import io.spring.core.comment.Comment;
-import io.spring.core.comment.CommentRepository;
-import io.spring.core.service.AuthorizationService;
 import io.spring.core.user.User;
+import io.spring.infrastructure.service.CommentServiceClient;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,7 +32,7 @@ import org.springframework.web.bind.annotation.RestController;
 @AllArgsConstructor
 public class CommentsApi {
   private ArticleRepository articleRepository;
-  private CommentRepository commentRepository;
+  private CommentServiceClient commentServiceClient;
   private CommentQueryService commentQueryService;
 
   @PostMapping
@@ -44,10 +42,14 @@ public class CommentsApi {
       @Valid @RequestBody NewCommentParam newCommentParam) {
     Article article =
         articleRepository.findBySlug(slug).orElseThrow(ResourceNotFoundException::new);
-    Comment comment = new Comment(newCommentParam.getBody(), user.getId(), article.getId());
-    commentRepository.save(comment);
-    return ResponseEntity.status(201)
-        .body(commentResponse(commentQueryService.findById(comment.getId(), user).get()));
+    CommentServiceClient.CommentResponse response =
+        commentServiceClient.createComment(
+            article.getId(), newCommentParam.getBody(), user.getId());
+    CommentData commentData =
+        commentQueryService
+            .findById(response.getId(), user)
+            .orElseThrow(ResourceNotFoundException::new);
+    return ResponseEntity.status(201).body(commentResponse(commentData));
   }
 
   @GetMapping
@@ -71,14 +73,15 @@ public class CommentsApi {
       @AuthenticationPrincipal User user) {
     Article article =
         articleRepository.findBySlug(slug).orElseThrow(ResourceNotFoundException::new);
-    return commentRepository
-        .findById(article.getId(), commentId)
+    return commentServiceClient
+        .getComment(article.getId(), commentId)
         .map(
-            comment -> {
-              if (!AuthorizationService.canWriteComment(user, article, comment)) {
+            commentResponse -> {
+              if (!user.getId().equals(article.getUserId())
+                  && !user.getId().equals(commentResponse.getUserId())) {
                 throw new NoAuthorizationException();
               }
-              commentRepository.remove(comment);
+              commentServiceClient.deleteComment(article.getId(), commentId);
               return ResponseEntity.noContent().build();
             })
         .orElseThrow(ResourceNotFoundException::new);

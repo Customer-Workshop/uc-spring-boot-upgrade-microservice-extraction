@@ -32,4 +32,18 @@ public class ProfileQueryService {
       return Optional.of(profileData);
     }
   }
+
+  public Optional<ProfileData> findByUserId(String userId) {
+    UserData userData = userReadService.findById(userId);
+    if (userData == null) {
+      return Optional.empty();
+    }
+    return Optional.of(
+        new ProfileData(
+            userData.getId(),
+            userData.getUsername(),
+            userData.getBio(),
+            userData.getImage(),
+            false));
+  }
 }

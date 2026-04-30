@@ -1,85 +1,68 @@
 package io.spring.application;
 
 import io.spring.application.data.CommentData;
+import io.spring.application.data.ProfileData;
 import io.spring.core.user.User;
-import io.spring.infrastructure.mybatis.readservice.CommentReadService;
 import io.spring.infrastructure.mybatis.readservice.UserRelationshipQueryService;
-import java.util.ArrayList;
+import io.spring.infrastructure.service.CommentServiceClient;
+import io.spring.infrastructure.service.CommentServiceClient.CommentResponse;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
-import org.joda.time.DateTime;
 import org.springframework.stereotype.Service;
 
 @Service
 @AllArgsConstructor
 public class CommentQueryService {
-  private CommentReadService commentReadService;
+  private CommentServiceClient commentServiceClient;
   private UserRelationshipQueryService userRelationshipQueryService;
+  private ProfileQueryService profileQueryService;
 
   public Optional<CommentData> findById(String id, User user) {
-    CommentData commentData = commentReadService.findById(id);
-    if (commentData == null) {
-      return Optional.empty();
-    } else {
-      commentData
-          .getProfileData()
-          .setFollowing(
-              userRelationshipQueryService.isUserFollowing(
-                  user.getId(), commentData.getProfileData().getId()));
-    }
-    return Optional.ofNullable(commentData);
+    return commentServiceClient.getCommentById(id).map(cr -> toCommentData(cr, user));
+  }
+
+  public Optional<CommentData> findByIdInArticle(String articleId, String id, User user) {
+    return commentServiceClient.getComment(articleId, id).map(cr -> toCommentData(cr, user));
   }
 
   public List<CommentData> findByArticleId(String articleId, User user) {
-    List<CommentData> comments = commentReadService.findByArticleId(articleId);
-    if (comments.size() > 0 && user != null) {
-      Set<String> followingAuthors =
-          userRelationshipQueryService.followingAuthors(
-              user.getId(),
-              comments.stream()
-                  .map(commentData -> commentData.getProfileData().getId())
-                  .collect(Collectors.toList()));
-      comments.forEach(
-          commentData -> {
-            if (followingAuthors.contains(commentData.getProfileData().getId())) {
-              commentData.getProfileData().setFollowing(true);
-            }
-          });
-    }
-    return comments;
-  }
-
-  public CursorPager<CommentData> findByArticleIdWithCursor(
-      String articleId, User user, CursorPageParameter<DateTime> page) {
-    List<CommentData> comments = commentReadService.findByArticleIdWithCursor(articleId, page);
+    List<CommentResponse> comments = commentServiceClient.getCommentsByArticleId(articleId);
     if (comments.isEmpty()) {
-      return new CursorPager<>(new ArrayList<>(), page.getDirection(), false);
+      return Collections.emptyList();
     }
+    List<CommentData> result =
+        comments.stream().map(cr -> toCommentData(cr, null)).collect(Collectors.toList());
     if (user != null) {
       Set<String> followingAuthors =
           userRelationshipQueryService.followingAuthors(
               user.getId(),
-              comments.stream()
-                  .map(commentData -> commentData.getProfileData().getId())
-                  .collect(Collectors.toList()));
-      comments.forEach(
-          commentData -> {
-            if (followingAuthors.contains(commentData.getProfileData().getId())) {
-              commentData.getProfileData().setFollowing(true);
+              result.stream().map(cd -> cd.getProfileData().getId()).collect(Collectors.toList()));
+      result.forEach(
+          cd -> {
+            if (followingAuthors.contains(cd.getProfileData().getId())) {
+              cd.getProfileData().setFollowing(true);
             }
           });
     }
-    boolean hasExtra = comments.size() > page.getLimit();
-    if (hasExtra) {
-      comments.remove(page.getLimit());
+    return result;
+  }
+
+  private CommentData toCommentData(CommentResponse cr, User user) {
+    ProfileData profileData = profileQueryService.findByUserId(cr.getUserId()).orElse(null);
+    if (profileData != null && user != null) {
+      profileData.setFollowing(
+          userRelationshipQueryService.isUserFollowing(user.getId(), profileData.getId()));
     }
-    if (!page.isNext()) {
-      Collections.reverse(comments);
-    }
-    return new CursorPager<>(comments, page.getDirection(), hasExtra);
+    return new CommentData(
+        cr.getId(),
+        cr.getBody(),
+        cr.getArticleId(),
+        cr.getCreatedAt(),
+        cr.getUpdatedAt(),
+        profileData);
   }
 }
