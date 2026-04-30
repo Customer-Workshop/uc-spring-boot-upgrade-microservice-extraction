@@ -9,7 +9,7 @@ metadata:
     app.kubernetes.io/component: api
     app.kubernetes.io/part-of: realworld
 spec:
-  replicas: 2
+  replicas: 1  # SQLite supports only one writer; use 1 replica or migrate to PostgreSQL
   selector:
     matchLabels:
       app: backend

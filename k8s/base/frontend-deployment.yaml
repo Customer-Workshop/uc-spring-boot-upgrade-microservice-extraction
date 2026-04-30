@@ -27,7 +27,7 @@ spec:
             - containerPort: 3000
               protocol: TCP
           env:
-            - name: API_URL
+            - name: NEXT_PUBLIC_API_URL
               value: "http://backend:8080"
           resources:
             requests:

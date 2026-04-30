@@ -16,7 +16,11 @@ patches:
     patch: |
       - op: replace
         path: /spec/replicas
-        value: 3
+        value: 1
+      - op: add
+        path: /metadata/annotations
+        value:
+          note: "SQLite limits backend to 1 replica. Migrate to PostgreSQL for multi-replica scaling."
   - target:
       kind: Deployment
       name: frontend

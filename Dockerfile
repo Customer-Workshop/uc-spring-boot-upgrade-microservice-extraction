@@ -1,7 +1,7 @@
 FROM eclipse-temurin:11-jdk-jammy AS build
 WORKDIR /app
 COPY gradle/ gradle/
-COPY gradlew build.gradle settings.gradle ./
+COPY gradlew build.gradle ./
 RUN ./gradlew --no-daemon dependencies || true
 COPY src/ src/
 RUN ./gradlew --no-daemon clean build -x test -x spotlessCheck
