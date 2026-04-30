@@ -47,18 +47,22 @@ public class CommentQueryService {
     List<CommentData> comments =
         responses.stream().map(this::toCommentData).collect(Collectors.toList());
     if (comments.size() > 0 && user != null) {
-      Set<String> followingAuthors =
-          userRelationshipQueryService.followingAuthors(
-              user.getId(),
-              comments.stream()
-                  .map(commentData -> commentData.getProfileData().getId())
-                  .collect(Collectors.toList()));
-      comments.forEach(
-          commentData -> {
-            if (followingAuthors.contains(commentData.getProfileData().getId())) {
-              commentData.getProfileData().setFollowing(true);
-            }
-          });
+      List<String> authorIds =
+          comments.stream()
+              .filter(c -> c.getProfileData() != null)
+              .map(c -> c.getProfileData().getId())
+              .collect(Collectors.toList());
+      if (!authorIds.isEmpty()) {
+        Set<String> followingAuthors =
+            userRelationshipQueryService.followingAuthors(user.getId(), authorIds);
+        comments.forEach(
+            commentData -> {
+              if (commentData.getProfileData() != null
+                  && followingAuthors.contains(commentData.getProfileData().getId())) {
+                commentData.getProfileData().setFollowing(true);
+              }
+            });
+      }
     }
     return comments;
   }
@@ -83,6 +87,7 @@ public class CommentQueryService {
             allComments.stream()
                 .filter(c -> c.getCreatedAt().isAfter(page.getCursor()))
                 .collect(Collectors.toList());
+        Collections.reverse(filtered);
       } else {
         filtered = new ArrayList<>(allComments);
       }
@@ -103,7 +108,7 @@ public class CommentQueryService {
   }
 
   private CommentData toCommentData(CommentResponse response) {
-    ProfileData profileData = null;
+    ProfileData profileData = new ProfileData(response.getUserId(), "unknown", "", "", false);
     UserData userData = userReadService.findById(response.getUserId());
     if (userData != null) {
       profileData =

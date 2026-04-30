@@ -45,7 +45,10 @@ public class CommentsApi {
         articleRepository.findBySlug(slug).orElseThrow(ResourceNotFoundException::new);
     CommentResponse created =
         commentServiceClient.create(newCommentParam.getBody(), article.getId(), user.getId());
-    CommentData commentData = commentQueryService.findById(created.getId(), user).orElse(null);
+    CommentData commentData =
+        commentQueryService
+            .findById(created.getId(), user)
+            .orElseThrow(ResourceNotFoundException::new);
     return ResponseEntity.status(201).body(commentResponse(commentData));
   }
 
