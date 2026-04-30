@@ -1,0 +1,44 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: kite
+      POSTGRES_PASSWORD: kitepass
+      POSTGRES_DB: kite
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kite"]
+      interval: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    ports:
+      - "8001:8001"
+    environment:
+      DATABASE_URL: postgresql://kite:kitepass@db:5432/kite
+      SECRET_KEY: change-me-in-production
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "3002:3002"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8001
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
