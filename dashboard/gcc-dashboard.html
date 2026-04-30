@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GCC Report Dashboard - April 30, 2026</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #0f172a;
+  --card: #1e293b;
+  --border: #334155;
+  --text: #e2e8f0;
+  --muted: #94a3b8;
+  --accent: #38bdf8;
+  --green: #4ade80;
+  --amber: #fbbf24;
+  --red: #f87171;
+  --purple: #a78bfa;
+  --pink: #f472b6;
+  --teal: #2dd4bf;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+.header {
+  background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%);
+  padding: 20px 32px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+}
+.header h1 { font-size: 22px; font-weight: 700; color: var(--accent); }
+.header .subtitle { color: var(--muted); font-size: 13px; }
+
+.nav-tabs {
+  display: flex; gap: 4px; padding: 12px 32px 0; background: var(--bg);
+  border-bottom: 1px solid var(--border); flex-wrap: wrap;
+}
+.nav-tab {
+  padding: 10px 20px; cursor: pointer; border-radius: 8px 8px 0 0;
+  font-size: 13px; font-weight: 500; color: var(--muted);
+  border: 1px solid transparent; border-bottom: none;
+  transition: all 0.2s;
+}
+.nav-tab:hover { color: var(--text); background: rgba(56,189,248,0.05); }
+.nav-tab.active { color: var(--accent); background: var(--card); border-color: var(--border); }
+
+.tab-content { display: none; padding: 24px 32px; }
+.tab-content.active { display: block; }
+
+.kpi-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px;
+}
+.kpi-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+  padding: 20px; text-align: center;
+}
+.kpi-card .value { font-size: 32px; font-weight: 700; margin-bottom: 4px; }
+.kpi-card .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.kpi-card.blue .value { color: var(--accent); }
+.kpi-card.green .value { color: var(--green); }
+.kpi-card.amber .value { color: var(--amber); }
+.kpi-card.red .value { color: var(--red); }
+.kpi-card.purple .value { color: var(--purple); }
+.kpi-card.pink .value { color: var(--pink); }
+.kpi-card.teal .value { color: var(--teal); }
+
+.chart-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(480px, 1fr)); gap: 20px; margin-bottom: 24px;
+}
+.chart-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+  padding: 20px; position: relative;
+}
+.chart-card h3 { font-size: 14px; font-weight: 600; margin-bottom: 16px; color: var(--text); }
+.chart-card canvas { max-height: 360px; }
+.chart-full { grid-column: 1 / -1; }
+
+.table-container {
+  background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+  padding: 20px; overflow-x: auto; margin-bottom: 24px;
+}
+.table-container h3 { font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { background: rgba(56,189,248,0.1); color: var(--accent); padding: 10px 12px; text-align: left; white-space: nowrap; border-bottom: 1px solid var(--border); }
+td { padding: 8px 12px; border-bottom: 1px solid rgba(51,65,85,0.5); white-space: nowrap; }
+tr:hover td { background: rgba(56,189,248,0.03); }
+
+.filter-bar {
+  display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; align-items: center;
+}
+.filter-bar label { font-size: 12px; color: var(--muted); }
+.filter-bar select {
+  background: var(--card); color: var(--text); border: 1px solid var(--border);
+  padding: 6px 12px; border-radius: 6px; font-size: 13px;
+}
+
+@media (max-width: 768px) {
+  .chart-grid { grid-template-columns: 1fr; }
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  .header, .nav-tabs, .tab-content { padding-left: 16px; padding-right: 16px; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>GCC Report Dashboard</h1>
+    <div class="subtitle">Report Date: April 30, 2026 | 2,748 Total Cases | 4 Sheets Analyzed</div>
+  </div>
+</div>
+
+<div class="nav-tabs">
+  <div class="nav-tab active" onclick="switchTab('overview')">Executive Overview</div>
+  <div class="nav-tab" onclick="switchTab('pipeline')">Pipeline & Status</div>
+  <div class="nav-tab" onclick="switchTab('workforce')">Workforce Mix</div>
+  <div class="nav-tab" onclick="switchTab('vendors')">Vendors & Sources</div>
+  <div class="nav-tab" onclick="switchTab('bgv')">BGV & Onboarding</div>
+  <div class="nav-tab" onclick="switchTab('ka')">Knowledge Acquisition</div>
+  <div class="nav-tab" onclick="switchTab('leadership')">Leadership View</div>
+  <div class="nav-tab" onclick="switchTab('timeline')">Timeline & Trends</div>
+  <div class="nav-tab" onclick="switchTab('profiles')">Profiles & Comments</div>
+</div>
+
+<!-- TAB 1: Executive Overview -->
+<div id="tab-overview" class="tab-content active">
+  <div class="kpi-grid">
+    <div class="kpi-card blue"><div class="value" id="kpi-total">-</div><div class="label">Total Cases</div></div>
+    <div class="kpi-card green"><div class="value" id="kpi-active">-</div><div class="label">Active Cases</div></div>
+    <div class="kpi-card amber"><div class="value" id="kpi-gcc">-</div><div class="label">GCC Applicable</div></div>
+    <div class="kpi-card teal"><div class="value" id="kpi-closed">-</div><div class="label">Closed / Filled</div></div>
+    <div class="kpi-card purple"><div class="value" id="kpi-ka">-</div><div class="label">In KA Phase</div></div>
+    <div class="kpi-card pink"><div class="value" id="kpi-sourcing">-</div><div class="label">Sourcing</div></div>
+    <div class="kpi-card green"><div class="value" id="kpi-bgv">-</div><div class="label">BGV Complete</div></div>
+    <div class="kpi-card blue"><div class="value" id="kpi-profiles">-</div><div class="label">Total Profiles</div></div>
+    <div class="kpi-card amber"><div class="value" id="kpi-comments">-</div><div class="label">Total Comments</div></div>
+  </div>
+  <div class="chart-grid">
+    <div class="chart-card"><h3>Role Status Distribution</h3><canvas id="chart-overview-status"></canvas></div>
+    <div class="chart-card"><h3>GCC Applicable vs Non-Applicable</h3><canvas id="chart-overview-gcc"></canvas></div>
+    <div class="chart-card"><h3>Top Job Families</h3><canvas id="chart-overview-jobfam"></canvas></div>
+    <div class="chart-card"><h3>Role Category Breakdown</h3><canvas id="chart-overview-rolecat"></canvas></div>
+  </div>
+</div>
+
+<!-- TAB 2: Pipeline & Status -->
+<div id="tab-pipeline" class="tab-content">
+  <div class="kpi-grid">
+    <div class="kpi-card blue"><div class="value" id="kpi-created">-</div><div class="label">Created</div></div>
+    <div class="kpi-card pink"><div class="value" id="kpi-sourcing2">-</div><div class="label">Sourcing</div></div>
+    <div class="kpi-card amber"><div class="value" id="kpi-bg">-</div><div class="label">Background</div></div>
+    <div class="kpi-card purple"><div class="value" id="kpi-ka2">-</div><div class="label">KA</div></div>
+    <div class="kpi-card teal"><div class="value" id="kpi-onboard">-</div><div class="label">Onboarding</div></div>
+    <div class="kpi-card green"><div class="value" id="kpi-closed2">-</div><div class="label">Closed</div></div>
+    <div class="kpi-card red"><div class="value" id="kpi-inactive">-</div><div class="label">Inactive</div></div>
+  </div>
+  <div class="chart-grid">
+    <div class="chart-card chart-full"><h3>Pipeline Funnel (Role Status)</h3><canvas id="chart-pipeline-funnel"></canvas></div>
+    <div class="chart-card"><h3>Resource Status</h3><canvas id="chart-pipeline-resource"></canvas></div>
+    <div class="chart-card"><h3>Active vs Inactive</h3><canvas id="chart-pipeline-active"></canvas></div>
+  </div>
+</div>
+
+<!-- TAB 3: Workforce Mix -->
+<div id="tab-workforce" class="tab-content">
+  <div class="chart-grid">
+    <div class="chart-card chart-full"><h3>Job Family Distribution (Top 15)</h3><canvas id="chart-wf-jobfam"></canvas></div>
+    <div class="chart-card"><h3>Cognizant Level Distribution</h3><canvas id="chart-wf-level"></canvas></div>
+    <div class="chart-card"><h3>Role Category</h3><canvas id="chart-wf-rolecat"></canvas></div>
+    <div class="chart-card chart-full"><h3>Top PODs (Top 20)</h3><canvas id="chart-wf-pod"></canvas></div>
+  </div>
+</div>
+
+<!-- TAB 4: Vendors & Sources -->
+<div id="tab-vendors" class="tab-content">
+  <div class="chart-grid">
+    <div class="chart-card"><h3>Assigned Vendor Distribution</h3><canvas id="chart-v-vendor"></canvas></div>
+    <div class="chart-card"><h3>Candidate Sourced From (Top 15)</h3><canvas id="chart-v-source"></canvas></div>
+    <div class="chart-card chart-full"><h3>Cognizant Business Line (Top 15)</h3><canvas id="chart-v-bizline"></canvas></div>
+  </div>
+  <div class="table-container">
+    <h3>Vendor vs Role Status Cross-Tab</h3>
+    <table id="table-vendor-role"></table>
+  </div>
+</div>
+
+<!-- TAB 5: BGV & Onboarding -->
+<div id="tab-bgv" class="tab-content">
+  <div class="chart-grid">
+    <div class="chart-card"><h3>Citizens BGV Status</h3><canvas id="chart-bgv-cit"></canvas></div>
+    <div class="chart-card"><h3>Cognizant BGV Status</h3><canvas id="chart-bgv-cog"></canvas></div>
+    <div class="chart-card"><h3>FieldGlass Onboarding Readiness</h3><canvas id="chart-bgv-fg"></canvas></div>
+    <div class="chart-card"><h3>Device Procurement Status</h3><canvas id="chart-bgv-device"></canvas></div>
+  </div>
+</div>
+
+<!-- TAB 6: Knowledge Acquisition -->
+<div id="tab-ka" class="tab-content">
+  <div class="kpi-grid">
+    <div class="kpi-card blue"><div class="value" id="kpi-ka-req">-</div><div class="label">KA Required (Yes)</div></div>
+    <div class="kpi-card green"><div class="value" id="kpi-ka-success">-</div><div class="label">Successfully Completed</div></div>
+    <div class="kpi-card red"><div class="value" id="kpi-ka-fail">-</div><div class="label">Unsuccessfully Completed</div></div>
+  </div>
+  <div class="chart-grid">
+    <div class="chart-card"><h3>KA Required</h3><canvas id="chart-ka-req"></canvas></div>
+    <div class="chart-card"><h3>KA Completion Status</h3><canvas id="chart-ka-comp"></canvas></div>
+  </div>
+  <div class="table-container">
+    <h3>KA Completion by Role Category</h3>
+    <table id="table-ka-role"></table>
+  </div>
+</div>
+
+<!-- TAB 7: Leadership View -->
+<div id="tab-leadership" class="tab-content">
+  <div class="chart-grid">
+    <div class="chart-card chart-full"><h3>Cases by ETSLT Member</h3><canvas id="chart-lead-etslt"></canvas></div>
+  </div>
+  <div class="table-container">
+    <h3>ETSLT Member vs Role Status Cross-Tab</h3>
+    <table id="table-etslt-role"></table>
+  </div>
+</div>
+
+<!-- TAB 8: Timeline & Trends -->
+<div id="tab-timeline" class="tab-content">
+  <div class="chart-grid">
+    <div class="chart-card chart-full"><h3>GCC Start Dates by Month</h3><canvas id="chart-tl-start"></canvas></div>
+    <div class="chart-card chart-full"><h3>Original Target Dates by Month</h3><canvas id="chart-tl-orig"></canvas></div>
+  </div>
+</div>
+
+<!-- TAB 9: Profiles & Comments -->
+<div id="tab-profiles" class="tab-content">
+  <div class="kpi-grid">
+    <div class="kpi-card blue"><div class="value" id="kpi-prof2">-</div><div class="label">Total Profiles</div></div>
+    <div class="kpi-card amber"><div class="value" id="kpi-comm2">-</div><div class="label">Total Comments</div></div>
+  </div>
+  <div class="chart-grid">
+    <div class="chart-card"><h3>Profiles per GCC Case</h3><canvas id="chart-prof-per"></canvas></div>
+    <div class="chart-card"><h3>Profile Sub-Status</h3><canvas id="chart-prof-sub"></canvas></div>
+    <div class="chart-card"><h3>Comments per GCC Case</h3><canvas id="chart-comm-range"></canvas></div>
+  </div>
+</div>
+
+<script>
+const DATA = {"kpis": {"total_cases": 2748, "active_cases": 2679, "gcc_applicable": 1069, "closed_cases": 662, "ka_in_progress": 132, "sourcing": 119, "bgv_complete": 587, "total_profiles": 2319, "total_comments": 4569}, "role_status": {"Created": 1630, "Closed": 662, "KA": 132, "Background": 128, "Sourcing": 119, "Inactive": 70, "Onboarding": 6, "Unknown": 1}, "active_counts": {"Yes": 2679, "No": 69}, "gcc_applicable": {"No": 1679, "Yes": 1069}, "job_family": {"Software Engineering": 1124, "Not Assigned": 504, "QA Engineering": 335, "Data Engineering": 184, "Architecture": 118, "Data Management": 65, "Business Intelligence": 61, "Agile": 39, "Security Engineering": 34, "Project Management": 33, "Quality Assurance Engineering": 31, "Technical Consulting": 27, "Business Analysis": 24, "Database Engineering": 20, "Infrastructure Engineering": 18}, "cog_level": {"Not Assigned": 1106, "Level 3": 843, "Level 2": 528, "Level 1": 136, "Level 4": 113, "Level 5": 20}, "role_category": {"Not Assigned": 1473, "Role to Hire": 613, "New Hire": 382, "Rebadge": 263, "Early Career": 13, "New hire": 3, "Key Personnel": 1}, "vendors": {"Not Assigned": 1698, "Cognizant": 618, "VHL": 199, "Blue Spire": 129, "IntraEdge": 90, "Incedo": 7, "DATAECONOMY INC": 7}, "biz_line": {"Not Assigned": 1691, "DE/ADM": 354, "AIA": 336, "CIS": 122, "Moment CX CRM (SFDC)": 51, "EPS IPM": 46, "BFS Consulting": 36, "QE&A": 32, "CIS-Security": 26, "IOA Consulting": 16, "Moments DX": 13, "Tech Mod Consulting": 5, "Service Now": 5, "Mulesoft": 4, "ISG": 3}, "bgv_citizens": {"To be Initiated": 2113, "Completed": 587, "Unknown": 30, "In Progress": 18}, "bgv_cognizant": {"To be Initiated": 2113, "Completed": 573, "Unknown": 39, "In Progress": 23}, "etslt": {"Rattan,Dhiraj": 1640, "Gopal,Sudhakar": 564, "Mitcheson,James W": 237, "Swamy,Krishnan": 158, "Goode,Brendan Wade": 76, "Mavelipatty Rangasamy,Anand Vijai": 60, "Boss,Matthew": 10, "Stackpole,Willard David": 2, "Borowski,Carol": 1}, "ka_required": {"Not Set": 1772, "Yes": 678, "No": 298}, "ka_completed": {"Not Started": 2534, "Successfully": 194, "Unsuccessfully": 20}, "candidate_src": {"Not Assigned": 1864, "Cognizant External": 213, "Cognizant Internal": 158, "Sub-con (VHL)": 130, "Sub-con (Blue Spire)": 90, "Sub-con (Intraedge)": 82, "VHL": 50, "Sub-con (Dataeconomy)": 36, "Citizens Referral": 20, "Sub-con (Lorven Technologies)": 18, "Sub-con (Value Spectrum Technologies)": 14, "Subcon(Bluespire)": 8, "Bluespire": 8, "Sub-con (Incedo)": 8, "Novastrid": 7}, "resource_status": {"Not Assigned": 1673, "Offer Accepted": 995, "Extend Offer": 37, "Profile Shared": 34, "Offer Extended": 4, "Conversation Scheduled": 3, "Conversation Requested": 2}, "device": {"Pending": 2094, "Yes": 654}, "fg_onboard": {"Not Yet": 2095, "Yes": 621, "Unknown": 32}, "timeline": {"2025-01": 1, "2025-03": 1, "2025-04": 22, "2025-05": 9, "2025-06": 60, "2025-07": 34, "2025-08": 44, "2025-09": 1}, "crosstab_data": {"Borowski,Carol": {"Background": 0, "Closed": 0, "Created": 0, "Inactive": 0, "KA": 0, "Onboarding": 0, "Sourcing": 1, "Unknown": 0}, "Boss,Matthew": {"Background": 0, "Closed": 8, "Created": 0, "Inactive": 0, "KA": 0, "Onboarding": 0, "Sourcing": 2, "Unknown": 0}, "Goode,Brendan Wade": {"Background": 3, "Closed": 28, "Created": 29, "Inactive": 0, "KA": 2, "Onboarding": 0, "Sourcing": 14, "Unknown": 0}, "Gopal,Sudhakar": {"Background": 21, "Closed": 140, "Created": 338, "Inactive": 17, "KA": 27, "Onboarding": 2, "Sourcing": 19, "Unknown": 0}, "Mavelipatty Rangasamy,Anand Vijai": {"Background": 10, "Closed": 30, "Created": 2, "Inactive": 4, "KA": 9, "Onboarding": 0, "Sourcing": 5, "Unknown": 0}, "Mitcheson,James W": {"Background": 17, "Closed": 47, "Created": 152, "Inactive": 3, "KA": 9, "Onboarding": 0, "Sourcing": 9, "Unknown": 0}, "Rattan,Dhiraj": {"Background": 62, "Closed": 332, "Created": 1060, "Inactive": 46, "KA": 79, "Onboarding": 1, "Sourcing": 59, "Unknown": 1}, "Stackpole,Willard David": {"Background": 0, "Closed": 0, "Created": 2, "Inactive": 0, "KA": 0, "Onboarding": 0, "Sourcing": 0, "Unknown": 0}, "Swamy,Krishnan": {"Background": 15, "Closed": 77, "Created": 47, "Inactive": 0, "KA": 6, "Onboarding": 3, "Sourcing": 10, "Unknown": 0}}, "vendor_role_data": {"Blue Spire": {"Background": 14, "Closed": 78, "Created": 0, "Inactive": 6, "KA": 21, "Onboarding": 0, "Sourcing": 10, "Unknown": 0}, "Cognizant": {"Background": 69, "Closed": 419, "Created": 1, "Inactive": 27, "KA": 55, "Onboarding": 3, "Sourcing": 44, "Unknown": 0}, "DATAECONOMY INC": {"Background": 0, "Closed": 4, "Created": 0, "Inactive": 0, "KA": 0, "Onboarding": 0, "Sourcing": 3, "Unknown": 0}, "Incedo": {"Background": 0, "Closed": 0, "Created": 0, "Inactive": 0, "KA": 0, "Onboarding": 0, "Sourcing": 7, "Unknown": 0}, "IntraEdge": {"Background": 15, "Closed": 42, "Created": 0, "Inactive": 2, "KA": 25, "Onboarding": 0, "Sourcing": 6, "Unknown": 0}, "Not Assigned": {"Background": 3, "Closed": 7, "Created": 1629, "Inactive": 28, "KA": 0, "Onboarding": 1, "Sourcing": 29, "Unknown": 1}, "VHL": {"Background": 27, "Closed": 112, "Created": 0, "Inactive": 7, "KA": 31, "Onboarding": 2, "Sourcing": 20, "Unknown": 0}}, "pod_dist": {"Not Assigned": 1901, "Enterprise Solns - Data as a Service": 19, "Digital Identity Services": 17, "EPE SRE": 15, "Consumer Data Solns & Delivery - Lending": 14, "Transmissions KTL": 13, "Consumer Data Solutions": 12, "Credit Card - Origination and Experience": 10, "Integration Engineering (API)": 10, "HawkEye": 10, "Salesforce Private Bank": 9, "CDM Pod C": 9, "EdnaMode": 9, "Credit Card": 8, "TCoE Forward Deployment": 8, "Leapfrog": 8, "IAM": 8, "SRE": 8, "DAD": 8, "Commercial Data Solutions": 8}, "profiles_per_gcc": {"1": 631, "2": 196, "3": 125, "4": 65, "5": 36, "6": 32, "7": 10, "8": 11, "9": 7, "10": 2, "11": 2, "12": 1, "14": 1}, "profile_substatus": {"Declined": 997, "Offer Accepted": 995, "Withdrawn": 147, "Offer Declined": 66, "Extend Offer": 37, "Profile Shared": 35, "BGV Failed": 33, "Offer Extended": 4, "Conversation Scheduled": 3, "Conversation Requested": 2}, "comment_ranges": {"1": 209, "2-3": 253, "4-5": 193, "6-10": 252, "10+": 70}, "ka_role_data": {"Early Career": {"Not Started": 13, "Successfully": 0, "Unsuccessfully": 0}, "Key Personnel": {"Not Started": 1, "Successfully": 0, "Unsuccessfully": 0}, "New Hire": {"Not Started": 380, "Successfully": 2, "Unsuccessfully": 0}, "New hire": {"Not Started": 3, "Successfully": 0, "Unsuccessfully": 0}, "Not Assigned": {"Not Started": 1473, "Successfully": 0, "Unsuccessfully": 0}, "Rebadge": {"Not Started": 263, "Successfully": 0, "Unsuccessfully": 0}, "Role to Hire": {"Not Started": 401, "Successfully": 192, "Unsuccessfully": 20}}, "orig_timeline": {"2025-04": 37, "2025-05": 66, "2025-06": 55, "2025-07": 190, "2025-08": 80, "2025-09": 55, "2025-10": 191, "2025-11": 45, "2025-12": 214, "2026-01": 59, "2026-02": 96, "2026-03": 131, "2026-04": 10, "2026-05": 18}};
+
+const COLORS = ['#38bdf8','#4ade80','#fbbf24','#f87171','#a78bfa','#f472b6','#2dd4bf','#fb923c','#818cf8','#34d399','#e879f9','#facc15','#22d3ee','#f97316','#86efac','#c084fc'];
+const COLORS_ALT = ['#0ea5e9','#22c55e','#eab308','#ef4444','#8b5cf6','#ec4899','#14b8a6','#f97316','#6366f1','#10b981','#d946ef','#ca8a04','#06b6d4','#ea580c','#4ade80','#a855f7'];
+
+Chart.defaults.color = '#94a3b8';
+Chart.defaults.borderColor = 'rgba(51,65,85,0.4)';
+Chart.defaults.plugins.legend.labels.usePointStyle = true;
+Chart.defaults.plugins.legend.labels.padding = 12;
+Chart.defaults.plugins.legend.labels.font = { size: 11 };
+Chart.defaults.plugins.tooltip.backgroundColor = '#1e293b';
+Chart.defaults.plugins.tooltip.borderColor = '#334155';
+Chart.defaults.plugins.tooltip.borderWidth = 1;
+Chart.defaults.plugins.tooltip.cornerRadius = 8;
+
+function switchTab(name) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.target.classList.add('active');
+}
+
+function makeChart(id, type, labels, datasets, opts = {}) {
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  return new Chart(ctx, {
+    type,
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: { display: opts.legend !== false, position: opts.legendPos || 'top' },
+      },
+      scales: type === 'pie' || type === 'doughnut' || type === 'polarArea' ? {} : {
+        x: { grid: { display: false }, ticks: { maxRotation: 45 } },
+        y: { beginAtZero: true, ...(opts.yAxis || {}) }
+      },
+      indexAxis: opts.horizontal ? 'y' : 'x',
+      ...opts.extra
+    }
+  });
+}
+
+function simpleBar(id, data, color, opts = {}) {
+  const labels = Object.keys(data);
+  const values = Object.values(data);
+  makeChart(id, 'bar', labels, [{
+    label: opts.label || 'Count',
+    data: values,
+    backgroundColor: typeof color === 'string' ? color : labels.map((_, i) => COLORS[i % COLORS.length]),
+    borderRadius: 6,
+    borderSkipped: false,
+  }], opts);
+}
+
+function simplePie(id, data, opts = {}) {
+  const labels = Object.keys(data);
+  const values = Object.values(data);
+  makeChart(id, opts.type || 'doughnut', labels, [{
+    data: values,
+    backgroundColor: COLORS.slice(0, labels.length),
+    borderWidth: 2,
+    borderColor: '#1e293b',
+  }], { ...opts, legendPos: 'right' });
+}
+
+// === INIT ===
+const d = DATA;
+
+// KPIs
+document.getElementById('kpi-total').textContent = d.kpis.total_cases.toLocaleString();
+document.getElementById('kpi-active').textContent = d.kpis.active_cases.toLocaleString();
+document.getElementById('kpi-gcc').textContent = d.kpis.gcc_applicable.toLocaleString();
+document.getElementById('kpi-closed').textContent = d.kpis.closed_cases.toLocaleString();
+document.getElementById('kpi-ka').textContent = d.kpis.ka_in_progress.toLocaleString();
+document.getElementById('kpi-sourcing').textContent = d.kpis.sourcing.toLocaleString();
+document.getElementById('kpi-bgv').textContent = d.kpis.bgv_complete.toLocaleString();
+document.getElementById('kpi-profiles').textContent = d.kpis.total_profiles.toLocaleString();
+document.getElementById('kpi-comments').textContent = d.kpis.total_comments.toLocaleString();
+
+// Pipeline KPIs
+const rs = d.role_status;
+document.getElementById('kpi-created').textContent = (rs.Created || 0).toLocaleString();
+document.getElementById('kpi-sourcing2').textContent = (rs.Sourcing || 0).toLocaleString();
+document.getElementById('kpi-bg').textContent = (rs.Background || 0).toLocaleString();
+document.getElementById('kpi-ka2').textContent = (rs.KA || 0).toLocaleString();
+document.getElementById('kpi-onboard').textContent = (rs.Onboarding || 0).toLocaleString();
+document.getElementById('kpi-closed2').textContent = (rs.Closed || 0).toLocaleString();
+document.getElementById('kpi-inactive').textContent = (rs.Inactive || 0).toLocaleString();
+
+// KA KPIs
+document.getElementById('kpi-ka-req').textContent = (d.ka_required.Yes || 0).toLocaleString();
+document.getElementById('kpi-ka-success').textContent = (d.ka_completed.Successfully || 0).toLocaleString();
+document.getElementById('kpi-ka-fail').textContent = (d.ka_completed.Unsuccessfully || 0).toLocaleString();
+
+// Profile KPIs
+document.getElementById('kpi-prof2').textContent = d.kpis.total_profiles.toLocaleString();
+document.getElementById('kpi-comm2').textContent = d.kpis.total_comments.toLocaleString();
+
+// === OVERVIEW TAB CHARTS ===
+simplePie('chart-overview-status', d.role_status);
+simplePie('chart-overview-gcc', d.gcc_applicable);
+simpleBar('chart-overview-jobfam', d.job_family, COLORS, { horizontal: true, legend: false, label: 'Cases' });
+simplePie('chart-overview-rolecat', d.role_category);
+
+// === PIPELINE TAB ===
+const pipelineOrder = ['Created', 'Sourcing', 'Background', 'KA', 'Onboarding', 'Closed', 'Inactive'];
+const pipelineData = {};
+pipelineOrder.forEach(s => { if (d.role_status[s]) pipelineData[s] = d.role_status[s]; });
+simpleBar('chart-pipeline-funnel', pipelineData, COLORS, { label: 'Cases' });
+simplePie('chart-pipeline-resource', d.resource_status);
+simplePie('chart-pipeline-active', d.active_counts);
+
+// === WORKFORCE TAB ===
+simpleBar('chart-wf-jobfam', d.job_family, COLORS, { horizontal: true, legend: false, label: 'Cases' });
+simplePie('chart-wf-level', d.cog_level);
+simplePie('chart-wf-rolecat', d.role_category);
+simpleBar('chart-wf-pod', d.pod_dist, COLORS, { horizontal: true, legend: false, label: 'Cases' });
+
+// === VENDORS TAB ===
+simplePie('chart-v-vendor', d.vendors);
+simpleBar('chart-v-source', d.candidate_src, COLORS, { horizontal: true, legend: false, label: 'Candidates' });
+simpleBar('chart-v-bizline', d.biz_line, COLORS, { horizontal: true, legend: false, label: 'Cases' });
+
+// Vendor x Role table
+(function() {
+  const tbl = document.getElementById('table-vendor-role');
+  const statuses = [...new Set(Object.values(d.vendor_role_data).flatMap(v => Object.keys(v)))].sort();
+  let html = '<thead><tr><th>Vendor</th>' + statuses.map(s => '<th>' + s + '</th>').join('') + '<th>Total</th></tr></thead><tbody>';
+  Object.entries(d.vendor_role_data).forEach(([vendor, vals]) => {
+    const total = Object.values(vals).reduce((a, b) => a + b, 0);
+    html += '<tr><td>' + vendor + '</td>' + statuses.map(s => '<td>' + (vals[s] || 0) + '</td>').join('') + '<td><strong>' + total + '</strong></td></tr>';
+  });
+  html += '</tbody>';
+  tbl.innerHTML = html;
+})();
+
+// === BGV TAB ===
+simplePie('chart-bgv-cit', d.bgv_citizens);
+simplePie('chart-bgv-cog', d.bgv_cognizant);
+simplePie('chart-bgv-fg', d.fg_onboard);
+simplePie('chart-bgv-device', d.device);
+
+// === KA TAB ===
+simplePie('chart-ka-req', d.ka_required);
+simplePie('chart-ka-comp', d.ka_completed);
+
+// KA x Role table
+(function() {
+  const tbl = document.getElementById('table-ka-role');
+  const statuses = [...new Set(Object.values(d.ka_role_data).flatMap(v => Object.keys(v)))].sort();
+  let html = '<thead><tr><th>Role Category</th>' + statuses.map(s => '<th>' + s + '</th>').join('') + '</tr></thead><tbody>';
+  Object.entries(d.ka_role_data).forEach(([cat, vals]) => {
+    html += '<tr><td>' + cat + '</td>' + statuses.map(s => '<td>' + (vals[s] || 0) + '</td>').join('') + '</tr>';
+  });
+  html += '</tbody>';
+  tbl.innerHTML = html;
+})();
+
+// === LEADERSHIP TAB ===
+simpleBar('chart-lead-etslt', d.etslt, COLORS, { legend: false, label: 'Cases' });
+
+// ETSLT x Role table
+(function() {
+  const tbl = document.getElementById('table-etslt-role');
+  const statuses = [...new Set(Object.values(d.crosstab_data).flatMap(v => Object.keys(v)))].sort();
+  let html = '<thead><tr><th>ETSLT Member</th>' + statuses.map(s => '<th>' + s + '</th>').join('') + '<th>Total</th></tr></thead><tbody>';
+  Object.entries(d.crosstab_data).forEach(([member, vals]) => {
+    const total = Object.values(vals).reduce((a, b) => a + b, 0);
+    html += '<tr><td>' + member + '</td>' + statuses.map(s => '<td>' + (vals[s] || 0) + '</td>').join('') + '<td><strong>' + total + '</strong></td></tr>';
+  });
+  html += '</tbody>';
+  tbl.innerHTML = html;
+})();
+
+// === TIMELINE TAB ===
+simpleBar('chart-tl-start', d.timeline, '#38bdf8', { legend: false, label: 'GCC Starts' });
+simpleBar('chart-tl-orig', d.orig_timeline, '#4ade80', { legend: false, label: 'Target Dates' });
+
+// === PROFILES TAB ===
+simpleBar('chart-prof-per', d.profiles_per_gcc, COLORS, { legend: false, label: 'GCC Cases' });
+simplePie('chart-prof-sub', d.profile_substatus);
+simpleBar('chart-comm-range', d.comment_ranges, COLORS, { legend: false, label: 'GCC Cases' });
+</script>
+</body>
+</html>
