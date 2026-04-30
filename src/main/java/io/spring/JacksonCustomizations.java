@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.Module;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
+import com.fasterxml.jackson.datatype.joda.JodaModule;
 import java.io.IOException;
 import org.joda.time.DateTime;
 import org.joda.time.format.ISODateTimeFormat;
@@ -17,6 +18,11 @@ public class JacksonCustomizations {
   @Bean
   public Module realWorldModules() {
     return new RealWorldModules();
+  }
+
+  @Bean
+  public Module jodaModule() {
+    return new JodaModule();
   }
 
   public static class RealWorldModules extends SimpleModule {

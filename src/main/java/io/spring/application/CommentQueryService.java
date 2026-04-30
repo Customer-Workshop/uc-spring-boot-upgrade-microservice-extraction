@@ -37,16 +37,23 @@ public class CommentQueryService {
     List<CommentData> result =
         comments.stream().map(cr -> toCommentData(cr, null)).collect(Collectors.toList());
     if (user != null) {
-      Set<String> followingAuthors =
-          userRelationshipQueryService.followingAuthors(
-              user.getId(),
-              result.stream().map(cd -> cd.getProfileData().getId()).collect(Collectors.toList()));
-      result.forEach(
-          cd -> {
-            if (followingAuthors.contains(cd.getProfileData().getId())) {
-              cd.getProfileData().setFollowing(true);
-            }
-          });
+      List<String> authorIds =
+          result.stream()
+              .filter(cd -> cd.getProfileData() != null)
+              .map(cd -> cd.getProfileData().getId())
+              .collect(Collectors.toList());
+      if (!authorIds.isEmpty()) {
+        Set<String> followingAuthors =
+            userRelationshipQueryService.followingAuthors(user.getId(), authorIds);
+        result.stream()
+            .filter(cd -> cd.getProfileData() != null)
+            .forEach(
+                cd -> {
+                  if (followingAuthors.contains(cd.getProfileData().getId())) {
+                    cd.getProfileData().setFollowing(true);
+                  }
+                });
+      }
     }
     return result;
   }
