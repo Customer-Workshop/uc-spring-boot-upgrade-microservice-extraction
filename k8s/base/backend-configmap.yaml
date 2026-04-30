@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config
+  namespace: realworld
+  labels:
+    app: backend
+    app.kubernetes.io/part-of: realworld
+data:
+  datasource-url: "jdbc:sqlite:/app/data/realworld.db"
+  spring-profiles-active: "default"
