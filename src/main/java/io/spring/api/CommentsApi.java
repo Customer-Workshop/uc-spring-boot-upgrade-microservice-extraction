@@ -47,7 +47,11 @@ public class CommentsApi {
     Comment comment = new Comment(newCommentParam.getBody(), user.getId(), article.getId());
     String commentId = commentServiceClient.saveAndReturnId(comment);
     return ResponseEntity.status(201)
-        .body(commentResponse(commentQueryService.findById(commentId, user).get()));
+        .body(
+            commentResponse(
+                commentQueryService
+                    .findById(commentId, user)
+                    .orElseThrow(ResourceNotFoundException::new)));
   }
 
   @GetMapping

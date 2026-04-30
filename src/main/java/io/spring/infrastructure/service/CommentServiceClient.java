@@ -45,7 +45,11 @@ public class CommentServiceClient implements CommentRepository {
     ResponseEntity<Map> response =
         restTemplate.postForEntity(commentsServiceUrl + "/api/comments", request, Map.class);
     Map<String, Object> body = response.getBody();
-    return body != null ? (String) body.get("id") : null;
+    String id = body != null ? (String) body.get("id") : null;
+    if (id == null) {
+      throw new IllegalStateException("Comments service did not return an id");
+    }
+    return id;
   }
 
   @Override
