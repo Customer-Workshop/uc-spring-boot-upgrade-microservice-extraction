@@ -1,76 +1,166 @@
 package io.spring.application.comment;
 
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
+
 import io.spring.application.CommentQueryService;
+import io.spring.application.CursorPageParameter;
+import io.spring.application.CursorPager;
+import io.spring.application.CursorPager.Direction;
 import io.spring.application.data.CommentData;
-import io.spring.core.article.Article;
-import io.spring.core.article.ArticleRepository;
-import io.spring.core.comment.Comment;
-import io.spring.core.comment.CommentRepository;
-import io.spring.core.user.FollowRelation;
+import io.spring.application.data.ProfileData;
 import io.spring.core.user.User;
-import io.spring.core.user.UserRepository;
-import io.spring.infrastructure.DbTestBase;
-import io.spring.infrastructure.repository.MyBatisArticleRepository;
-import io.spring.infrastructure.repository.MyBatisCommentRepository;
-import io.spring.infrastructure.repository.MyBatisUserRepository;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-import org.junit.jupiter.api.Assertions;
+import io.spring.infrastructure.mybatis.readservice.CommentReadService;
+import io.spring.infrastructure.mybatis.readservice.UserRelationshipQueryService;
+import java.util.*;
+import org.joda.time.DateTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Import;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@Import({
-  MyBatisCommentRepository.class,
-  MyBatisUserRepository.class,
-  CommentQueryService.class,
-  MyBatisArticleRepository.class
-})
-public class CommentQueryServiceTest extends DbTestBase {
-  @Autowired private CommentRepository commentRepository;
+@ExtendWith(MockitoExtension.class)
+public class CommentQueryServiceTest {
 
-  @Autowired private UserRepository userRepository;
+  @Mock private CommentReadService commentReadService;
+  @Mock private UserRelationshipQueryService userRelationshipQueryService;
 
-  @Autowired private CommentQueryService commentQueryService;
-
-  @Autowired private ArticleRepository articleRepository;
-
+  private CommentQueryService service;
   private User user;
 
   @BeforeEach
-  public void setUp() {
-    user = new User("aisensiy@test.com", "aisensiy", "123", "", "");
-    userRepository.save(user);
+  void setUp() {
+    service = new CommentQueryService(commentReadService, userRelationshipQueryService);
+    user = new User("test@test.com", "testuser", "password", "bio", "image");
   }
 
   @Test
-  public void should_read_comment_success() {
-    Comment comment = new Comment("content", user.getId(), "123");
-    commentRepository.save(comment);
+  void should_find_comment_by_id() {
+    CommentData commentData = createCommentData("c1", "author1");
+    when(commentReadService.findById("c1")).thenReturn(commentData);
+    when(userRelationshipQueryService.isUserFollowing(user.getId(), "author1")).thenReturn(true);
 
-    Optional<CommentData> optional = commentQueryService.findById(comment.getId(), user);
-    Assertions.assertTrue(optional.isPresent());
-    CommentData commentData = optional.get();
-    Assertions.assertEquals(commentData.getProfileData().getUsername(), user.getUsername());
+    Optional<CommentData> result = service.findById("c1", user);
+
+    assertTrue(result.isPresent());
+    assertTrue(result.get().getProfileData().isFollowing());
   }
 
   @Test
-  public void should_read_comments_of_article() {
-    Article article = new Article("title", "desc", "body", Arrays.asList("java"), user.getId());
-    articleRepository.save(article);
+  void should_return_empty_when_comment_not_found() {
+    when(commentReadService.findById("missing")).thenReturn(null);
 
-    User user2 = new User("user2@email.com", "user2", "123", "", "");
-    userRepository.save(user2);
-    userRepository.saveRelation(new FollowRelation(user.getId(), user2.getId()));
+    Optional<CommentData> result = service.findById("missing", user);
 
-    Comment comment1 = new Comment("content1", user.getId(), article.getId());
-    commentRepository.save(comment1);
-    Comment comment2 = new Comment("content2", user2.getId(), article.getId());
-    commentRepository.save(comment2);
+    assertTrue(result.isEmpty());
+  }
 
-    List<CommentData> comments = commentQueryService.findByArticleId(article.getId(), user);
-    Assertions.assertEquals(comments.size(), 2);
+  @Test
+  void should_find_comments_by_article_id() {
+    CommentData c1 = createCommentData("c1", "author1");
+    CommentData c2 = createCommentData("c2", "author2");
+    when(commentReadService.findByArticleId("article1")).thenReturn(List.of(c1, c2));
+    when(userRelationshipQueryService.followingAuthors(eq(user.getId()), any()))
+        .thenReturn(Set.of("author1"));
+
+    List<CommentData> result = service.findByArticleId("article1", user);
+
+    assertEquals(2, result.size());
+    assertTrue(result.get(0).getProfileData().isFollowing());
+    assertFalse(result.get(1).getProfileData().isFollowing());
+  }
+
+  @Test
+  void should_find_comments_by_article_id_with_null_user() {
+    CommentData c1 = createCommentData("c1", "author1");
+    when(commentReadService.findByArticleId("article1")).thenReturn(List.of(c1));
+
+    List<CommentData> result = service.findByArticleId("article1", null);
+
+    assertEquals(1, result.size());
+  }
+
+  @Test
+  void should_find_comments_by_article_id_empty_list() {
+    when(commentReadService.findByArticleId("article1")).thenReturn(Collections.emptyList());
+
+    List<CommentData> result = service.findByArticleId("article1", user);
+
+    assertTrue(result.isEmpty());
+  }
+
+  @Test
+  void should_find_comments_with_cursor_next() {
+    CommentData c1 = createCommentData("c1", "author1");
+    CommentData c2 = createCommentData("c2", "author2");
+    when(commentReadService.findByArticleIdWithCursor(eq("article1"), any()))
+        .thenReturn(new ArrayList<>(List.of(c1, c2)));
+    when(userRelationshipQueryService.followingAuthors(eq(user.getId()), any()))
+        .thenReturn(Set.of("author1"));
+
+    CursorPager<CommentData> result =
+        service.findByArticleIdWithCursor(
+            "article1", user, new CursorPageParameter<>(null, 10, Direction.NEXT));
+
+    assertNotNull(result);
+    assertEquals(2, result.getData().size());
+    assertFalse(result.hasNext());
+  }
+
+  @Test
+  void should_find_comments_with_cursor_prev() {
+    CommentData c1 = createCommentData("c1", "author1");
+    when(commentReadService.findByArticleIdWithCursor(eq("article1"), any()))
+        .thenReturn(new ArrayList<>(List.of(c1)));
+
+    CursorPager<CommentData> result =
+        service.findByArticleIdWithCursor(
+            "article1", null, new CursorPageParameter<>(null, 10, Direction.PREV));
+
+    assertNotNull(result);
+    assertEquals(1, result.getData().size());
+  }
+
+  @Test
+  void should_return_empty_pager_when_no_comments() {
+    when(commentReadService.findByArticleIdWithCursor(eq("article1"), any()))
+        .thenReturn(new ArrayList<>());
+
+    CursorPager<CommentData> result =
+        service.findByArticleIdWithCursor(
+            "article1", user, new CursorPageParameter<>(null, 10, Direction.NEXT));
+
+    assertNotNull(result);
+    assertTrue(result.getData().isEmpty());
+  }
+
+  @Test
+  void should_handle_has_extra_with_cursor() {
+    CommentData c1 = createCommentData("c1", "author1");
+    CommentData c2 = createCommentData("c2", "author2");
+    CommentData extra = createCommentData("c3", "author3");
+    when(commentReadService.findByArticleIdWithCursor(eq("article1"), any()))
+        .thenReturn(new ArrayList<>(List.of(c1, c2, extra)));
+
+    CursorPager<CommentData> result =
+        service.findByArticleIdWithCursor(
+            "article1", null, new CursorPageParameter<>(null, 2, Direction.NEXT));
+
+    assertNotNull(result);
+    assertEquals(2, result.getData().size());
+    assertTrue(result.hasNext());
+  }
+
+  private CommentData createCommentData(String id, String authorId) {
+    return new CommentData(
+        id,
+        "body",
+        "article1",
+        new DateTime(),
+        new DateTime(),
+        new ProfileData(authorId, "user-" + authorId, "bio", "image", false));
   }
 }
