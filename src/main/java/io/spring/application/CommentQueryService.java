@@ -101,7 +101,7 @@ public class CommentQueryService {
 
   private List<CommentData> applyCursorPaging(
       List<CommentData> comments, CursorPageParameter<DateTime> page) {
-    List<CommentData> result =
+    java.util.stream.Stream<CommentData> stream =
         comments.stream()
             .filter(
                 c -> {
@@ -113,10 +113,11 @@ public class CommentQueryService {
                   } else {
                     return c.getCreatedAt().isAfter(page.getCursor());
                   }
-                })
-            .limit(page.getLimit() + 1)
-            .collect(Collectors.toList());
-    return result;
+                });
+    if (!page.isNext()) {
+      stream = stream.sorted((a, b) -> a.getCreatedAt().compareTo(b.getCreatedAt()));
+    }
+    return stream.limit(page.getLimit() + 1).collect(Collectors.toList());
   }
 
   private CommentData toCommentData(CommentDto dto) {
