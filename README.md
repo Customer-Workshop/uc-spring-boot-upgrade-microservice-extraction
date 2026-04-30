@@ -118,6 +118,48 @@ Use spotless for code format.
 
     ./gradlew spotlessJavaApply
 
+# Visual Regression Testing
+
+The project includes a visual regression test suite that captures full-page screenshots and compares them against stored baselines using [ashot](https://github.com/pazone/ashot).
+
+## Running Visual Regression Tests
+
+```bash
+./gradlew visualRegressionTest
+```
+
+## How Baselines Work
+
+- **First run**: No baselines exist yet. The tests capture screenshots and save them as the initial baselines under `src/test/resources/selenium/baselines/`. All tests pass on the first run.
+- **Subsequent runs**: Each test captures a new screenshot and compares it pixel-by-pixel against the stored baseline. If the difference exceeds the configured threshold (default `0.5%`), the test fails.
+
+## Updating Baselines
+
+When UI changes are intentional, update the baselines so future runs pass:
+
+1. **Delete the outdated baseline** PNG from `src/test/resources/selenium/baselines/` and re-run the tests, or
+2. **Enable and run the `updateAllBaselines` test** in `VisualRegressionTest.java` to regenerate all baselines at once.
+
+Commit the updated baseline PNGs to the repository.
+
+## Diff Reports
+
+After a test run, review the outputs in:
+
+| Directory | Contents |
+|-----------|----------|
+| `build/reports/selenium/visual-regression/actual/` | Actual screenshots from the latest run |
+| `build/reports/selenium/visual-regression/diffs/` | Diff images highlighting pixel differences in red |
+
+## Configuration
+
+Visual regression settings in `src/test/resources/selenium/config.properties`:
+
+| Property | Default | Description |
+|----------|---------|-------------|
+| `visual.diff.threshold` | `0.5` | Max percentage of differing pixels before a test fails |
+| `visual.wait.before.screenshot` | `2000` | Milliseconds to wait after page load before capturing |
+
 # Help
 
 Please fork and PR to improve the project.

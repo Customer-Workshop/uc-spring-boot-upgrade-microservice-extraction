@@ -27,6 +27,17 @@
         </packages>
     </test>
     
+    <test name="Visual Regression Tests">
+        <groups>
+            <run>
+                <include name="visual"/>
+            </run>
+        </groups>
+        <packages>
+            <package name="io.spring.selenium.tests.*"/>
+        </packages>
+    </test>
+    
     <test name="All Tests">
         <packages>
             <package name="io.spring.selenium.tests.*"/>

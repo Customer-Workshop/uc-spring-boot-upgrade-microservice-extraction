@@ -87,6 +87,9 @@ dependencies {
     testImplementation 'org.testng:testng:7.8.0'
     testImplementation 'com.aventstack:extentreports:5.1.1'
     testImplementation 'org.apache.httpcomponents.client5:httpclient5:5.2.1'
+
+    // Visual regression testing
+    testImplementation 'ru.yandex.qatools.ashot:ashot:1.5.4'
 }
 
 tasks.named('test') {
@@ -114,6 +117,25 @@ tasks.register('seleniumTest', Test) {
 	}
 	
 	// Don't fail the build on test failures (for CI reporting)
+	ignoreFailures = false
+}
+
+// Separate task for Visual Regression tests using TestNG
+tasks.register('visualRegressionTest', Test) {
+	description = 'Run visual regression tests with screenshot comparisons'
+	group = 'verification'
+	
+	useTestNG {
+		suites 'src/test/resources/selenium/testng-visual.xml'
+	}
+	
+	include 'io/spring/selenium/**'
+	
+	testLogging {
+		events "passed", "skipped", "failed"
+		showStandardStreams = true
+	}
+	
 	ignoreFailures = false
 }
 
