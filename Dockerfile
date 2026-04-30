@@ -1,7 +1,7 @@
 FROM openjdk:11-jdk-slim AS build
 WORKDIR /app
 COPY gradle/ gradle/
-COPY gradlew build.gradle settings.gradle ./
+COPY gradlew build.gradle ./
 RUN chmod +x gradlew && ./gradlew dependencies --no-daemon || true
 COPY src/ src/
 RUN ./gradlew bootJar --no-daemon -x test
