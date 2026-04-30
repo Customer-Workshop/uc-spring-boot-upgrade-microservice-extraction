@@ -3,7 +3,7 @@
 <mapper namespace="io.spring.infrastructure.mybatis.readservice.ArticleStatsReadService">
 
     <select id="getViewCount" resultType="java.lang.Integer">
-        select coalesce(view_count, 0) from article_views where article_id = #{articleId}
+        select coalesce((select view_count from article_views where article_id = #{articleId}), 0)
     </select>
 
     <select id="getFavoriteCount" resultType="java.lang.Integer">
@@ -15,11 +15,13 @@
     </select>
 
     <resultMap id="trendingArticleData" type="io.spring.application.data.TrendingArticleData">
-        <result column="slug" property="slug"/>
-        <result column="title" property="title"/>
-        <result column="description" property="description"/>
-        <result column="author" property="author"/>
-        <result column="favoriteCount" property="favoriteCount"/>
+        <constructor>
+            <arg column="slug" javaType="string"/>
+            <arg column="title" javaType="string"/>
+            <arg column="description" javaType="string"/>
+            <arg column="author" javaType="string"/>
+            <arg column="favoriteCount" javaType="int"/>
+        </constructor>
     </resultMap>
 
     <select id="findTrendingArticles" resultMap="trendingArticleData">

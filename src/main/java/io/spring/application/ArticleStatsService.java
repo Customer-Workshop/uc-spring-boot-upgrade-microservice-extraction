@@ -1,5 +1,6 @@
 package io.spring.application;
 
+import io.spring.application.data.ArticleData;
 import io.spring.application.data.ArticleStatsData;
 import io.spring.application.data.TrendingArticleData;
 import io.spring.infrastructure.mybatis.mapper.ArticleViewsMapper;
@@ -14,21 +15,22 @@ import org.springframework.stereotype.Service;
 
 @Service
 @AllArgsConstructor
-public class ArticleStatsQueryService {
+public class ArticleStatsService {
+  private static final int TRENDING_LIMIT = 10;
+
   private ArticleReadService articleReadService;
   private ArticleStatsReadService articleStatsReadService;
   private ArticleViewsMapper articleViewsMapper;
 
   public Optional<ArticleStatsData> getArticleStats(String slug) {
-    var articleData = articleReadService.findBySlug(slug);
+    ArticleData articleData = articleReadService.findBySlug(slug);
     if (articleData == null) {
       return Optional.empty();
     }
 
     String articleId = articleData.getId();
 
-    articleViewsMapper.ensureViewRecord(articleId);
-    articleViewsMapper.incrementViewCount(articleId);
+    articleViewsMapper.upsertViewCount(articleId);
 
     int viewCount = articleStatsReadService.getViewCount(articleId);
     int favoriteCount = articleStatsReadService.getFavoriteCount(articleId);
@@ -41,6 +43,6 @@ public class ArticleStatsQueryService {
   }
 
   public List<TrendingArticleData> getTrendingArticles() {
-    return articleStatsReadService.findTrendingArticles(10);
+    return articleStatsReadService.findTrendingArticles(TRENDING_LIMIT);
   }
 }

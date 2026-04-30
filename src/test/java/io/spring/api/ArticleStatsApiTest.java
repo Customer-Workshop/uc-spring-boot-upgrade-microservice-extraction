@@ -7,7 +7,7 @@ import static org.mockito.Mockito.when;
 import io.restassured.module.mockmvc.RestAssuredMockMvc;
 import io.spring.JacksonCustomizations;
 import io.spring.api.security.WebSecurityConfig;
-import io.spring.application.ArticleStatsQueryService;
+import io.spring.application.ArticleStatsService;
 import io.spring.application.data.ArticleStatsData;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,7 +23,7 @@ import org.springframework.test.web.servlet.MockMvc;
 public class ArticleStatsApiTest extends TestWithCurrentUser {
   @Autowired private MockMvc mvc;
 
-  @MockBean private ArticleStatsQueryService articleStatsQueryService;
+  @MockBean private ArticleStatsService articleStatsService;
 
   @Override
   @BeforeEach
@@ -37,7 +37,7 @@ public class ArticleStatsApiTest extends TestWithCurrentUser {
     String slug = "test-article";
     ArticleStatsData statsData = new ArticleStatsData(slug, 42, 5, 3, 7);
 
-    when(articleStatsQueryService.getArticleStats(eq(slug))).thenReturn(Optional.of(statsData));
+    when(articleStatsService.getArticleStats(eq(slug))).thenReturn(Optional.of(statsData));
 
     RestAssuredMockMvc.when()
         .get("/articles/{slug}/stats", slug)
@@ -52,7 +52,7 @@ public class ArticleStatsApiTest extends TestWithCurrentUser {
 
   @Test
   public void should_return_404_when_article_not_found() throws Exception {
-    when(articleStatsQueryService.getArticleStats(eq("nonexistent"))).thenReturn(Optional.empty());
+    when(articleStatsService.getArticleStats(eq("nonexistent"))).thenReturn(Optional.empty());
 
     RestAssuredMockMvc.when().get("/articles/{slug}/stats", "nonexistent").then().statusCode(404);
   }
@@ -62,7 +62,7 @@ public class ArticleStatsApiTest extends TestWithCurrentUser {
     String slug = "public-article";
     ArticleStatsData statsData = new ArticleStatsData(slug, 10, 2, 1, 3);
 
-    when(articleStatsQueryService.getArticleStats(eq(slug))).thenReturn(Optional.of(statsData));
+    when(articleStatsService.getArticleStats(eq(slug))).thenReturn(Optional.of(statsData));
 
     RestAssuredMockMvc.when()
         .get("/articles/{slug}/stats", slug)
@@ -76,7 +76,7 @@ public class ArticleStatsApiTest extends TestWithCurrentUser {
     String slug = "brand-new-article";
     ArticleStatsData statsData = new ArticleStatsData(slug, 1, 0, 0, 0);
 
-    when(articleStatsQueryService.getArticleStats(eq(slug))).thenReturn(Optional.of(statsData));
+    when(articleStatsService.getArticleStats(eq(slug))).thenReturn(Optional.of(statsData));
 
     RestAssuredMockMvc.when()
         .get("/articles/{slug}/stats", slug)

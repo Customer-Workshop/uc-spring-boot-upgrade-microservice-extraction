@@ -1,7 +1,7 @@
 package io.spring.api;
 
 import io.spring.api.exception.ResourceNotFoundException;
-import io.spring.application.ArticleStatsQueryService;
+import io.spring.application.ArticleStatsService;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.AllArgsConstructor;
@@ -15,11 +15,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping(path = "/articles/{slug}/stats")
 @AllArgsConstructor
 public class ArticleStatsApi {
-  private ArticleStatsQueryService articleStatsQueryService;
+  private ArticleStatsService articleStatsService;
 
   @GetMapping
   public ResponseEntity<?> getArticleStats(@PathVariable("slug") String slug) {
-    return articleStatsQueryService
+    return articleStatsService
         .getArticleStats(slug)
         .map(
             stats -> {

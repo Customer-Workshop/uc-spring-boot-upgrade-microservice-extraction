@@ -1,6 +1,6 @@
 package io.spring.api;
 
-import io.spring.application.ArticleStatsQueryService;
+import io.spring.application.ArticleStatsService;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.AllArgsConstructor;
@@ -14,12 +14,12 @@ import org.springframework.web.bind.annotation.RestController;
 @AllArgsConstructor
 public class StatsApi {
 
-  private ArticleStatsQueryService articleStatsQueryService;
+  private ArticleStatsService articleStatsService;
 
   @GetMapping(path = "/trending")
   public ResponseEntity<?> getTrendingArticles() {
     Map<String, Object> response = new HashMap<>();
-    response.put("articles", articleStatsQueryService.getTrendingArticles());
+    response.put("articles", articleStatsService.getTrendingArticles());
     return ResponseEntity.ok(response);
   }
 }

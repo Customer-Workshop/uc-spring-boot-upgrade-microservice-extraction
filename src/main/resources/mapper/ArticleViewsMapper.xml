@@ -2,12 +2,10 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
 <mapper namespace="io.spring.infrastructure.mybatis.mapper.ArticleViewsMapper">
 
-    <insert id="ensureViewRecord">
-        insert or ignore into article_views (article_id, view_count) values (#{articleId}, 0)
+    <insert id="upsertViewCount">
+        insert into article_views (article_id, view_count)
+        values (#{articleId}, 1)
+        on conflict(article_id) do update set view_count = view_count + 1
     </insert>
-
-    <update id="incrementViewCount">
-        update article_views set view_count = view_count + 1 where article_id = #{articleId}
-    </update>
 
 </mapper>

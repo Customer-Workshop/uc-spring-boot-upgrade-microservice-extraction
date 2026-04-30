@@ -1,12 +1,8 @@
 package io.spring.application.data;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.Value;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
+@Value
 public class TrendingArticleData {
   private String slug;
   private String title;

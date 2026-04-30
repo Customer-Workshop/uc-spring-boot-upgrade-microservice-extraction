@@ -5,7 +5,5 @@ import org.apache.ibatis.annotations.Param;
 
 @Mapper
 public interface ArticleViewsMapper {
-  void ensureViewRecord(@Param("articleId") String articleId);
-
-  void incrementViewCount(@Param("articleId") String articleId);
+  void upsertViewCount(@Param("articleId") String articleId);
 }

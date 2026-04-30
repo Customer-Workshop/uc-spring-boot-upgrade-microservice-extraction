@@ -7,7 +7,7 @@ import static org.mockito.Mockito.when;
 import io.restassured.module.mockmvc.RestAssuredMockMvc;
 import io.spring.JacksonCustomizations;
 import io.spring.api.security.WebSecurityConfig;
-import io.spring.application.ArticleStatsQueryService;
+import io.spring.application.ArticleStatsService;
 import io.spring.application.data.TrendingArticleData;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -25,7 +25,7 @@ import org.springframework.test.web.servlet.MockMvc;
 public class StatsApiTest extends TestWithCurrentUser {
   @Autowired private MockMvc mvc;
 
-  @MockBean private ArticleStatsQueryService articleStatsQueryService;
+  @MockBean private ArticleStatsService articleStatsService;
 
   @Override
   @BeforeEach
@@ -43,7 +43,7 @@ public class StatsApiTest extends TestWithCurrentUser {
             new TrendingArticleData(
                 "another-popular", "Another Popular", "Also popular", "janedoe", 10));
 
-    when(articleStatsQueryService.getTrendingArticles()).thenReturn(trending);
+    when(articleStatsService.getTrendingArticles()).thenReturn(trending);
 
     RestAssuredMockMvc.when()
         .get("/stats/trending")
@@ -60,7 +60,7 @@ public class StatsApiTest extends TestWithCurrentUser {
 
   @Test
   public void should_return_empty_list_when_no_trending() throws Exception {
-    when(articleStatsQueryService.getTrendingArticles()).thenReturn(new ArrayList<>());
+    when(articleStatsService.getTrendingArticles()).thenReturn(new ArrayList<>());
 
     RestAssuredMockMvc.when()
         .get("/stats/trending")
@@ -75,7 +75,7 @@ public class StatsApiTest extends TestWithCurrentUser {
         Arrays.asList(
             new TrendingArticleData("top-article", "Top Article", "The best", "author1", 20));
 
-    when(articleStatsQueryService.getTrendingArticles()).thenReturn(trending);
+    when(articleStatsService.getTrendingArticles()).thenReturn(trending);
 
     RestAssuredMockMvc.when()
         .get("/stats/trending")
