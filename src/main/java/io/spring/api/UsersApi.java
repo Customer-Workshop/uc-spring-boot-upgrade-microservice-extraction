@@ -9,6 +9,7 @@ import io.spring.application.data.UserData;
 import io.spring.application.data.UserWithToken;
 import io.spring.application.user.RegisterParam;
 import io.spring.application.user.UserService;
+import io.spring.core.audit.AuditLogService;
 import io.spring.core.service.JwtService;
 import io.spring.core.user.User;
 import io.spring.core.user.UserRepository;
@@ -35,10 +36,13 @@ public class UsersApi {
   private PasswordEncoder passwordEncoder;
   private JwtService jwtService;
   private UserService userService;
+  private AuditLogService auditLogService;
 
   @RequestMapping(path = "/users", method = POST)
   public ResponseEntity createUser(@Valid @RequestBody RegisterParam registerParam) {
     User user = userService.createUser(registerParam);
+    auditLogService.log(
+        user.getId(), "CREATE", "user", user.getId(), "username: " + user.getUsername());
     UserData userData = userQueryService.findById(user.getId()).get();
     return ResponseEntity.status(201)
         .body(userResponse(new UserWithToken(userData, jwtService.toToken(user))));

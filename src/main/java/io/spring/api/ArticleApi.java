@@ -8,6 +8,7 @@ import io.spring.application.article.UpdateArticleParam;
 import io.spring.application.data.ArticleData;
 import io.spring.core.article.Article;
 import io.spring.core.article.ArticleRepository;
+import io.spring.core.audit.AuditLogService;
 import io.spring.core.service.AuthorizationService;
 import io.spring.core.user.User;
 import java.util.HashMap;
@@ -31,6 +32,7 @@ public class ArticleApi {
   private ArticleQueryService articleQueryService;
   private ArticleRepository articleRepository;
   private ArticleCommandService articleCommandService;
+  private AuditLogService auditLogService;
 
   @GetMapping
   public ResponseEntity<?> article(
@@ -55,6 +57,8 @@ public class ArticleApi {
               }
               Article updatedArticle =
                   articleCommandService.updateArticle(article, updateArticleParam);
+              auditLogService.log(
+                  user.getId(), "UPDATE", "article", article.getId(), "slug: " + article.getSlug());
               return ResponseEntity.ok(
                   articleResponse(
                       articleQueryService.findBySlug(updatedArticle.getSlug(), user).get()));
@@ -73,6 +77,8 @@ public class ArticleApi {
                 throw new NoAuthorizationException();
               }
               articleRepository.remove(article);
+              auditLogService.log(
+                  user.getId(), "DELETE", "article", article.getId(), "slug: " + article.getSlug());
               return ResponseEntity.noContent().build();
             })
         .orElseThrow(ResourceNotFoundException::new);

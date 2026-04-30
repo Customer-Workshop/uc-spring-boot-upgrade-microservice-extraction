@@ -6,6 +6,7 @@ import io.spring.application.data.UserWithToken;
 import io.spring.application.user.UpdateUserCommand;
 import io.spring.application.user.UpdateUserParam;
 import io.spring.application.user.UserService;
+import io.spring.core.audit.AuditLogService;
 import io.spring.core.user.User;
 import java.util.HashMap;
 import java.util.Map;
@@ -27,6 +28,7 @@ public class CurrentUserApi {
 
   private UserQueryService userQueryService;
   private UserService userService;
+  private AuditLogService auditLogService;
 
   @GetMapping
   public ResponseEntity currentUser(
@@ -44,6 +46,7 @@ public class CurrentUserApi {
       @Valid @RequestBody UpdateUserParam updateUserParam) {
 
     userService.updateUser(new UpdateUserCommand(currentUser, updateUserParam));
+    auditLogService.log(currentUser.getId(), "UPDATE", "user", currentUser.getId(), null);
     UserData userData = userQueryService.findById(currentUser.getId()).get();
     return ResponseEntity.ok(userResponse(new UserWithToken(userData, token.split(" ")[1])));
   }

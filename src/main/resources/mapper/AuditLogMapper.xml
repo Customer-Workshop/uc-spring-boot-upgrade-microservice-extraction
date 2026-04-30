@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="io.spring.infrastructure.mybatis.mapper.AuditLogMapper">
+    <insert id="insert">
+        insert into audit_logs(id, user_id, action, entity_type, entity_id, details, created_at)
+        values (
+          #{auditLog.id},
+          #{auditLog.userId},
+          #{auditLog.action},
+          #{auditLog.entityType},
+          #{auditLog.entityId},
+          #{auditLog.details},
+          #{auditLog.createdAt}
+        )
+    </insert>
+</mapper>

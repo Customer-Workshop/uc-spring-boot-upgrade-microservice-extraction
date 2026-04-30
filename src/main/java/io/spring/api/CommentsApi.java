@@ -7,6 +7,7 @@ import io.spring.application.CommentQueryService;
 import io.spring.application.data.CommentData;
 import io.spring.core.article.Article;
 import io.spring.core.article.ArticleRepository;
+import io.spring.core.audit.AuditLogService;
 import io.spring.core.comment.Comment;
 import io.spring.core.comment.CommentRepository;
 import io.spring.core.service.AuthorizationService;
@@ -36,6 +37,7 @@ public class CommentsApi {
   private ArticleRepository articleRepository;
   private CommentRepository commentRepository;
   private CommentQueryService commentQueryService;
+  private AuditLogService auditLogService;
 
   @PostMapping
   public ResponseEntity<?> createComment(
@@ -46,6 +48,8 @@ public class CommentsApi {
         articleRepository.findBySlug(slug).orElseThrow(ResourceNotFoundException::new);
     Comment comment = new Comment(newCommentParam.getBody(), user.getId(), article.getId());
     commentRepository.save(comment);
+    auditLogService.log(
+        user.getId(), "CREATE", "comment", comment.getId(), "articleId: " + article.getId());
     return ResponseEntity.status(201)
         .body(commentResponse(commentQueryService.findById(comment.getId(), user).get()));
   }
@@ -79,6 +83,12 @@ public class CommentsApi {
                 throw new NoAuthorizationException();
               }
               commentRepository.remove(comment);
+              auditLogService.log(
+                  user.getId(),
+                  "DELETE",
+                  "comment",
+                  comment.getId(),
+                  "articleId: " + article.getId());
               return ResponseEntity.noContent().build();
             })
         .orElseThrow(ResourceNotFoundException::new);

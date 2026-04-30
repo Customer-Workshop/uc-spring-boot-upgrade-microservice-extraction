@@ -5,6 +5,7 @@ import io.spring.application.ArticleQueryService;
 import io.spring.application.data.ArticleData;
 import io.spring.core.article.Article;
 import io.spring.core.article.ArticleRepository;
+import io.spring.core.audit.AuditLogService;
 import io.spring.core.favorite.ArticleFavorite;
 import io.spring.core.favorite.ArticleFavoriteRepository;
 import io.spring.core.user.User;
@@ -25,6 +26,7 @@ public class ArticleFavoriteApi {
   private ArticleFavoriteRepository articleFavoriteRepository;
   private ArticleRepository articleRepository;
   private ArticleQueryService articleQueryService;
+  private AuditLogService auditLogService;
 
   @PostMapping
   public ResponseEntity favoriteArticle(
@@ -33,6 +35,7 @@ public class ArticleFavoriteApi {
         articleRepository.findBySlug(slug).orElseThrow(ResourceNotFoundException::new);
     ArticleFavorite articleFavorite = new ArticleFavorite(article.getId(), user.getId());
     articleFavoriteRepository.save(articleFavorite);
+    auditLogService.log(user.getId(), "CREATE", "favorite", article.getId(), "slug: " + slug);
     return responseArticleData(articleQueryService.findBySlug(slug, user).get());
   }
 
@@ -47,6 +50,7 @@ public class ArticleFavoriteApi {
             favorite -> {
               articleFavoriteRepository.remove(favorite);
             });
+    auditLogService.log(user.getId(), "DELETE", "favorite", article.getId(), "slug: " + slug);
     return responseArticleData(articleQueryService.findBySlug(slug, user).get());
   }
 

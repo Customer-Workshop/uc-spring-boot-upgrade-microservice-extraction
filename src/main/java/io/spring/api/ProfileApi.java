@@ -3,6 +3,7 @@ package io.spring.api;
 import io.spring.api.exception.ResourceNotFoundException;
 import io.spring.application.ProfileQueryService;
 import io.spring.application.data.ProfileData;
+import io.spring.core.audit.AuditLogService;
 import io.spring.core.user.FollowRelation;
 import io.spring.core.user.User;
 import io.spring.core.user.UserRepository;
@@ -24,6 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class ProfileApi {
   private ProfileQueryService profileQueryService;
   private UserRepository userRepository;
+  private AuditLogService auditLogService;
 
   @GetMapping
   public ResponseEntity getProfile(
@@ -43,6 +45,8 @@ public class ProfileApi {
             target -> {
               FollowRelation followRelation = new FollowRelation(user.getId(), target.getId());
               userRepository.saveRelation(followRelation);
+              auditLogService.log(
+                  user.getId(), "CREATE", "follow", target.getId(), "followed: " + username);
               return profileResponse(profileQueryService.findByUsername(username, user).get());
             })
         .orElseThrow(ResourceNotFoundException::new);
@@ -59,6 +63,8 @@ public class ProfileApi {
           .map(
               relation -> {
                 userRepository.removeRelation(relation);
+                auditLogService.log(
+                    user.getId(), "DELETE", "follow", target.getId(), "unfollowed: " + username);
                 return profileResponse(profileQueryService.findByUsername(username, user).get());
               })
           .orElseThrow(ResourceNotFoundException::new);
