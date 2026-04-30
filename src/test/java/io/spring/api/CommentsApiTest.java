@@ -16,8 +16,8 @@ import io.spring.application.data.ProfileData;
 import io.spring.core.article.Article;
 import io.spring.core.article.ArticleRepository;
 import io.spring.core.comment.Comment;
-import io.spring.core.comment.CommentRepository;
 import io.spring.core.user.User;
+import io.spring.infrastructure.service.CommentServiceClient;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -36,7 +36,7 @@ public class CommentsApiTest extends TestWithCurrentUser {
 
   @MockBean private ArticleRepository articleRepository;
 
-  @MockBean private CommentRepository commentRepository;
+  @MockBean private CommentServiceClient commentServiceClient;
   @MockBean private CommentQueryService commentQueryService;
 
   private Article article;
@@ -77,6 +77,7 @@ public class CommentsApiTest extends TestWithCurrentUser {
           }
         };
 
+    when(commentServiceClient.saveAndReturnId(any())).thenReturn(comment.getId());
     when(commentQueryService.findById(anyString(), eq(user))).thenReturn(Optional.of(commentData));
 
     given()
@@ -130,7 +131,7 @@ public class CommentsApiTest extends TestWithCurrentUser {
 
   @Test
   public void should_delete_comment_success() throws Exception {
-    when(commentRepository.findById(eq(article.getId()), eq(comment.getId())))
+    when(commentServiceClient.findById(eq(article.getId()), eq(comment.getId())))
         .thenReturn(Optional.of(comment));
 
     given()
@@ -145,20 +146,19 @@ public class CommentsApiTest extends TestWithCurrentUser {
   public void should_get_403_if_not_author_of_article_or_author_of_comment_when_delete_comment()
       throws Exception {
     User anotherUser = new User("other@example.com", "other", "123", "", "");
-    when(userRepository.findByUsername(eq(anotherUser.getUsername())))
-        .thenReturn(Optional.of(anotherUser));
-    when(jwtService.getSubFromToken(any())).thenReturn(Optional.of(anotherUser.getId()));
-    when(userRepository.findById(eq(anotherUser.getId())))
-        .thenReturn(Optional.ofNullable(anotherUser));
+    Comment anotherComment = new Comment("comment", anotherUser.getId(), article.getId());
+    Article anotherArticle =
+        new Article("another", "desc", "body", Arrays.asList(), anotherUser.getId());
 
-    when(commentRepository.findById(eq(article.getId()), eq(comment.getId())))
-        .thenReturn(Optional.of(comment));
-    String token = jwtService.toToken(anotherUser);
-    when(userRepository.findById(eq(anotherUser.getId()))).thenReturn(Optional.of(anotherUser));
+    when(articleRepository.findBySlug(eq(anotherArticle.getSlug())))
+        .thenReturn(Optional.of(anotherArticle));
+    when(commentServiceClient.findById(eq(anotherArticle.getId()), eq(anotherComment.getId())))
+        .thenReturn(Optional.of(anotherComment));
+
     given()
         .header("Authorization", "Token " + token)
         .when()
-        .delete("/articles/{slug}/comments/{id}", article.getSlug(), comment.getId())
+        .delete("/articles/{slug}/comments/{id}", anotherArticle.getSlug(), anotherComment.getId())
         .then()
         .statusCode(403);
   }
