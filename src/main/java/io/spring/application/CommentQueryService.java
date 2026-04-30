@@ -1,9 +1,12 @@
 package io.spring.application;
 
 import io.spring.application.data.CommentData;
+import io.spring.application.data.ProfileData;
 import io.spring.core.user.User;
-import io.spring.infrastructure.mybatis.readservice.CommentReadService;
+import io.spring.infrastructure.mybatis.readservice.UserReadService;
 import io.spring.infrastructure.mybatis.readservice.UserRelationshipQueryService;
+import io.spring.infrastructure.service.comments.CommentServiceClient;
+import io.spring.infrastructure.service.comments.CommentServiceClient.CommentServiceResponse;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -17,25 +20,32 @@ import org.springframework.stereotype.Service;
 @Service
 @AllArgsConstructor
 public class CommentQueryService {
-  private CommentReadService commentReadService;
+  private CommentServiceClient commentServiceClient;
+  private UserReadService userReadService;
   private UserRelationshipQueryService userRelationshipQueryService;
 
   public Optional<CommentData> findById(String id, User user) {
-    CommentData commentData = commentReadService.findById(id);
-    if (commentData == null) {
-      return Optional.empty();
-    } else {
-      commentData
-          .getProfileData()
-          .setFollowing(
-              userRelationshipQueryService.isUserFollowing(
-                  user.getId(), commentData.getProfileData().getId()));
-    }
-    return Optional.ofNullable(commentData);
+    return commentServiceClient
+        .getCommentById(id)
+        .map(
+            response -> {
+              CommentData commentData = toCommentData(response);
+              if (commentData.getProfileData() != null && user != null) {
+                commentData
+                    .getProfileData()
+                    .setFollowing(
+                        userRelationshipQueryService.isUserFollowing(
+                            user.getId(), commentData.getProfileData().getId()));
+              }
+              return commentData;
+            });
   }
 
   public List<CommentData> findByArticleId(String articleId, User user) {
-    List<CommentData> comments = commentReadService.findByArticleId(articleId);
+    List<CommentServiceResponse> responses = commentServiceClient.getCommentsByArticleId(articleId);
+    List<CommentData> comments =
+        responses.stream().map(this::toCommentData).collect(Collectors.toList());
+
     if (comments.size() > 0 && user != null) {
       Set<String> followingAuthors =
           userRelationshipQueryService.followingAuthors(
@@ -55,31 +65,81 @@ public class CommentQueryService {
 
   public CursorPager<CommentData> findByArticleIdWithCursor(
       String articleId, User user, CursorPageParameter<DateTime> page) {
-    List<CommentData> comments = commentReadService.findByArticleIdWithCursor(articleId, page);
-    if (comments.isEmpty()) {
-      return new CursorPager<>(new ArrayList<>(), page.getDirection(), false);
+    List<CommentServiceResponse> responses = commentServiceClient.getCommentsByArticleId(articleId);
+
+    List<CommentData> allComments =
+        responses.stream().map(this::toCommentData).collect(Collectors.toList());
+
+    List<CommentData> filtered;
+    if (page.getCursor() != null) {
+      if (page.isNext()) {
+        filtered =
+            allComments.stream()
+                .filter(c -> c.getCreatedAt().isBefore(page.getCursor()))
+                .collect(Collectors.toList());
+      } else {
+        filtered =
+            allComments.stream()
+                .filter(c -> c.getCreatedAt().isAfter(page.getCursor()))
+                .collect(Collectors.toList());
+      }
+    } else {
+      filtered = new ArrayList<>(allComments);
     }
-    if (user != null) {
+
+    if (page.isNext()) {
+      filtered.sort((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()));
+    } else {
+      filtered.sort((a, b) -> a.getCreatedAt().compareTo(b.getCreatedAt()));
+    }
+
+    int limit = page.getLimit();
+    boolean hasExtra = filtered.size() > limit;
+    if (hasExtra) {
+      filtered = filtered.subList(0, limit);
+    }
+
+    if (!page.isNext()) {
+      Collections.reverse(filtered);
+    }
+
+    if (user != null && !filtered.isEmpty()) {
       Set<String> followingAuthors =
           userRelationshipQueryService.followingAuthors(
               user.getId(),
-              comments.stream()
+              filtered.stream()
                   .map(commentData -> commentData.getProfileData().getId())
                   .collect(Collectors.toList()));
-      comments.forEach(
+      filtered.forEach(
           commentData -> {
             if (followingAuthors.contains(commentData.getProfileData().getId())) {
               commentData.getProfileData().setFollowing(true);
             }
           });
     }
-    boolean hasExtra = comments.size() > page.getLimit();
-    if (hasExtra) {
-      comments.remove(page.getLimit());
+
+    return new CursorPager<>(filtered, page.getDirection(), hasExtra);
+  }
+
+  private CommentData toCommentData(CommentServiceResponse response) {
+    ProfileData profileData = new ProfileData();
+    if (response.getUserId() != null) {
+      io.spring.application.data.UserData userData = userReadService.findById(response.getUserId());
+      if (userData != null) {
+        profileData.setId(userData.getId());
+        profileData.setUsername(userData.getUsername());
+        profileData.setBio(userData.getBio());
+        profileData.setImage(userData.getImage());
+      }
     }
-    if (!page.isNext()) {
-      Collections.reverse(comments);
-    }
-    return new CursorPager<>(comments, page.getDirection(), hasExtra);
+
+    CommentData commentData = new CommentData();
+    commentData.setId(response.getId());
+    commentData.setBody(response.getBody());
+    commentData.setArticleId(response.getArticleId());
+    commentData.setCreatedAt(new DateTime(response.getCreatedAt().toEpochMilli()));
+    commentData.setUpdatedAt(new DateTime(response.getUpdatedAt().toEpochMilli()));
+    commentData.setProfileData(profileData);
+    return commentData;
   }
 }
