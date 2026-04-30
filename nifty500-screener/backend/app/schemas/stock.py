@@ -124,7 +124,7 @@ class ScoreResponse(BaseModel):
     filter_failures: str | None = None
     top_factors: dict | None = None
     key_risks: dict | None = None
-    missing_data: dict | None = None
+    missing_data: list[str] | None = None
     reasons_text: str | None = None
     data_completeness: float
 

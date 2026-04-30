@@ -16,6 +16,7 @@ export default function StockChart({ data, symbol }: Props) {
     if (!containerRef.current || data.length === 0) return;
 
     let mounted = true;
+    let resizeHandler: (() => void) | null = null;
 
     import("lightweight-charts").then(({ createChart, CandlestickSeries, HistogramSeries }) => {
       if (!mounted || !containerRef.current) return;
@@ -79,20 +80,19 @@ export default function StockChart({ data, symbol }: Props) {
 
       chart.timeScale().fitContent();
 
-      const handleResize = () => {
+      resizeHandler = () => {
         if (containerRef.current) {
           chart.applyOptions({ width: containerRef.current.clientWidth });
         }
       };
-      window.addEventListener("resize", handleResize);
-
-      return () => {
-        window.removeEventListener("resize", handleResize);
-      };
+      window.addEventListener("resize", resizeHandler);
     });
 
     return () => {
       mounted = false;
+      if (resizeHandler) {
+        window.removeEventListener("resize", resizeHandler);
+      }
       if (chartRef.current) {
         chartRef.current.remove();
         chartRef.current = null;
