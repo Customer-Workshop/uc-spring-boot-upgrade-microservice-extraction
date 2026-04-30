@@ -13,9 +13,5 @@ public interface ArticleStatsReadService {
 
   int getCommentCount(@Param("articleId") String articleId);
 
-  void incrementViewCount(@Param("articleId") String articleId);
-
-  void ensureViewRecord(@Param("articleId") String articleId);
-
   List<TrendingArticleData> findTrendingArticles(@Param("limit") int limit);
 }

@@ -2,6 +2,7 @@ package io.spring.application;
 
 import io.spring.application.data.ArticleStatsData;
 import io.spring.application.data.TrendingArticleData;
+import io.spring.infrastructure.mybatis.mapper.ArticleViewsMapper;
 import io.spring.infrastructure.mybatis.readservice.ArticleReadService;
 import io.spring.infrastructure.mybatis.readservice.ArticleStatsReadService;
 import java.util.List;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Service;
 public class ArticleStatsQueryService {
   private ArticleReadService articleReadService;
   private ArticleStatsReadService articleStatsReadService;
+  private ArticleViewsMapper articleViewsMapper;
 
   public Optional<ArticleStatsData> getArticleStats(String slug) {
     var articleData = articleReadService.findBySlug(slug);
@@ -25,8 +27,8 @@ public class ArticleStatsQueryService {
 
     String articleId = articleData.getId();
 
-    articleStatsReadService.ensureViewRecord(articleId);
-    articleStatsReadService.incrementViewCount(articleId);
+    articleViewsMapper.ensureViewRecord(articleId);
+    articleViewsMapper.incrementViewCount(articleId);
 
     int viewCount = articleStatsReadService.getViewCount(articleId);
     int favoriteCount = articleStatsReadService.getFavoriteCount(articleId);

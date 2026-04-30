@@ -14,14 +14,6 @@
         select count(1) from comments where article_id = #{articleId}
     </select>
 
-    <insert id="ensureViewRecord">
-        insert or ignore into article_views (article_id, view_count) values (#{articleId}, 0)
-    </insert>
-
-    <update id="incrementViewCount">
-        update article_views set view_count = view_count + 1 where article_id = #{articleId}
-    </update>
-
     <resultMap id="trendingArticleData" type="io.spring.application.data.TrendingArticleData">
         <result column="slug" property="slug"/>
         <result column="title" property="title"/>
