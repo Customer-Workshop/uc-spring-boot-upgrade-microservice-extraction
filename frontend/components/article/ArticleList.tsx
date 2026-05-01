@@ -59,6 +59,12 @@ const ArticleList = () => {
 
   const { data, error } = useSWR(fetchURL, fetcher);
 
+  React.useEffect(() => {
+    if (data?.articlesCount !== undefined) {
+      setPageCount(data.articlesCount);
+    }
+  }, [data?.articlesCount]);
+
   if (error) {
     return (
       <div className="col-md-9">
@@ -73,12 +79,6 @@ const ArticleList = () => {
   if (!data) return <LoadingSpinner />;
 
   const { articles, articlesCount } = data;
-
-  React.useEffect(() => {
-    if (articlesCount !== undefined) {
-      setPageCount(articlesCount);
-    }
-  }, [articlesCount]);
 
   if (articles && articles.length === 0) {
     return <div className="article-preview">No articles are here... yet.</div>;
