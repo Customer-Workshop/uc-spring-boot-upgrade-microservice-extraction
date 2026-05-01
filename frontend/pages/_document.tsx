@@ -142,6 +142,9 @@ class MyDocument extends Document {
             }}
           />
           <link rel="manifest" href="/manifest.json" />
+          <link rel="preconnect" href="https://fonts.googleapis.com" />
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+          <link rel="preconnect" href="https://code.ionicframework.com" />
           <link rel="stylesheet" href="/main.css" />
           <link
             rel="stylesheet"

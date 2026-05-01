@@ -73,7 +73,12 @@ const ArticleList = () => {
   if (!data) return <LoadingSpinner />;
 
   const { articles, articlesCount } = data;
-  setPageCount(articlesCount);
+
+  React.useEffect(() => {
+    if (articlesCount !== undefined) {
+      setPageCount(articlesCount);
+    }
+  }, [articlesCount]);
 
   if (articles && articles.length === 0) {
     return <div className="article-preview">No articles are here... yet.</div>;

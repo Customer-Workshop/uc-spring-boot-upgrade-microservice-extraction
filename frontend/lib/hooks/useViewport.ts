@@ -5,20 +5,24 @@ const useViewport = () => {
   const [vh, setVH] = React.useState(0);
 
   React.useEffect(() => {
-    const setSizes = () => {
-      if (window.innerWidth !== vw) {
-        setVW(window.innerWidth);
-      }
+    let timeoutId: ReturnType<typeof setTimeout>;
 
-      if (window.innerHeight !== vh) {
+    const setSizes = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        setVW(window.innerWidth);
         setVH(window.innerHeight);
-      }
+      }, 150);
     };
 
-    setSizes();
+    setVW(window.innerWidth);
+    setVH(window.innerHeight);
     window.addEventListener("resize", setSizes);
-    return () => window.removeEventListener("resize", setSizes);
-  }, [vh, vw]);
+    return () => {
+      clearTimeout(timeoutId);
+      window.removeEventListener("resize", setSizes);
+    };
+  }, []);
 
   return { vw, vh };
 };

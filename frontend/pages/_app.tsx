@@ -1,5 +1,6 @@
 import Head from "next/head";
 import React from "react";
+import { SWRConfig } from "swr";
 
 import Layout from "components/common/Layout";
 import ContextProvider from "lib/context";
@@ -19,11 +20,19 @@ const MyApp = ({ Component, pageProps }) => (
         content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"
       />
     </Head>
-    <ContextProvider>
-      <Layout>
-        <Component {...pageProps} />
-      </Layout>
-    </ContextProvider>
+    <SWRConfig
+      value={{
+        dedupingInterval: 5000,
+        revalidateOnFocus: false,
+        shouldRetryOnError: false,
+      }}
+    >
+      <ContextProvider>
+        <Layout>
+          <Component {...pageProps} />
+        </Layout>
+      </ContextProvider>
+    </SWRConfig>
   </>
 );
 

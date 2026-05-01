@@ -5,6 +5,7 @@ import io.spring.core.article.ArticleRepository;
 import io.spring.core.user.User;
 import javax.validation.Valid;
 import lombok.AllArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
@@ -15,6 +16,7 @@ public class ArticleCommandService {
 
   private ArticleRepository articleRepository;
 
+  @CacheEvict(value = "tags", allEntries = true)
   public Article createArticle(@Valid NewArticleParam newArticleParam, User creator) {
     Article article =
         new Article(

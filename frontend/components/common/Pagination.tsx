@@ -39,7 +39,7 @@ const Pagination = ({
       setPage(index);
       trigger(fetchURL);
     },
-    []
+    [fetchURL, setPage]
   );
 
   const handleFirstClick = React.useCallback(
@@ -48,7 +48,7 @@ const Pagination = ({
       setPage(0);
       trigger(fetchURL);
     },
-    []
+    [fetchURL, setPage]
   );
 
   const handlePrevClick = React.useCallback(
@@ -57,7 +57,7 @@ const Pagination = ({
       setPage(page - 1);
       trigger(fetchURL);
     },
-    []
+    [fetchURL, page, setPage]
   );
 
   const handleNextClick = React.useCallback(
@@ -66,7 +66,7 @@ const Pagination = ({
       setPage(page + 1);
       trigger(fetchURL);
     },
-    []
+    [fetchURL, page, setPage]
   );
 
   const handleLastClick = React.useCallback(
@@ -75,7 +75,7 @@ const Pagination = ({
       setPage(lastIndex);
       trigger(fetchURL);
     },
-    []
+    [fetchURL, lastIndex, setPage]
   );
 
   return (

@@ -14,7 +14,7 @@ import storage from "../../lib/utils/storage";
 const FAVORITED_CLASS = "btn btn-sm btn-primary";
 const NOT_FAVORITED_CLASS = "btn btn-sm btn-outline-primary";
 
-const ArticlePreview = ({ article }) => {
+const ArticlePreview = React.memo(({ article }: { article: any }) => {
   const setPage = usePageDispatch();
 
   const [preview, setPreview] = React.useState(article);
@@ -152,6 +152,6 @@ const ArticlePreview = ({ article }) => {
       </CustomLink>
     </div>
   );
-};
+});
 
 export default ArticlePreview;

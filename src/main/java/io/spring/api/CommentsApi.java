@@ -11,7 +11,7 @@ import io.spring.core.comment.Comment;
 import io.spring.core.comment.CommentRepository;
 import io.spring.core.service.AuthorizationService;
 import io.spring.core.user.User;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import javax.validation.Valid;
@@ -56,12 +56,7 @@ public class CommentsApi {
     Article article =
         articleRepository.findBySlug(slug).orElseThrow(ResourceNotFoundException::new);
     List<CommentData> comments = commentQueryService.findByArticleId(article.getId(), user);
-    return ResponseEntity.ok(
-        new HashMap<String, Object>() {
-          {
-            put("comments", comments);
-          }
-        });
+    return ResponseEntity.ok(Collections.singletonMap("comments", comments));
   }
 
   @RequestMapping(path = "{id}", method = RequestMethod.DELETE)
@@ -85,11 +80,7 @@ public class CommentsApi {
   }
 
   private Map<String, Object> commentResponse(CommentData commentData) {
-    return new HashMap<String, Object>() {
-      {
-        put("comment", commentData);
-      }
-    };
+    return Collections.singletonMap("comment", commentData);
   }
 }
 
