@@ -1,3 +1,4 @@
+import DOMPurify from "dompurify";
 import marked from "marked";
 import { useRouter } from "next/router";
 import React from "react";
@@ -27,7 +28,7 @@ const ArticlePage = (initialArticle) => {
   const { article }: Article = fetchedArticle || initialArticle;
 
   const markup = {
-    __html: marked(article.body, { sanitize: true }),
+    __html: DOMPurify.sanitize(marked(article.body)),
   };
 
   return (

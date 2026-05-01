@@ -46,10 +46,14 @@ public class UserService {
   public void updateUser(@Valid UpdateUserCommand command) {
     User user = command.getTargetUser();
     UpdateUserParam updateUserParam = command.getParam();
+    String encodedPassword =
+        io.spring.Util.isEmpty(updateUserParam.getPassword())
+            ? ""
+            : passwordEncoder.encode(updateUserParam.getPassword());
     user.update(
         updateUserParam.getEmail(),
         updateUserParam.getUsername(),
-        updateUserParam.getPassword(),
+        encodedPassword,
         updateUserParam.getBio(),
         updateUserParam.getImage());
     userRepository.save(user);

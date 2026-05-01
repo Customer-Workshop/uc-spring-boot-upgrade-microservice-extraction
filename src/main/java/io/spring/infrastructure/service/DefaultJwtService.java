@@ -23,6 +23,10 @@ public class DefaultJwtService implements JwtService {
   @Autowired
   public DefaultJwtService(
       @Value("${jwt.secret}") String secret, @Value("${jwt.sessionTime}") int sessionTime) {
+    if (secret == null || secret.length() < 32) {
+      throw new IllegalArgumentException(
+          "JWT secret must be at least 32 characters. Set the JWT_SECRET environment variable.");
+    }
     this.sessionTime = sessionTime;
     signatureAlgorithm = SignatureAlgorithm.HS512;
     this.signingKey = new SecretKeySpec(secret.getBytes(), signatureAlgorithm.getJcaName());
