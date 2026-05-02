@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
 from app.api.ai import router as ai_router
+from app.api.chart import router as chart_router
 from app.api.etf import router as etf_router
 from app.api.screener import router as screener_router
 from app.api.swing import router as swing_router
@@ -111,6 +112,7 @@ app.include_router(watchlist_router)
 app.include_router(swing_router)
 app.include_router(etf_router)
 app.include_router(ai_router)
+app.include_router(chart_router)
 
 
 @app.post("/api/seed")

@@ -3,6 +3,8 @@
 import { StockDetail } from '@/lib/api';
 import ScoreRing from './ScoreRing';
 import SignalCard from './SignalCard';
+import StockChart from './StockChart';
+import FIIDIIPanel from './FIIDIIPanel';
 import VerdictBadge from './VerdictBadge';
 
 interface StockDetailPanelProps {
@@ -157,6 +159,20 @@ export default function StockDetailPanel({ stock, onClose }: StockDetailPanelPro
               </div>
             </div>
           )}
+
+          {/* Price Chart */}
+          <h3 className="text-lg font-bold mt-2 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[#5b8def]"></span>
+            Price Chart
+          </h3>
+          <StockChart symbol={stock.symbol} />
+
+          {/* FII/DII Institutional Activity */}
+          <h3 className="text-lg font-bold mt-2 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[#f5a623]"></span>
+            FII / DII Activity
+          </h3>
+          <FIIDIIPanel symbol={stock.symbol} />
 
           {/* GDF-12 Signal Groups */}
           {gdf && (

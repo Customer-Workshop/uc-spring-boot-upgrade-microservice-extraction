@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ETFSummary, ETFDetail, fetchETFs, fetchETFDetail, fetchETFCategories } from '@/lib/api';
 import ScoreRing from './ScoreRing';
+import StockChart from './StockChart';
 
 function ETFVerdictBadge({ verdict }: { verdict: string }) {
   const cls = verdict === 'Best Pick' ? 'bg-[#00d09c]/10 text-[#00d09c] border-[#00d09c]/25'
@@ -110,6 +111,13 @@ function ETFDetailPanel({ etf, onClose }: { etf: ETFDetail; onClose: () => void 
               <div className="flex justify-between py-1.5"><span className="text-[#8c8ca1]">12M MA</span><span className="font-mono text-white">₹{etf.sma_12m.toFixed(0)}</span></div>
             </div>
           </div>
+
+          {/* Price Chart */}
+          <h3 className="text-lg font-bold flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[#5b8def]"></span>
+            Price Chart
+          </h3>
+          <StockChart symbol={etf.symbol} />
 
           {/* Score Breakdown */}
           <h3 className="text-lg font-bold flex items-center gap-2">

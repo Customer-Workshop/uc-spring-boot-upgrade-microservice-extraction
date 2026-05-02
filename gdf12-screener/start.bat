@@ -57,7 +57,7 @@ cd /d "%~dp0frontend"
 if not exist "node_modules" (
     call npm install --silent
 )
-start "GDF12 Frontend" cmd /k "cd /d %~dp0frontend && set NEXT_PUBLIC_API_URL=http://localhost:8002 && npm run dev"
+start "GDF12 Frontend" cmd /k "cd /d %~dp0frontend && set "NEXT_PUBLIC_API_URL=http://localhost:8002" && npm run dev"
 
 :: Wait and open browser
 timeout /t 8 /nobreak >nul

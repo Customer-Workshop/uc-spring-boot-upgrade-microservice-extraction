@@ -1,4 +1,4 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8002';
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8002').trim().replace(/\/+$/, '');
 
 async function safeFetch(url: string, options?: RequestInit): Promise<Response> {
   const res = await fetch(url, options);
@@ -367,5 +367,87 @@ export async function getLastRefresh(): Promise<Record<string, string>> {
 
 export async function seedAndRefresh(): Promise<unknown> {
   const res = await fetch(`${API_URL}/api/seed-and-refresh`, { method: 'POST' });
+  return res.json();
+}
+
+// === CHART DATA ===
+
+export interface CandleData {
+  time: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
+
+export interface OverlayData {
+  time: string;
+  sma_20: number | null;
+  sma_50: number | null;
+  sma_200: number | null;
+  rsi: number | null;
+  bb_upper: number | null;
+  bb_middle: number | null;
+  bb_lower: number | null;
+  macd: number | null;
+  macd_signal: number | null;
+  macd_hist: number | null;
+}
+
+export interface ChartDataResponse {
+  symbol: string;
+  period: string;
+  interval: string;
+  currency: string;
+  price: number;
+  prev_close: number;
+  high_52w: number;
+  low_52w: number;
+  candles: CandleData[];
+  overlays: OverlayData[];
+  error?: string;
+}
+
+export async function fetchChartData(symbol: string, period: string = '1y', interval: string = '1d'): Promise<ChartDataResponse> {
+  const res = await fetch(`${API_URL}/api/chart-data/${symbol}?period=${period}&interval=${interval}`);
+  return res.json();
+}
+
+// === FII / DII DATA ===
+
+export interface BulkDeal {
+  date: string;
+  type: string;
+  buyer_seller: string;
+  quantity_lakh: number;
+  price: number;
+}
+
+export interface FIIDIIData {
+  symbol: string;
+  fii_holding_pct: number;
+  dii_holding_pct: number;
+  promoter_holding_pct: number;
+  public_holding_pct: number;
+  fii_net_monthly: number[];
+  dii_net_monthly: number[];
+  months: string[];
+  fii_net_total_cr: number;
+  dii_net_total_cr: number;
+  delivery_pct: number;
+  institutional_signal: string;
+  bulk_deals: BulkDeal[];
+  volume_profile: {
+    avg_volume_20d: number;
+    avg_volume_50d: number;
+    latest_volume: number;
+    volume_trend: string;
+  };
+  error?: string;
+}
+
+export async function fetchFIIDII(symbol: string): Promise<FIIDIIData> {
+  const res = await fetch(`${API_URL}/api/fii-dii/${symbol}`);
   return res.json();
 }

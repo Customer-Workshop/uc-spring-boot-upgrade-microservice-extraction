@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { SwingStockSummary, SwingStockDetail, fetchSwingStocks, fetchSwingStockDetail } from '@/lib/api';
 import ScoreRing from './ScoreRing';
+import StockChart from './StockChart';
+import FIIDIIPanel from './FIIDIIPanel';
 
 function SignalBadge({ signal }: { signal: string }) {
   const cls = signal === 'BUY' ? 'bg-[#00d09c]/10 text-[#00d09c] border-[#00d09c]/25'
@@ -91,6 +93,20 @@ function SwingDetailPanel({ stock, onClose }: { stock: SwingStockDetail; onClose
               </div>
             </div>
           </div>
+
+          {/* Price Chart */}
+          <h3 className="text-lg font-bold flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[#5b8def]"></span>
+            Price Chart
+          </h3>
+          <StockChart symbol={stock.symbol} />
+
+          {/* FII/DII */}
+          <h3 className="text-lg font-bold flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[#f5a623]"></span>
+            FII / DII Activity
+          </h3>
+          <FIIDIIPanel symbol={stock.symbol} />
 
           {/* Confirmation Ladder */}
           <h3 className="text-lg font-bold flex items-center gap-2">
