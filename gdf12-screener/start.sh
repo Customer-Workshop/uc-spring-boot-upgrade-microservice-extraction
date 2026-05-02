@@ -33,9 +33,9 @@ echo $BACKEND_PID > "$DIR/.backend.pid"
 echo "[3/5] Waiting for backend to be ready..."
 sleep 4
 
-echo "[4/5] Seeding data and computing GDF-12 scores..."
-curl -s -X POST http://localhost:8002/api/seed > /dev/null 2>&1 || true
-echo "      Done."
+echo "[4/5] Seeding data + fetching LIVE prices from Yahoo Finance..."
+curl -s -X POST http://localhost:8002/api/seed-and-refresh 2>&1 || curl -s -X POST http://localhost:8002/api/seed > /dev/null 2>&1 || true
+echo "      Done. (Prices refreshed with live market data)"
 
 echo "[5/5] Starting frontend on http://localhost:3003 ..."
 cd "$DIR/frontend"

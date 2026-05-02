@@ -303,3 +303,49 @@ export async function fetchETFCategories(): Promise<string[]> {
   const data = await res.json();
   return data.categories;
 }
+
+// === LIVE DATA REFRESH ===
+
+export interface RefreshResult {
+  status: string;
+  updated: number;
+  failed: string[];
+  total: number;
+  timestamp: string;
+  rescored: number;
+}
+
+export async function refreshAllData(): Promise<{
+  status: string;
+  fundamentals: RefreshResult;
+  swing: RefreshResult;
+  etfs: RefreshResult;
+}> {
+  const res = await fetch(`${API_URL}/api/refresh`, { method: 'POST' });
+  return res.json();
+}
+
+export async function refreshFundamentals(): Promise<RefreshResult> {
+  const res = await fetch(`${API_URL}/api/refresh/fundamentals`, { method: 'POST' });
+  return res.json();
+}
+
+export async function refreshSwing(): Promise<RefreshResult> {
+  const res = await fetch(`${API_URL}/api/refresh/swing`, { method: 'POST' });
+  return res.json();
+}
+
+export async function refreshETFs(): Promise<RefreshResult> {
+  const res = await fetch(`${API_URL}/api/refresh/etfs`, { method: 'POST' });
+  return res.json();
+}
+
+export async function getLastRefresh(): Promise<Record<string, string>> {
+  const res = await fetch(`${API_URL}/api/last-refresh`);
+  return res.json();
+}
+
+export async function seedAndRefresh(): Promise<unknown> {
+  const res = await fetch(`${API_URL}/api/seed-and-refresh`, { method: 'POST' });
+  return res.json();
+}

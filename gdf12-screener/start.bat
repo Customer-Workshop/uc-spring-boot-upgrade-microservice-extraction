@@ -45,10 +45,11 @@ start "GDF12 Backend" cmd /k "cd /d %~dp0backend && call venv\Scripts\activate.b
 echo [3/5] Waiting for backend to be ready...
 timeout /t 5 /nobreak >nul
 
-:: Seed data
-echo [4/5] Seeding stock data and computing GDF-12 scores...
-curl -s -X POST http://localhost:8002/api/seed >nul 2>nul
-echo       Data seeded and GDF-12 scores computed.
+:: Seed data + refresh with live prices
+echo [4/5] Seeding data + fetching LIVE prices from Yahoo Finance...
+curl -s -X POST http://localhost:8002/api/seed-and-refresh >nul 2>nul
+if %ERRORLEVEL% neq 0 curl -s -X POST http://localhost:8002/api/seed >nul 2>nul
+echo       Done. (Prices refreshed with live market data)
 
 :: Install frontend dependencies and start
 echo [5/5] Starting frontend on http://localhost:3003 ...

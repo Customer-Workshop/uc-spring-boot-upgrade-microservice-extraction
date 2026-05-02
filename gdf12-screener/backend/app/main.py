@@ -14,6 +14,12 @@ from app.services.etf_engine import score_all_etfs
 from app.services.etf_seeder import seed_etfs
 from app.services.gdf_engine import score_all_stocks
 from app.services.seeder import seed_stocks
+from app.services.live_refresh import (
+    get_last_refresh,
+    refresh_etfs,
+    refresh_fundamental_stocks,
+    refresh_swing_stocks,
+)
 from app.services.swing_engine import score_all_swing_stocks
 from app.services.swing_seeder import seed_swing_stocks
 
@@ -60,6 +66,81 @@ def seed_data(db: Session = Depends(get_db)):
         "swing": {"stocks": swing, "scored": swing_scored},
         "etfs": {"etfs": etfs, "scored": etf_scored},
     }
+
+
+@app.post("/api/seed-and-refresh")
+def seed_and_refresh(db: Session = Depends(get_db)):
+    """Seed mock data then immediately refresh with live Yahoo Finance prices."""
+    fundamentals = seed_stocks(db)
+    score_all_stocks(db)
+    swing = seed_swing_stocks(db)
+    score_all_swing_stocks(db)
+    etfs = seed_etfs(db)
+    score_all_etfs(db)
+
+    live_fund = refresh_fundamental_stocks(db)
+    if live_fund.get("updated", 0) > 0:
+        score_all_stocks(db)
+    live_swing = refresh_swing_stocks(db)
+    if live_swing.get("updated", 0) > 0:
+        score_all_swing_stocks(db)
+    live_etf = refresh_etfs(db)
+    if live_etf.get("updated", 0) > 0:
+        score_all_etfs(db)
+
+    return {
+        "status": "seeded_and_refreshed",
+        "fundamentals": {"stocks": fundamentals, "live_updated": live_fund.get("updated", 0)},
+        "swing": {"stocks": swing, "live_updated": live_swing.get("updated", 0)},
+        "etfs": {"etfs": etfs, "live_updated": live_etf.get("updated", 0)},
+    }
+
+
+@app.post("/api/refresh")
+def refresh_live_data(db: Session = Depends(get_db)):
+    """Refresh all data with live prices from Yahoo Finance, then re-score."""
+    fundamentals = refresh_fundamental_stocks(db)
+    fundamental_scored = score_all_stocks(db) if fundamentals.get("updated", 0) > 0 else 0
+    swing = refresh_swing_stocks(db)
+    swing_scored = score_all_swing_stocks(db) if swing.get("updated", 0) > 0 else 0
+    etf = refresh_etfs(db)
+    etf_scored = score_all_etfs(db) if etf.get("updated", 0) > 0 else 0
+    return {
+        "status": "refreshed",
+        "fundamentals": {**fundamentals, "rescored": fundamental_scored},
+        "swing": {**swing, "rescored": swing_scored},
+        "etfs": {**etf, "rescored": etf_scored},
+    }
+
+
+@app.post("/api/refresh/fundamentals")
+def refresh_fundamentals(db: Session = Depends(get_db)):
+    """Refresh fundamental stocks only with live prices."""
+    result = refresh_fundamental_stocks(db)
+    scored = score_all_stocks(db) if result.get("updated", 0) > 0 else 0
+    return {**result, "rescored": scored}
+
+
+@app.post("/api/refresh/swing")
+def refresh_swing(db: Session = Depends(get_db)):
+    """Refresh swing stocks only with live technicals."""
+    result = refresh_swing_stocks(db)
+    scored = score_all_swing_stocks(db) if result.get("updated", 0) > 0 else 0
+    return {**result, "rescored": scored}
+
+
+@app.post("/api/refresh/etfs")
+def refresh_etf_data(db: Session = Depends(get_db)):
+    """Refresh ETFs only with live prices."""
+    result = refresh_etfs(db)
+    scored = score_all_etfs(db) if result.get("updated", 0) > 0 else 0
+    return {**result, "rescored": scored}
+
+
+@app.get("/api/last-refresh")
+def last_refresh():
+    """Get timestamps of last data refresh."""
+    return get_last_refresh()
 
 
 @app.get("/api/health")

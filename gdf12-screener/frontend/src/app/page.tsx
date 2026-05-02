@@ -5,6 +5,7 @@ import {
   StockSummary, StockDetail as StockDetailType,
   fetchScreener, fetchStockDetail, fetchSectors, fetchWatchlist,
   addToWatchlist, removeFromWatchlist,
+  refreshAllData, getLastRefresh,
 } from '@/lib/api';
 import StockTable from '@/components/StockTable';
 import StockDetailPanel from '@/components/StockDetailPanel';
@@ -218,6 +219,38 @@ function FundamentalsTab() {
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<TabId>('fundamental');
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastRefresh, setLastRefresh] = useState<string>('');
+  const [refreshResult, setRefreshResult] = useState<string>('');
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  useEffect(() => {
+    getLastRefresh().then(data => {
+      const ts = data.fundamental || data.swing || data.etf;
+      if (ts) setLastRefresh(new Date(ts).toLocaleTimeString());
+    }).catch(() => {});
+  }, []);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    setRefreshResult('');
+    try {
+      const result = await refreshAllData();
+      const total = (result.fundamentals?.updated || 0) + (result.swing?.updated || 0) + (result.etfs?.updated || 0);
+      const failed = [...(result.fundamentals?.failed || []), ...(result.swing?.failed || []), ...(result.etfs?.failed || [])];
+      setLastRefresh(new Date().toLocaleTimeString());
+      setRefreshResult(
+        total > 0
+          ? `Updated ${total} items with live data` + (failed.length > 0 ? ` (${failed.length} failed)` : '')
+          : 'No updates — yfinance may not be available'
+      );
+      setRefreshKey(k => k + 1);
+    } catch {
+      setRefreshResult('Refresh failed — check backend logs');
+    }
+    setRefreshing(false);
+    setTimeout(() => setRefreshResult(''), 8000);
+  };
 
   return (
     <div className="min-h-screen bg-[#0d0d12]">
@@ -233,6 +266,17 @@ export default function Home() {
               </div>
             </div>
             <div className="flex items-center gap-3">
+              <button
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="px-4 py-1.5 rounded-xl bg-[#44d7f5]/10 text-[#44d7f5] text-xs font-semibold border border-[#44d7f5]/20 hover:bg-[#44d7f5]/20 transition-all disabled:opacity-50 flex items-center gap-2"
+              >
+                <span className={refreshing ? 'animate-spin' : ''}>&#x21bb;</span>
+                {refreshing ? 'Refreshing...' : 'Refresh Live Data'}
+              </button>
+              {lastRefresh && (
+                <span className="text-[10px] text-[#5c5c72]">Last: {lastRefresh}</span>
+              )}
               <span className="px-3 py-1.5 rounded-full bg-[#a78bfa]/10 text-[#a78bfa] text-xs font-semibold border border-[#a78bfa]/20">AI Enabled</span>
               <span className="px-3 py-1.5 rounded-full bg-[#00d09c]/10 text-[#00d09c] text-xs font-semibold border border-[#00d09c]/20 flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#00d09c] animate-pulse"></span>
@@ -263,6 +307,15 @@ export default function Home() {
       </header>
 
       <main className="max-w-[1440px] mx-auto px-6 py-6">
+        {/* Refresh status */}
+        {refreshResult && (
+          <div className={`rounded-xl px-5 py-3 mb-4 text-xs font-medium flex items-center gap-2 ${
+            refreshResult.includes('Updated') ? 'bg-[#00d09c]/5 border border-[#00d09c]/20 text-[#00d09c]' : 'bg-[#f5a623]/5 border border-[#f5a623]/20 text-[#f5a623]'
+          }`}>
+            {refreshResult}
+          </div>
+        )}
+
         {/* Disclaimer - subtle */}
         <div className="bg-[#1c1c27] border border-[#2a2a3a] rounded-xl px-5 py-3 mb-6 text-xs text-[#8c8ca1] flex items-center gap-2">
           <span className="text-amber-400">&#9888;</span>
@@ -270,16 +323,16 @@ export default function Home() {
         </div>
 
         {/* Tab Content */}
-        {activeTab === 'fundamental' && <FundamentalsTab />}
+        {activeTab === 'fundamental' && <FundamentalsTab key={`fund-${refreshKey}`} />}
         {activeTab === 'technical' && (
           <>
-            <SwingTab />
+            <SwingTab key={`swing-${refreshKey}`} />
             <AIInsights tab="technical" />
           </>
         )}
         {activeTab === 'etf' && (
           <>
-            <ETFTab />
+            <ETFTab key={`etf-${refreshKey}`} />
             <AIInsights tab="etf" />
           </>
         )}
