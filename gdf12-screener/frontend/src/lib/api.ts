@@ -1,7 +1,13 @@
-const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8002').trim().replace(/\/+$/, '');
+function getApiUrl(): string {
+  const raw = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8002';
+  return raw.replace(/\s+/g, '').replace(/\/+$/, '');
+}
+
+const API_URL = getApiUrl();
 
 async function safeFetch(url: string, options?: RequestInit): Promise<Response> {
-  const res = await fetch(url, options);
+  const cleanUrl = url.replace(/([^:]\/)\/+/g, '$1').replace(/\s+/g, '');
+  const res = await fetch(cleanUrl, options);
   if (!res.ok) {
     throw new Error(`API error ${res.status}: ${res.statusText}`);
   }
