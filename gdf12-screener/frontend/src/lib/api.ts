@@ -1,5 +1,13 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8002';
 
+async function safeFetch(url: string, options?: RequestInit): Promise<Response> {
+  const res = await fetch(url, options);
+  if (!res.ok) {
+    throw new Error(`API error ${res.status}: ${res.statusText}`);
+  }
+  return res;
+}
+
 export interface StockSummary {
   symbol: string;
   name: string;
@@ -82,6 +90,10 @@ export interface WatchlistItem {
   notes: string | null;
 }
 
+export async function seedData(): Promise<void> {
+  await fetch(`${API_URL}/api/seed`, { method: 'POST' });
+}
+
 export async function fetchScreener(params: {
   sector?: string;
   min_score?: number;
@@ -94,7 +106,15 @@ export async function fetchScreener(params: {
   if (params.defensive_only) sp.set('defensive_only', 'true');
   if (params.sort_by) sp.set('sort_by', params.sort_by);
   const res = await fetch(`${API_URL}/api/screener?${sp.toString()}`);
-  return res.json();
+  const data = await res.json();
+
+  // If no data returned, auto-seed and retry
+  if (Array.isArray(data) && data.length === 0) {
+    await seedData();
+    const retry = await fetch(`${API_URL}/api/screener?${sp.toString()}`);
+    return retry.json();
+  }
+  return data;
 }
 
 export async function fetchStockDetail(symbol: string): Promise<StockDetail> {

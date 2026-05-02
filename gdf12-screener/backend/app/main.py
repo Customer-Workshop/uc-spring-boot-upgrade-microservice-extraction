@@ -1,3 +1,5 @@
+import logging
+import threading
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI
@@ -9,7 +11,8 @@ from app.api.etf import router as etf_router
 from app.api.screener import router as screener_router
 from app.api.swing import router as swing_router
 from app.api.watchlist import router as watchlist_router
-from app.database import Base, engine, get_db
+from app.database import Base, SessionLocal, engine, get_db
+from app.models.stock import Stock
 from app.services.etf_engine import score_all_etfs
 from app.services.etf_seeder import seed_etfs
 from app.services.gdf_engine import score_all_stocks
@@ -23,10 +26,68 @@ from app.services.live_refresh import (
 from app.services.swing_engine import score_all_swing_stocks
 from app.services.swing_seeder import seed_swing_stocks
 
+logger = logging.getLogger(__name__)
+
+
+def _auto_seed_and_refresh():
+    """Background task: seed data if DB is empty, then refresh with live prices."""
+    db = SessionLocal()
+    try:
+        existing = db.query(Stock).count()
+        if existing == 0:
+            logger.info("Auto-seeding: no stocks found in DB, seeding now...")
+            seed_stocks(db)
+            score_all_stocks(db)
+            seed_swing_stocks(db)
+            score_all_swing_stocks(db)
+            seed_etfs(db)
+            score_all_etfs(db)
+            logger.info("Auto-seed complete. Now refreshing with live prices...")
+
+        # Refresh with live data
+        result = refresh_fundamental_stocks(db)
+        if result.get("updated", 0) > 0:
+            score_all_stocks(db)
+            logger.info(f"Fundamentals refreshed: {result['updated']}/{result['total']}")
+        result = refresh_swing_stocks(db)
+        if result.get("updated", 0) > 0:
+            score_all_swing_stocks(db)
+            logger.info(f"Swing stocks refreshed: {result['updated']}/{result['total']}")
+        result = refresh_etfs(db)
+        if result.get("updated", 0) > 0:
+            score_all_etfs(db)
+            logger.info(f"ETFs refreshed: {result['updated']}/{result['total']}")
+        logger.info("Live data refresh complete.")
+    except Exception as e:
+        logger.error(f"Auto-seed/refresh failed: {e}")
+    finally:
+        db.close()
+
 
 @asynccontextmanager
 async def lifespan(application: FastAPI):
     Base.metadata.create_all(bind=engine)
+
+    # Auto-seed if DB is empty and refresh in background
+    db = SessionLocal()
+    try:
+        existing = db.query(Stock).count()
+        if existing == 0:
+            logger.info("DB is empty — seeding with baseline data...")
+            seed_stocks(db)
+            score_all_stocks(db)
+            seed_swing_stocks(db)
+            score_all_swing_stocks(db)
+            seed_etfs(db)
+            score_all_etfs(db)
+            logger.info("Baseline data seeded. Starting background live refresh...")
+    finally:
+        db.close()
+
+    # Start live refresh in background thread (non-blocking)
+    thread = threading.Thread(target=_auto_seed_and_refresh, daemon=True)
+    thread.start()
+
     yield
 
 
@@ -99,6 +160,15 @@ def seed_and_refresh(db: Session = Depends(get_db)):
 @app.post("/api/refresh")
 def refresh_live_data(db: Session = Depends(get_db)):
     """Refresh all data with live prices from Yahoo Finance, then re-score."""
+    # Auto-seed if DB is empty
+    if db.query(Stock).count() == 0:
+        seed_stocks(db)
+        score_all_stocks(db)
+        seed_swing_stocks(db)
+        score_all_swing_stocks(db)
+        seed_etfs(db)
+        score_all_etfs(db)
+
     fundamentals = refresh_fundamental_stocks(db)
     fundamental_scored = score_all_stocks(db) if fundamentals.get("updated", 0) > 0 else 0
     swing = refresh_swing_stocks(db)

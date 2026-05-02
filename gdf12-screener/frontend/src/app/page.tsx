@@ -5,7 +5,7 @@ import {
   StockSummary, StockDetail as StockDetailType,
   fetchScreener, fetchStockDetail, fetchSectors, fetchWatchlist,
   addToWatchlist, removeFromWatchlist,
-  refreshAllData, getLastRefresh,
+  refreshAllData, getLastRefresh, seedData,
 } from '@/lib/api';
 import StockTable from '@/components/StockTable';
 import StockDetailPanel from '@/components/StockDetailPanel';
@@ -29,6 +29,7 @@ function FundamentalsTab() {
   const [selectedStock, setSelectedStock] = useState<StockDetailType | null>(null);
   const [lastSelectedSymbol, setLastSelectedSymbol] = useState('');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [sector, setSector] = useState('');
   const [minScore, setMinScore] = useState(0);
   const [defensiveOnly, setDefensiveOnly] = useState(false);
@@ -36,16 +37,20 @@ function FundamentalsTab() {
 
   const loadData = useCallback(async () => {
     setLoading(true);
+    setError('');
     try {
       const [stockData, sectorData, watchData] = await Promise.all([
         fetchScreener({ sector: sector || undefined, min_score: minScore || undefined, defensive_only: defensiveOnly, sort_by: sortBy }),
-        fetchSectors(),
-        fetchWatchlist(),
+        fetchSectors().catch(() => []),
+        fetchWatchlist().catch(() => []),
       ]);
-      setStocks(stockData);
-      setSectors(sectorData);
-      setWatchlistSymbols(new Set(watchData.map(w => w.symbol)));
-    } catch (err) { console.error(err); }
+      setStocks(Array.isArray(stockData) ? stockData : []);
+      setSectors(Array.isArray(sectorData) ? sectorData : []);
+      setWatchlistSymbols(new Set((watchData || []).map((w: { symbol: string }) => w.symbol)));
+    } catch (err) {
+      console.error('Failed to load data:', err);
+      setError('Failed to connect to backend. Make sure the backend is running on port 8002.');
+    }
     setLoading(false);
   }, [sector, minScore, defensiveOnly, sortBy]);
 
@@ -148,12 +153,29 @@ function FundamentalsTab() {
         </div>
       </div>
 
+      {/* Error state */}
+      {error && (
+        <div className="bg-red-500/5 border border-red-500/20 rounded-2xl p-6 mb-6 text-center">
+          <div className="text-red-400 text-sm mb-3">{error}</div>
+          <button onClick={async () => { setError(''); await seedData(); loadData(); }} className="px-4 py-2 rounded-xl bg-[#00d09c]/10 text-[#00d09c] text-xs font-semibold border border-[#00d09c]/20 hover:bg-[#00d09c]/20">
+            Seed Data &amp; Retry
+          </button>
+        </div>
+      )}
+
       {/* Table */}
       <div className="bg-[#1c1c27] rounded-2xl border border-[#2a2a3a] overflow-hidden mb-6">
         {loading ? (
           <div className="text-center py-20 text-[#8c8ca1]">
             <div className="inline-block w-8 h-8 border-2 border-[#00d09c] border-t-transparent rounded-full animate-spin mb-3"></div>
             <div>Loading stocks...</div>
+          </div>
+        ) : stocks.length === 0 && !error ? (
+          <div className="text-center py-20 text-[#8c8ca1]">
+            <div className="text-sm mb-3">No stock data found. Click below to initialize.</div>
+            <button onClick={async () => { setLoading(true); await seedData(); loadData(); }} className="px-4 py-2 rounded-xl bg-[#00d09c]/10 text-[#00d09c] text-xs font-semibold border border-[#00d09c]/20 hover:bg-[#00d09c]/20">
+              Initialize Stock Data
+            </button>
           </div>
         ) : (
           <StockTable stocks={stocks} onSelect={handleSelectStock} watchlist={watchlistSymbols} onToggleWatch={handleToggleWatch} />
