@@ -130,65 +130,66 @@ export default function AIInsights({ tab, symbol }: AIInsightsProps) {
   };
 
   return (
-    <div className="bg-gradient-to-br from-[#1a1f35] to-[#1e2235] rounded-xl border border-indigo-500/30 p-5 mt-6">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 bg-gradient-to-br from-indigo-400 to-purple-500 rounded-md flex items-center justify-center text-white text-xs font-bold">AI</div>
-          <h3 className="font-semibold text-sm">AI-Powered Insights</h3>
-          {model && <span className="text-xs text-[#8b90a8] bg-[#0f1117] px-2 py-0.5 rounded">via {model}</span>}
+    <div className="bg-[#1c1c27] rounded-2xl border border-[#a78bfa]/20 p-6 mt-6">
+      <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center gap-3">
+          <div className="w-7 h-7 bg-gradient-to-br from-[#a78bfa] to-[#7c3aed] rounded-lg flex items-center justify-center text-white text-[10px] font-bold">AI</div>
+          <h3 className="font-semibold text-sm text-white">AI-Powered Insights</h3>
+          {model && <span className="text-[10px] text-[#5c5c72] bg-[#16161e] px-2.5 py-1 rounded-full">via {model}</span>}
         </div>
-        <button onClick={checkConfig} className="text-xs text-[#8b90a8] hover:text-white transition-colors">
+        <button onClick={checkConfig} className="text-xs text-[#5c5c72] hover:text-[#a78bfa] transition-colors px-3 py-1.5 rounded-lg hover:bg-[#a78bfa]/5">
           API Config
         </button>
       </div>
 
       {/* Config status */}
       {configStatus && (
-        <div className={`rounded-lg p-3 mb-4 text-xs border ${configStatus.claude_configured ? 'bg-green-500/10 border-green-500/30 text-green-400' : 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400'}`}>
+        <div className={`rounded-xl p-4 mb-4 text-xs border ${configStatus.claude_configured ? 'bg-[#00d09c]/5 border-[#00d09c]/20 text-[#00d09c]' : 'bg-[#f5a623]/5 border-[#f5a623]/15 text-[#f5a623]'}`}>
           <div className="font-semibold mb-1">{configStatus.claude_configured ? 'Claude API Connected' : 'Claude API Not Configured'}</div>
-          <div className="text-[#8b90a8]">Key: {configStatus.claude_key_hint}</div>
-          <div className="text-[#8b90a8]">{configStatus.instructions}</div>
+          <div className="text-[#8c8ca1]">Key: {configStatus.claude_key_hint}</div>
+          <div className="text-[#8c8ca1]">{configStatus.instructions}</div>
         </div>
       )}
 
       {/* Action buttons */}
-      <div className="flex flex-wrap gap-2 mb-4">
+      <div className="flex flex-wrap gap-2.5 mb-5">
         {symbol && (
           <>
             <button onClick={analyzeStock} disabled={loading}
-              className="px-3 py-1.5 bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 rounded-lg text-xs font-medium hover:bg-indigo-500/30 transition-colors disabled:opacity-50">
+              className="px-4 py-2 bg-[#a78bfa]/10 text-[#a78bfa] border border-[#a78bfa]/20 rounded-xl text-xs font-medium hover:bg-[#a78bfa]/15 transition-all disabled:opacity-50">
               {loading ? 'Analyzing...' : `Analyze ${symbol}`}
             </button>
             <button onClick={getNewsImpact} disabled={newsLoading}
-              className="px-3 py-1.5 bg-orange-500/20 text-orange-400 border border-orange-500/30 rounded-lg text-xs font-medium hover:bg-orange-500/30 transition-colors disabled:opacity-50">
+              className="px-4 py-2 bg-[#f5a623]/10 text-[#f5a623] border border-[#f5a623]/20 rounded-xl text-xs font-medium hover:bg-[#f5a623]/15 transition-all disabled:opacity-50">
               {newsLoading ? 'Loading...' : 'News & Macro Impact'}
             </button>
             {tab === 'technical' && (
               <button onClick={getPatternBacktest} disabled={patternLoading}
-                className="px-3 py-1.5 bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 rounded-lg text-xs font-medium hover:bg-cyan-500/30 transition-colors disabled:opacity-50">
+                className="px-4 py-2 bg-[#44d7f5]/10 text-[#44d7f5] border border-[#44d7f5]/20 rounded-xl text-xs font-medium hover:bg-[#44d7f5]/15 transition-all disabled:opacity-50">
                 {patternLoading ? 'Loading...' : 'Pattern Backtest'}
               </button>
             )}
           </>
         )}
         <button onClick={getRecommendation} disabled={recLoading}
-          className="px-3 py-1.5 bg-purple-500/20 text-purple-400 border border-purple-500/30 rounded-lg text-xs font-medium hover:bg-purple-500/30 transition-colors disabled:opacity-50">
+          className="px-4 py-2 bg-[#00d09c]/10 text-[#00d09c] border border-[#00d09c]/20 rounded-xl text-xs font-medium hover:bg-[#00d09c]/15 transition-all disabled:opacity-50">
           {recLoading ? 'Thinking...' : 'Top 3 Picks + Buy Reasoning'}
         </button>
       </div>
 
       {/* Stock Analysis */}
       {analysis && (
-        <div className="bg-[#0f1117] rounded-lg p-4 mb-3 border border-[#2a2e45]">
-          <div className="text-xs text-indigo-400 mb-2 font-semibold">Stock Analysis + Buy Reasoning</div>
+        <div className="bg-[#16161e] rounded-xl p-5 mb-3 border border-[#2a2a3a]">
+          <div className="text-xs text-[#a78bfa] mb-2.5 font-semibold">Stock Analysis + Buy Reasoning</div>
           <div className="text-sm text-[#c8cce0] whitespace-pre-wrap leading-relaxed">{analysis}</div>
         </div>
       )}
 
       {/* News & Macro Impact */}
       {newsImpact && (
-        <div className="bg-[#0f1117] rounded-lg p-4 mb-3 border border-orange-500/20">
-          <div className="text-xs text-orange-400 mb-3 font-semibold">
+        <div className="bg-[#16161e] rounded-xl p-5 mb-3 border border-[#f5a623]/15">
+          <div className="text-xs text-[#f5a623] mb-3 font-semibold flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#f5a623]"></span>
             News & Macro Impact — {newsImpact.sector}
           </div>
 
@@ -196,21 +197,21 @@ export default function AIInsights({ tab, symbol }: AIInsightsProps) {
           <div className="mb-3">
             <div className="flex items-center gap-2 mb-1">
               <span className="text-xs font-semibold text-white">Sector Outlook:</span>
-              <span className={`text-xs px-2 py-0.5 rounded ${
-                newsImpact.sector_outlook.current_outlook === 'Positive' ? 'bg-green-500/20 text-green-400' :
-                newsImpact.sector_outlook.current_outlook === 'Negative' ? 'bg-red-500/20 text-red-400' :
-                'bg-yellow-500/20 text-yellow-400'
+              <span className={`text-xs px-2.5 py-0.5 rounded-full ${
+                newsImpact.sector_outlook.current_outlook === 'Positive' ? 'bg-[#00d09c]/10 text-[#00d09c] border border-[#00d09c]/20' :
+                newsImpact.sector_outlook.current_outlook === 'Negative' ? 'bg-[#eb5757]/10 text-[#eb5757] border border-[#eb5757]/20' :
+                'bg-[#f5a623]/10 text-[#f5a623] border border-[#f5a623]/20'
               }`}>{newsImpact.sector_outlook.current_outlook}</span>
             </div>
-            <p className="text-xs text-[#8b90a8]">{newsImpact.sector_outlook.outlook_detail}</p>
+            <p className="text-xs text-[#8c8ca1]">{newsImpact.sector_outlook.outlook_detail}</p>
           </div>
 
           {/* Key Drivers */}
           <div className="mb-3">
-            <div className="text-xs font-semibold text-white mb-1">Key Drivers:</div>
-            <div className="flex flex-wrap gap-1">
+            <div className="text-xs font-semibold text-white mb-1.5">Key Drivers:</div>
+            <div className="flex flex-wrap gap-1.5">
               {newsImpact.sector_outlook.key_drivers.map((d, i) => (
-                <span key={i} className="text-xs bg-[#1e2235] text-[#8b90a8] px-2 py-0.5 rounded">{d}</span>
+                <span key={i} className="text-[10px] bg-[#1c1c27] text-[#8c8ca1] px-2.5 py-1 rounded-full border border-[#2a2a3a]">{d}</span>
               ))}
             </div>
           </div>
@@ -220,20 +221,20 @@ export default function AIInsights({ tab, symbol }: AIInsightsProps) {
             <div className="text-xs font-semibold text-white mb-2">Geopolitical & Macro Events:</div>
             <div className="space-y-2">
               {newsImpact.macro_events.slice(0, 5).map((evt, i) => (
-                <div key={i} className={`rounded px-3 py-2 border text-xs ${
-                  evt.severity === 'high' ? 'border-red-500/30 bg-red-500/5' :
-                  evt.severity === 'medium' ? 'border-yellow-500/30 bg-yellow-500/5' :
-                  'border-[#2a2e45] bg-[#1e2235]'
+                <div key={i} className={`rounded-xl px-4 py-3 border text-xs ${
+                  evt.severity === 'high' ? 'border-[#eb5757]/20 bg-[#eb5757]/5' :
+                  evt.severity === 'medium' ? 'border-[#f5a623]/15 bg-[#f5a623]/5' :
+                  'border-[#2a2a3a] bg-[#1c1c27]'
                 }`}>
                   <div className="flex items-center gap-2 mb-1">
-                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
-                      evt.severity === 'high' ? 'bg-red-500/20 text-red-400' :
-                      evt.severity === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
-                      'bg-gray-500/20 text-gray-400'
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                      evt.severity === 'high' ? 'bg-[#eb5757]/15 text-[#eb5757]' :
+                      evt.severity === 'medium' ? 'bg-[#f5a623]/15 text-[#f5a623]' :
+                      'bg-[#2a2a3a] text-[#5c5c72]'
                     }`}>{evt.category}</span>
                     <span className="font-medium text-white">{evt.event}</span>
                   </div>
-                  <p className="text-[#8b90a8]">{evt.impact}</p>
+                  <p className="text-[#8c8ca1]">{evt.impact}</p>
                 </div>
               ))}
             </div>
@@ -241,19 +242,19 @@ export default function AIInsights({ tab, symbol }: AIInsightsProps) {
 
           {/* Promoter Signals */}
           <div>
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex items-center gap-2 mb-1.5">
               <span className="text-xs font-semibold text-white">Promoter Signals:</span>
-              <span className={`text-xs px-2 py-0.5 rounded ${
-                newsImpact.promoter_signals.risk_level === 'low' ? 'bg-green-500/20 text-green-400' :
-                newsImpact.promoter_signals.risk_level === 'high' ? 'bg-red-500/20 text-red-400' :
-                'bg-yellow-500/20 text-yellow-400'
+              <span className={`text-[10px] px-2.5 py-0.5 rounded-full border ${
+                newsImpact.promoter_signals.risk_level === 'low' ? 'bg-[#00d09c]/10 text-[#00d09c] border-[#00d09c]/20' :
+                newsImpact.promoter_signals.risk_level === 'high' ? 'bg-[#eb5757]/10 text-[#eb5757] border-[#eb5757]/20' :
+                'bg-[#f5a623]/10 text-[#f5a623] border-[#f5a623]/20'
               }`}>Risk: {newsImpact.promoter_signals.risk_level}</span>
-              <span className={`text-xs px-2 py-0.5 rounded ${
-                newsImpact.promoter_signals.promoter_confidence === 'high' ? 'bg-green-500/20 text-green-400' :
-                'bg-yellow-500/20 text-yellow-400'
+              <span className={`text-[10px] px-2.5 py-0.5 rounded-full border ${
+                newsImpact.promoter_signals.promoter_confidence === 'high' ? 'bg-[#00d09c]/10 text-[#00d09c] border-[#00d09c]/20' :
+                'bg-[#f5a623]/10 text-[#f5a623] border-[#f5a623]/20'
               }`}>Confidence: {newsImpact.promoter_signals.promoter_confidence}</span>
             </div>
-            <ul className="text-xs text-[#8b90a8] space-y-0.5">
+            <ul className="text-xs text-[#8c8ca1] space-y-1">
               {newsImpact.promoter_signals.signals.map((s, i) => (
                 <li key={i}>• {s}</li>
               ))}
@@ -264,69 +265,75 @@ export default function AIInsights({ tab, symbol }: AIInsightsProps) {
 
       {/* Pattern Backtest */}
       {patternBT && (
-        <div className="bg-[#0f1117] rounded-lg p-4 mb-3 border border-cyan-500/20">
-          <div className="text-xs text-cyan-400 mb-3 font-semibold">Pattern Backtest — Historical Probability</div>
+        <div className="bg-[#16161e] rounded-xl p-5 mb-3 border border-[#44d7f5]/15">
+          <div className="text-xs text-[#44d7f5] mb-3 font-semibold flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#44d7f5]"></span>
+            Pattern Backtest — Historical Probability
+          </div>
 
           <div className="mb-3">
             <div className="text-sm font-semibold text-white mb-1">{patternBT.backtest.pattern_name}</div>
-            <p className="text-xs text-[#8b90a8]">{patternBT.backtest.conditions}</p>
+            <p className="text-xs text-[#8c8ca1]">{patternBT.backtest.conditions}</p>
           </div>
 
           <div className="grid grid-cols-4 gap-3 mb-3">
-            <div className="bg-[#1e2235] rounded p-2 text-center">
-              <div className="text-[10px] text-[#8b90a8]">Win Rate</div>
-              <div className={`text-lg font-bold ${patternBT.backtest.win_rate >= 60 ? 'text-green-400' : patternBT.backtest.win_rate >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>
+            <div className="bg-[#1c1c27] rounded-xl p-3 text-center">
+              <div className="text-[10px] text-[#5c5c72] uppercase tracking-wider">Win Rate</div>
+              <div className={`text-lg font-bold ${patternBT.backtest.win_rate >= 60 ? 'text-[#00d09c]' : patternBT.backtest.win_rate >= 50 ? 'text-[#f5a623]' : 'text-[#eb5757]'}`}>
                 {patternBT.backtest.win_rate}%
               </div>
             </div>
-            <div className="bg-[#1e2235] rounded p-2 text-center">
-              <div className="text-[10px] text-[#8b90a8]">Avg Profit</div>
-              <div className="text-lg font-bold text-green-400">+{patternBT.backtest.avg_profit_pct}%</div>
+            <div className="bg-[#1c1c27] rounded-xl p-3 text-center">
+              <div className="text-[10px] text-[#5c5c72] uppercase tracking-wider">Avg Profit</div>
+              <div className="text-lg font-bold text-[#00d09c]">+{patternBT.backtest.avg_profit_pct}%</div>
             </div>
-            <div className="bg-[#1e2235] rounded p-2 text-center">
-              <div className="text-[10px] text-[#8b90a8]">Avg Loss</div>
-              <div className="text-lg font-bold text-red-400">{patternBT.backtest.avg_loss_pct}%</div>
+            <div className="bg-[#1c1c27] rounded-xl p-3 text-center">
+              <div className="text-[10px] text-[#5c5c72] uppercase tracking-wider">Avg Loss</div>
+              <div className="text-lg font-bold text-[#eb5757]">{patternBT.backtest.avg_loss_pct}%</div>
             </div>
-            <div className="bg-[#1e2235] rounded p-2 text-center">
-              <div className="text-[10px] text-[#8b90a8]">Expectancy</div>
-              <div className={`text-lg font-bold ${patternBT.backtest.expectancy_r >= 1 ? 'text-green-400' : 'text-yellow-400'}`}>
+            <div className="bg-[#1c1c27] rounded-xl p-3 text-center">
+              <div className="text-[10px] text-[#5c5c72] uppercase tracking-wider">Expectancy</div>
+              <div className={`text-lg font-bold ${patternBT.backtest.expectancy_r >= 1 ? 'text-[#00d09c]' : 'text-[#f5a623]'}`}>
                 {patternBT.backtest.expectancy_r}R
               </div>
             </div>
           </div>
 
           <div className="grid grid-cols-3 gap-3 mb-3 text-xs">
-            <div className="text-[#8b90a8]">Sample Size: <span className="text-white">{patternBT.backtest.sample_size} trades</span></div>
-            <div className="text-[#8b90a8]">Avg Duration: <span className="text-white">{patternBT.backtest.avg_duration_days} days</span></div>
-            <div className="text-[#8b90a8]">Sector Adj: <span className={patternBT.backtest.sector_adjustment === 'positive' ? 'text-green-400' : patternBT.backtest.sector_adjustment === 'negative' ? 'text-red-400' : 'text-white'}>{patternBT.backtest.sector_adjustment}</span></div>
+            <div className="text-[#5c5c72]">Sample Size: <span className="text-white">{patternBT.backtest.sample_size} trades</span></div>
+            <div className="text-[#5c5c72]">Avg Duration: <span className="text-white">{patternBT.backtest.avg_duration_days} days</span></div>
+            <div className="text-[#5c5c72]">Sector Adj: <span className={patternBT.backtest.sector_adjustment === 'positive' ? 'text-[#00d09c]' : patternBT.backtest.sector_adjustment === 'negative' ? 'text-[#eb5757]' : 'text-white'}>{patternBT.backtest.sector_adjustment}</span></div>
           </div>
 
-          <div className={`rounded px-3 py-2 text-xs border ${
-            patternBT.backtest.win_rate >= 60 ? 'bg-green-500/10 border-green-500/30 text-green-400' :
-            patternBT.backtest.win_rate >= 50 ? 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400' :
-            'bg-red-500/10 border-red-500/30 text-red-400'
+          <div className={`rounded-xl px-4 py-2.5 text-xs border ${
+            patternBT.backtest.win_rate >= 60 ? 'bg-[#00d09c]/5 border-[#00d09c]/20 text-[#00d09c]' :
+            patternBT.backtest.win_rate >= 50 ? 'bg-[#f5a623]/5 border-[#f5a623]/15 text-[#f5a623]' :
+            'bg-[#eb5757]/5 border-[#eb5757]/15 text-[#eb5757]'
           }`}>
             <span className="font-semibold">Recommendation:</span> {patternBT.backtest.recommendation}
           </div>
 
-          <p className="text-[10px] text-[#8b90a8] mt-2">{patternBT.backtest.notes}</p>
+          <p className="text-[10px] text-[#5c5c72] mt-2">{patternBT.backtest.notes}</p>
         </div>
       )}
 
       {/* Recommendation */}
       {recommendation && (
-        <div className="bg-[#0f1117] rounded-lg p-4 border border-[#2a2e45]">
-          <div className="text-xs text-purple-400 mb-2 font-semibold">AI Top 3 Recommendations + Buy Reasoning</div>
+        <div className="bg-[#16161e] rounded-xl p-5 border border-[#2a2a3a]">
+          <div className="text-xs text-[#00d09c] mb-2.5 font-semibold flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#00d09c]"></span>
+            AI Top 3 Recommendations + Buy Reasoning
+          </div>
           <div className="text-sm text-[#c8cce0] whitespace-pre-wrap leading-relaxed">{recommendation}</div>
         </div>
       )}
 
       {!analysis && !recommendation && !newsImpact && !patternBT && !configStatus && (
-        <p className="text-xs text-[#8b90a8]">
+        <p className="text-xs text-[#5c5c72]">
           Click a button above to get AI-powered analysis.
           {!symbol && ' Select a stock first for individual analysis.'}
           <br />
-          <span className="text-indigo-400">Tip:</span> Add your Claude API key to <code className="bg-[#0f1117] px-1 rounded">backend/.env</code> for enhanced AI analysis.
+          <span className="text-[#a78bfa]">Tip:</span> Add your Claude API key to <code className="bg-[#16161e] px-1.5 py-0.5 rounded text-[#8c8ca1]">backend/.env</code> for enhanced AI analysis.
         </p>
       )}
     </div>

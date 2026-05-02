@@ -12,22 +12,22 @@ export default function ScoreRing({ score, maxScore = 12, size = 56 }: ScoreRing
   const pct = score / maxScore;
   const offset = circumference * (1 - pct);
 
-  let color = '#ef5350';
-  if (score >= 10) color = '#26a69a';
-  else if (score >= 9) color = '#66bb6a';
-  else if (score >= 7) color = '#ffd54f';
-  else if (score >= 5) color = '#ff9800';
+  let color = '#eb5757';
+  if (score >= 10) color = '#00d09c';
+  else if (score >= 9) color = '#44d7f5';
+  else if (score >= 7) color = '#f5a623';
+  else if (score >= 5) color = '#ff8c42';
 
   return (
     <div className="relative inline-flex items-center justify-center" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="-rotate-90">
         <circle
           cx={size / 2} cy={size / 2} r={radius}
-          fill="none" stroke="#2a2e45" strokeWidth="4"
+          fill="none" stroke="#2a2a3a" strokeWidth="3.5"
         />
         <circle
           cx={size / 2} cy={size / 2} r={radius}
-          fill="none" stroke={color} strokeWidth="4"
+          fill="none" stroke={color} strokeWidth="3.5"
           strokeDasharray={circumference}
           strokeDashoffset={offset}
           strokeLinecap="round"

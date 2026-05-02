@@ -2,50 +2,103 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
 :root {
-  --bg-primary: #0f1117;
-  --bg-secondary: #1a1d2e;
-  --bg-card: #1e2235;
-  --border: #2a2e45;
-  --text-primary: #e8eaf0;
-  --text-secondary: #8b90a8;
-  --green: #26a69a;
-  --red: #ef5350;
-  --blue: #42a5f5;
-  --gold: #ffd54f;
-  --orange: #ff9800;
+  --bg-primary: #0d0d12;
+  --bg-secondary: #16161e;
+  --bg-card: #1c1c27;
+  --bg-card-hover: #22222e;
+  --border: #2a2a3a;
+  --border-subtle: #222233;
+  --text-primary: #f0f0f5;
+  --text-secondary: #8c8ca1;
+  --text-muted: #5c5c72;
+  --accent-green: #00d09c;
+  --accent-green-dim: #00b386;
+  --accent-red: #eb5757;
+  --accent-blue: #5b8def;
+  --accent-purple: #a78bfa;
+  --accent-orange: #f5a623;
+  --accent-cyan: #44d7f5;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 24px;
 }
 
 body {
   background: var(--bg-primary);
   color: var(--text-primary);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
+/* Groww-style signal badges */
 .signal-pass {
-  @apply text-green-400 bg-green-400/10 border border-green-400/30;
+  @apply text-emerald-400 bg-emerald-400/10 border border-emerald-400/20 rounded-full px-2.5 py-0.5 text-xs font-semibold;
 }
 
 .signal-fail {
-  @apply text-red-400 bg-red-400/10 border border-red-400/30;
+  @apply text-red-400 bg-red-400/10 border border-red-400/20 rounded-full px-2.5 py-0.5 text-xs font-semibold;
 }
 
+/* Verdict badges - pill style like Groww */
 .verdict-strong-buy {
-  @apply text-green-300 bg-green-500/20 border border-green-400/40;
+  @apply text-emerald-300 bg-emerald-500/20 border border-emerald-400/30 rounded-full;
 }
 
 .verdict-quality {
-  @apply text-emerald-300 bg-emerald-500/15 border border-emerald-400/30;
+  @apply text-cyan-300 bg-cyan-500/10 border border-cyan-400/20 rounded-full;
 }
 
 .verdict-watch {
-  @apply text-yellow-300 bg-yellow-500/15 border border-yellow-400/30;
+  @apply text-amber-300 bg-amber-500/10 border border-amber-400/20 rounded-full;
 }
 
 .verdict-weak {
-  @apply text-orange-300 bg-orange-500/15 border border-orange-400/30;
+  @apply text-orange-300 bg-orange-500/10 border border-orange-400/20 rounded-full;
 }
 
 .verdict-avoid {
-  @apply text-red-300 bg-red-500/20 border border-red-400/40;
+  @apply text-red-300 bg-red-500/20 border border-red-400/30 rounded-full;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3a3a4a;
+}
+
+/* Groww-style card hover effect */
+.groww-card {
+  @apply bg-[#1c1c27] rounded-2xl border border-[#2a2a3a] transition-all duration-200;
+}
+.groww-card:hover {
+  @apply border-[#3a3a4a] shadow-lg shadow-black/20;
+  transform: translateY(-1px);
+}
+
+/* Table row hover - Groww style */
+.groww-row {
+  @apply transition-colors duration-150;
+}
+.groww-row:hover {
+  background: rgba(0, 208, 156, 0.03);
+}
+
+/* Selection styles */
+::selection {
+  background: rgba(0, 208, 156, 0.3);
+  color: #fff;
 }

@@ -12,19 +12,22 @@ export default function SignalCard({ title, signals, color }: SignalCardProps) {
   const passed = signals.filter(s => s.passed).length;
 
   return (
-    <div className="bg-[#1e2235] rounded-xl border border-[#2a2e45] p-5">
+    <div className="bg-[#1c1c27] rounded-2xl border border-[#2a2a3a] p-5">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold text-sm" style={{ color }}>{title}</h3>
-        <span className="text-xs text-[#8b90a8]">{passed}/{signals.length} passed</span>
+        <h3 className="font-semibold text-sm flex items-center gap-2" style={{ color }}>
+          <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }}></span>
+          {title}
+        </h3>
+        <span className="text-xs text-[#5c5c72] bg-[#16161e] px-2.5 py-1 rounded-full">{passed}/{signals.length} passed</span>
       </div>
-      <div className="space-y-3">
+      <div className="space-y-2.5">
         {signals.map((s, i) => (
-          <div key={i} className={`rounded-lg px-3 py-2.5 ${s.passed ? 'signal-pass' : 'signal-fail'}`}>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-base">{s.passed ? '●' : '○'}</span>
+          <div key={i} className={`rounded-xl px-4 py-3 ${s.passed ? 'signal-pass' : 'signal-fail'}`}>
+            <div className="flex items-center gap-2.5 mb-1">
+              <span className={`text-xs ${s.passed ? 'text-emerald-400' : 'text-red-400'}`}>{s.passed ? '●' : '○'}</span>
               <span className="font-medium text-sm">{s.label}</span>
             </div>
-            <p className="text-xs opacity-80 ml-6">{s.detail}</p>
+            <p className="text-xs opacity-70 ml-6">{s.detail}</p>
           </div>
         ))}
       </div>
