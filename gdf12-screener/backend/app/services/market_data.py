@@ -17,8 +17,17 @@ except ImportError:
     logger.warning("yfinance not installed — using mock data only")
 
 
+_SYMBOL_MAP = {
+    "TATAMOTORS": "TATAMTRDVR.NS",
+    "ZOMATO": "ZOMATO.BO",
+    "NETFNIFTY": "0P00017690.BO",
+}
+
+
 def get_nse_symbol(symbol: str) -> str:
     """Convert plain symbol to NSE Yahoo Finance format."""
+    if symbol in _SYMBOL_MAP:
+        return _SYMBOL_MAP[symbol]
     if not symbol.endswith(".NS"):
         return f"{symbol}.NS"
     return symbol

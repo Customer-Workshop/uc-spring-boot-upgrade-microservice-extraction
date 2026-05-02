@@ -25,7 +25,16 @@ _CHART_URL = "https://query1.finance.yahoo.com/v8/finance/chart"
 _HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; StockExplorer/1.0)"}
 
 
+_SYMBOL_MAP = {
+    "TATAMOTORS": "TATAMTRDVR.NS",
+    "ZOMATO": "ZOMATO.BO",
+    "NETFNIFTY": "0P00017690.BO",
+}
+
+
 def _get_nse_symbol(symbol: str) -> str:
+    if symbol in _SYMBOL_MAP:
+        return _SYMBOL_MAP[symbol]
     if not symbol.endswith(".NS"):
         return f"{symbol}.NS"
     return symbol

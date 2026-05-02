@@ -40,7 +40,7 @@ echo "      Done. (Prices refreshed with live market data)"
 echo "[5/5] Starting frontend on http://localhost:3003 ..."
 cd "$DIR/frontend"
 if [ ! -d "node_modules" ]; then npm install --silent; fi
-NEXT_PUBLIC_API_URL=http://localhost:8002 npm run dev &
+npm run dev &
 FRONTEND_PID=$!
 echo $FRONTEND_PID > "$DIR/.frontend.pid"
 
