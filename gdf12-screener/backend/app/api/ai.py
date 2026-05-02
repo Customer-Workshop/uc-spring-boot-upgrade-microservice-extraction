@@ -8,6 +8,12 @@ from app.models.stock import Stock
 from app.models.swing_stock import SwingScore, SwingStock
 from app.services.ai_analysis import analyze_stock, get_ai_recommendation
 from app.services.market_data import fetch_live_stock_data
+from app.services.news_impact import (
+    get_promoter_signals,
+    get_relevant_macro_events,
+    get_sector_impact,
+)
+from app.services.pattern_backtest import get_pattern_backtest
 
 router = APIRouter(prefix="/api/ai", tags=["ai"])
 
@@ -179,3 +185,85 @@ async def get_live_data(symbol: str):
     if data:
         return {"status": "live", "data": data}
     return {"status": "mock", "data": None, "message": "Live data unavailable — using mock data"}
+
+
+@router.get("/news-impact/{symbol}")
+def get_news_impact(symbol: str, db: Session = Depends(get_db)):
+    """Get news & macro impact analysis for a stock."""
+    stock = db.query(Stock).filter(Stock.symbol == symbol.upper()).first()
+    if not stock:
+        swing = db.query(SwingStock).filter(SwingStock.symbol == symbol.upper()).first()
+        sector = swing.sector if swing else ""
+        promoter = 0.0
+        pledge = 0.0
+        div_years = 0
+        div_yield = 0.0
+    else:
+        sector = stock.sector
+        promoter = stock.promoter_holding_pct
+        pledge = stock.promoter_pledge_pct
+        div_years = stock.dividend_years
+        div_yield = stock.dividend_yield
+
+    sector_impact = get_sector_impact(sector)
+    macro_events = get_relevant_macro_events(sector)
+    promoter_signals = get_promoter_signals(promoter, pledge, div_years, div_yield)
+
+    return {
+        "symbol": symbol.upper(),
+        "sector": sector,
+        "sector_outlook": sector_impact,
+        "macro_events": macro_events,
+        "promoter_signals": promoter_signals,
+    }
+
+
+@router.get("/pattern-backtest/{symbol}")
+def get_pattern_bt(symbol: str, db: Session = Depends(get_db)):
+    """Get pattern backtesting results for a swing stock."""
+    swing = db.query(SwingStock).filter(SwingStock.symbol == symbol.upper()).first()
+    if not swing:
+        return {"error": f"Stock {symbol} not found in swing scanner"}
+
+    sscore = db.query(SwingScore).filter(SwingScore.stock_id == swing.id).first()
+
+    result = get_pattern_backtest(
+        rsi=swing.rsi_14,
+        volume_ratio=swing.volume_ratio,
+        breakout=swing.breakout_above_resistance,
+        bb_squeeze=swing.bb_squeeze,
+        total_score=sscore.total_score if sscore else 0,
+        sector=swing.sector,
+        sma_50=swing.sma_50,
+        sma_200=swing.sma_200,
+    )
+
+    return {
+        "symbol": symbol.upper(),
+        "current_setup": {
+            "rsi": swing.rsi_14,
+            "volume_ratio": swing.volume_ratio,
+            "breakout": swing.breakout_above_resistance,
+            "bb_squeeze": swing.bb_squeeze,
+            "confirmation_score": sscore.total_score if sscore else 0,
+            "signal": sscore.signal if sscore else "N/A",
+        },
+        "backtest": result,
+    }
+
+
+@router.get("/config-status")
+def get_config_status():
+    """Check AI configuration status."""
+    from app.config import settings
+    has_key = bool(settings.anthropic_api_key)
+    return {
+        "claude_configured": has_key,
+        "claude_key_hint": f"sk-ant-...{settings.anthropic_api_key[-4:]}" if has_key and len(settings.anthropic_api_key) > 4 else "not set",
+        "ollama_url": settings.ollama_url,
+        "env_file_path": "backend/.env",
+        "instructions": (
+            "Add ANTHROPIC_API_KEY=sk-ant-xxx to backend/.env file. "
+            "Copy .env.example to .env and fill in your Claude API key."
+        ) if not has_key else "Claude API key is configured and ready.",
+    }
