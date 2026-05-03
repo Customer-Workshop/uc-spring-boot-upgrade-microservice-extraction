@@ -912,9 +912,9 @@ public enum IncomeRange {
 // Risk categories
 public enum RiskCategory {
     CONSERVATIVE(1.0, 3.0),
-    MODERATE(3.1, 6.0),
-    AGGRESSIVE(6.1, 8.0),
-    VERY_AGGRESSIVE(8.1, 10.0);
+    MODERATE(3.0, 6.0),
+    AGGRESSIVE(6.0, 8.0),
+    VERY_AGGRESSIVE(8.0, 10.0);
     
     private final double minScore;
     private final double maxScore;
@@ -1236,9 +1236,13 @@ INCOME_STABILITY = {
 ### 6.2 Scoring Logic
 
 ```python
-def assess_risk(features: dict) -> RiskAssessment:
+def assess_risk(features: dict, customer_name: str) -> RiskAssessment:
     """
     Risk assessment using XGBoost model with explainability.
+    
+    Args:
+        features: dict of 15 numerical ML features from compute_risk_features()
+        customer_name: customer's name (passed separately, not part of feature vector)
     """
     # Model inference
     risk_score = model.predict(features)  # Returns 1.0 - 10.0
@@ -1264,7 +1268,7 @@ def assess_risk(features: dict) -> RiskAssessment:
             "category": category,
             "score": risk_score,
             "top_factors": top_factors,
-            "customer_name": features.customer_name
+            "customer_name": customer_name
         }
     )
     
