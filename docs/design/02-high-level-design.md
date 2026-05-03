@@ -1,6 +1,6 @@
-# Relationship Manager — High-Level Design (HLD)
+# Relationship Manager — High-Level Design (HLD) (Non-AI Version)
 
-> **Version:** 1.0 (Draft)
+> **Version:** 2.0 (Non-AI)
 > **Date:** 2026-05-03
 > **Status:** Proposed — Awaiting Review
 
@@ -15,7 +15,7 @@
 5. [Conversation Flow Design](#5-conversation-flow-design)
 6. [Multi-Channel Architecture](#6-multi-channel-architecture)
 7. [Session Management](#7-session-management)
-8. [AI Pipeline Design](#8-ai-pipeline-design)
+8. [Processing Pipeline Design](#8-processing-pipeline-design)
 9. [Deployment Architecture](#9-deployment-architecture)
 10. [Non-Functional Requirements](#10-non-functional-requirements)
 
@@ -31,10 +31,10 @@
 | 2 | **Auth Service** | Identity | Medium — login/token refresh | PostgreSQL (shared) |
 | 3 | **Conversation Service** | Core | High — all chat interactions | PostgreSQL + Redis |
 | 4 | **Customer Profile Service** | Core | Medium — profile CRUD | PostgreSQL |
-| 5 | **Risk Profiling Service** | AI | Medium — on-demand computation | PostgreSQL + ML Store |
+| 5 | **Risk Profiling Service** | Processing | Medium — on-demand computation | PostgreSQL |
 | 6 | **Product Catalog Service** | Domain | Low — admin-managed | PostgreSQL |
-| 7 | **Recommendation Service** | AI | Medium — triggered per profile | Redis (cache) |
-| 8 | **Wealth Projection Service** | AI | Low-Medium — compute-heavy | Redis (cache) |
+| 7 | **Recommendation Service** | Processing | Medium — triggered per profile | Redis (cache) |
+| 8 | **Wealth Projection Service** | Processing | Low-Medium — compute | Redis (cache) |
 | 9 | **Follow-Up Orchestrator** | Workflow | Medium — scheduled tasks | PostgreSQL |
 | 10 | **Notification Service** | Integration | High — multi-channel delivery | PostgreSQL + Redis |
 | 11 | **Reminder Service** | Workflow | Medium — cron-triggered | PostgreSQL |
@@ -92,7 +92,7 @@ graph TD
 | **Event Streaming** | Apache Kafka (MSK) | Durable, high-throughput event bus |
 | **Caching** | Redis Cluster (ElastiCache) | Session store, conversation context, API caching |
 | **Scheduling** | Spring Scheduler + Quartz | Follow-up and reminder scheduling |
-| **AI Orchestration** | LangChain4j / Spring AI | Java-native LLM orchestration |
+| **Template Engine** | Thymeleaf / Freemarker | Conversation response templates and notification templates |
 
 ### 2.2 Frontend
 
@@ -118,17 +118,6 @@ graph TD
 | **CDN** | CloudFront | Static asset delivery, edge caching |
 | **DNS** | Route 53 | DNS management with health checks |
 
-### 2.4 AI / ML
-
-| Layer | Technology | Justification |
-|---|---|---|
-| **LLM** | Azure OpenAI (GPT-4o) / Anthropic Claude | Enterprise SLA, data privacy agreements |
-| **Orchestration** | LangChain4j + Spring AI | Java-native LLM orchestration |
-| **Vector DB** | Pinecone / pgvector | RAG for product knowledge retrieval |
-| **ML Training** | Amazon SageMaker | Risk model training and hosting |
-| **Feature Store** | Amazon SageMaker Feature Store | Real-time feature serving |
-| **Model Registry** | MLflow | Model versioning and experiment tracking |
-
 ---
 
 ## 3. Communication Patterns
@@ -143,7 +132,7 @@ Used for real-time, latency-sensitive interactions.
 | API GW → Auth Service | gRPC | Token validation |
 | API GW → Conversation Service | REST + WebSocket | Chat messages |
 | Conversation Svc → Customer Profile Svc | gRPC | Profile lookup during conversation |
-| Conversation Svc → LLM Provider | REST | AI response generation |
+| Conversation Svc → Risk Profiling Svc | gRPC | Trigger risk scoring |
 | Recommendation Svc → Product Catalog Svc | gRPC | Product details lookup |
 
 ### 3.2 Asynchronous (Event-Driven)
@@ -165,7 +154,7 @@ Used for decoupled, eventually-consistent operations.
 
 | Channel | Purpose |
 |---|---|
-| `/ws/chat/{sessionId}` | Real-time conversation between customer and RM (AI or human) |
+| `/ws/chat/{sessionId}` | Real-time conversation between customer and RM (system or human) |
 | `/ws/notifications/{userId}` | Real-time in-app notifications |
 | `/ws/dashboard/{rmId}` | Live dashboard updates for human RMs |
 
@@ -180,7 +169,7 @@ sequenceDiagram
     participant C as Customer
     participant GW as API Gateway
     participant CS as Conversation Svc
-    participant LLM as LLM Provider
+    participant TE as Template Engine
     participant PS as Profile Svc
 
     C->>GW: Open Chat
@@ -190,16 +179,17 @@ sequenceDiagram
 
     C->>GW: "Hello"
     GW->>CS: Message
-    CS->>LLM: Generate greeting
-    LLM-->>CS: Greeting response
+    CS->>TE: Select greeting template
+    TE-->>CS: Greeting response
     CS-->>GW: Response
     GW-->>C: "Welcome! May I know your name?"
 
     C->>GW: "I'm John, 35, Mumbai"
     GW->>CS: Message
-    CS->>LLM: Extract entities + generate reply
-    LLM-->>CS: Structured data + reply
+    CS->>CS: Parse input (regex: name, age, location)
     CS->>PS: Save partial profile
+    CS->>TE: Next phase template
+    TE-->>CS: Response
     CS-->>GW: Response
     GW-->>C: "Great John! What's your income range?"
 
@@ -218,12 +208,12 @@ sequenceDiagram
 
     PS->>EB: profile.updated
     EB->>RS: event
-    RS->>RS: Compute Risk (XGBoost Model)
+    RS->>RS: Compute Risk (Weighted Scoring)
     RS->>EB: risk.assessed
     EB->>REC: event
     REC->>PC: Fetch Products
     PC-->>REC: Products list
-    REC->>REC: Match & Rank (Hybrid Engine)
+    REC->>REC: Filter & Rank (Rule Engine)
     REC->>EB: recommendation.generated
 ```
 
@@ -258,7 +248,7 @@ sequenceDiagram
 
 ### 5.1 Conversation Phases
 
-The RM guides the customer through a structured but natural conversation across these phases:
+The RM guides the customer through a structured conversation across these phases:
 
 ```mermaid
 flowchart LR
@@ -273,14 +263,14 @@ flowchart LR
 
 ### 5.2 Phase Details
 
-| Phase | Data Collected | AI Role |
+| Phase | Data Collected | System Role |
 |---|---|---|
-| **1. Greeting** | — | Warm greeting, set conversational tone |
-| **2. Personal Details** | Name, age group (20-30/30-40/40-50/50+), location, phone, email | Entity extraction from natural language |
-| **3. Financial Profile** | Income source (salaried/business/professional/self-employed/student/retired), income range (60-70k/70-80k/80-100k/100-150k/150k+), current investments, savings | Guided data capture with clarification |
-| **4. Goals & Retirement** | Desired retirement corpus, target retirement age | Contextual suggestions based on age group |
-| **5. Risk Assessment** | Derived from all above + additional preference questions | ML model scoring + LLM explanation |
-| **6. Product Recommendation** | — | AI-matched products + wealth projection chart |
+| **1. Greeting** | — | Warm greeting from template, set conversational tone |
+| **2. Personal Details** | Name, age group (20-30/30-40/40-50/50+), location, phone, email | Pattern-matching extraction from free text; form fallback for structured input |
+| **3. Financial Profile** | Income source (salaried/business/professional/self-employed/student/retired), income range (60-70k/70-80k/80-100k/100-150k/150k+), current investments, savings | Guided form-based data capture with validation |
+| **4. Goals & Retirement** | Desired retirement corpus, target retirement age | Template prompts based on age group |
+| **5. Risk Assessment** | Derived from all above + additional preference questions | Weighted scoring algorithm → category assignment |
+| **6. Product Recommendation** | — | Rule-based product matching + wealth projection chart |
 | **7. Channel Preference** | Preferred communication mode (SMS/WhatsApp/Email/Phone) | Offer options, confirm selection |
 | **8. Follow-Up Scheduling** | Follow-up frequency, preferred times | Schedule creation + confirmation |
 
@@ -300,12 +290,12 @@ stateDiagram-v2
     FOLLOWUP_SCHEDULE --> COMPLETED: followup_confirmed
     COMPLETED --> [*]
 
-    GREETING --> HUMAN_HANDOFF: customer_request OR confidence < 0.7
-    PERSONAL --> HUMAN_HANDOFF: customer_request OR confidence < 0.7
-    FINANCIAL --> HUMAN_HANDOFF: customer_request OR confidence < 0.7
-    GOALS --> HUMAN_HANDOFF: customer_request OR confidence < 0.7
-    RISK_ASSESSMENT --> HUMAN_HANDOFF: customer_request OR confidence < 0.7
-    RECOMMENDATION --> HUMAN_HANDOFF: customer_request OR confidence < 0.7
+    GREETING --> HUMAN_HANDOFF: customer_request OR input_unclear_2x
+    PERSONAL --> HUMAN_HANDOFF: customer_request OR input_unclear_2x
+    FINANCIAL --> HUMAN_HANDOFF: customer_request OR input_unclear_2x
+    GOALS --> HUMAN_HANDOFF: customer_request OR input_unclear_2x
+    RISK_ASSESSMENT --> HUMAN_HANDOFF: customer_request OR input_unclear_2x
+    RECOMMENDATION --> HUMAN_HANDOFF: customer_request OR input_unclear_2x
 
     GREETING --> PAUSED: customer_inactive (5 min)
     PERSONAL --> PAUSED: customer_inactive (5 min)
@@ -356,7 +346,7 @@ graph TD
 
 | Capability | Web | Mobile | SMS | WhatsApp | Email | Phone/Voice |
 |---|---|---|---|---|---|---|
-| **Interactive Conversation** | Yes | Yes | Limited | Yes | No | Yes (IVR/AI) |
+| **Interactive Conversation** | Yes | Yes | Limited | Yes | No | Yes (IVR) |
 | **Rich Media** | Yes | Yes | No | Yes | Yes | No |
 | **Charts/Graphs** | Yes | Yes | No | Image | Image | No |
 | **Real-Time** | WebSocket | WebSocket | No | Near-RT | No | Yes |
@@ -376,7 +366,7 @@ elif customer.preferred_channel == EMAIL:
 elif customer.preferred_channel == WHATSAPP:
     send_interactive_message() # Interactive buttons, quick replies
 elif customer.preferred_channel == PHONE:
-    schedule_voice_call()      # AI voice or human RM call
+    schedule_voice_call()      # Human RM call
 ```
 
 ---
@@ -417,27 +407,27 @@ graph LR
 
 ---
 
-## 8. AI Pipeline Design
+## 8. Processing Pipeline Design
 
-### 8.1 Conversation AI Pipeline
+### 8.1 Conversation Processing Pipeline
 
 ```mermaid
 flowchart TD
     INPUT["Customer Message"]
-    PRE["Pre-Process<br/>• Sanitize<br/>• Language Detect"]
-    INTENT["Intent Classifier<br/>(LLM)"]
-    ENTITY["Entity Extractor<br/>(LLM + NER)"]
-    CTX["Context Builder<br/>• History<br/>• Profile<br/>• Products (RAG)"]
-    STATE["State Manager<br/>• Update phase<br/>• Validate data"]
-    RESP["Response Generator<br/>(LLM)<br/>• System prompt<br/>• Context<br/>• Guardrails"]
-    POST["Post-Process<br/>• PII check<br/>• Tone check<br/>• Format"]
+    PRE["Pre-Process<br/>• Sanitize input<br/>• Trim whitespace"]
+    PARSE["Input Parser<br/>(Regex + Validation)"]
+    EXTRACT["Entity Extractor<br/>• Pattern matching<br/>• Format validation"]
+    CTX["Context Builder<br/>• History lookup<br/>• Profile data<br/>• Current phase"]
+    STATE["State Manager<br/>• Update phase<br/>• Validate completeness"]
+    RESP["Response Generator<br/>(Template Engine)<br/>• Phase template<br/>• Customer data merge<br/>• Next prompt"]
+    POST["Post-Process<br/>• Format for channel<br/>• Truncate if SMS"]
     OUTPUT["Customer Response"]
 
     INPUT --> PRE
-    PRE --> INTENT
-    INTENT --> ENTITY
-    ENTITY --> CTX
-    ENTITY --> STATE
+    PRE --> PARSE
+    PARSE --> EXTRACT
+    EXTRACT --> CTX
+    EXTRACT --> STATE
     CTX --> RESP
     STATE --> RESP
     RESP --> POST
@@ -449,10 +439,10 @@ flowchart TD
 ```mermaid
 flowchart LR
     INPUT2["Customer Profile Data"]
-    FE["Feature Engineering<br/>• Age encode<br/>• Income normalize<br/>• Investment diversity<br/>• Goal gap ratio<br/>• Savings rate"]
-    MODEL["Risk Model (XGBoost)<br/>Input: 15 features<br/>Output: score (1-10)"]
+    FE["Feature Computation<br/>• Age factor<br/>• Income stability<br/>• Investment diversity<br/>• Goal gap ratio<br/>• Savings rate"]
+    MODEL["Weighted Scoring<br/>Input: 15 factors<br/>Output: score (1-10)"]
     CAT["Category Mapper<br/>Score 1-3: Conservative<br/>Score 3-6: Moderate<br/>Score 6-8: Aggressive<br/>Score 8-10: Very Aggressive"]
-    EXP["LLM Explainer<br/>'Based on your profile,<br/>you are a Moderate<br/>investor...'"]
+    EXP["Explanation Builder<br/>(Template)<br/>'Based on your profile,<br/>you are a Moderate<br/>investor...'"]
 
     INPUT2 --> FE
     FE --> MODEL
@@ -466,16 +456,14 @@ flowchart LR
 flowchart TD
     INPUT3["Risk Profile + Customer Data"]
     RULES["Rule Engine (Hard Rules)<br/>Filter: regulatory suitability"]
-    CF["Collaborative Filter<br/>Score by similar customer preferences"]
-    LLM_RANK["LLM Ranker<br/>Re-rank by conversation context"]
+    RANK["Product Ranker<br/>Score by fit: risk alignment, returns, tax benefits"]
     PB["Portfolio Builder<br/>Equity / Debt / Gold / FD / Insurance"]
-    MC["Wealth Projector<br/>Monte Carlo (10K scenarios)<br/>Output: P25/P50/P75 year-by-year"]
+    PROJ["Wealth Projector<br/>Compound Growth Formula<br/>Output: Conservative / Expected / Optimistic"]
 
     INPUT3 --> RULES
-    RULES --> CF
-    CF --> LLM_RANK
-    LLM_RANK --> PB
-    PB --> MC
+    RULES --> RANK
+    RANK --> PB
+    PB --> PROJ
 ```
 
 ---
@@ -511,7 +499,6 @@ graph TB
 
     subgraph NODES["Node Groups"]
         GEN["General: m6i.xlarge (4 vCPU, 16 GB) x 6"]
-        AI["AI/ML: g5.xlarge (GPU) x 2"]
         SPOT["Spot: m6i.large x 4 (analytics, batch)"]
     end
 ```
@@ -547,46 +534,41 @@ graph LR
 
 ## 10. Non-Functional Requirements
 
-### 10.1 Performance Targets
-
-| Metric | Target | Measurement |
-|---|---|---|
-| **Chat Response Time** | < 2 seconds (P95) | From message sent to response displayed |
-| **AI Inference Latency** | < 3 seconds (P95) | LLM response generation time |
-| **API Response Time** | < 200ms (P95) | Non-AI REST API calls |
-| **Concurrent Conversations** | 10,000 simultaneous | WebSocket connections |
-| **Notification Delivery** | < 30 seconds | From trigger to channel delivery |
-| **Throughput** | 500 conversations/minute | New conversation starts |
-
-### 10.2 Availability & Reliability
+### 10.1 Performance
 
 | Metric | Target |
 |---|---|
-| **System Availability** | 99.95% (< 4.38 hours downtime/year) |
-| **RTO (Recovery Time Objective)** | < 15 minutes |
-| **RPO (Recovery Point Objective)** | < 1 minute (for conversation data) |
-| **Error Rate** | < 0.1% for API calls |
+| **API Response Time (p95)** | < 200ms |
+| **WebSocket Message Delivery** | < 100ms |
+| **Risk Scoring Latency** | < 50ms (in-process weighted scoring) |
+| **Wealth Projection Latency** | < 100ms (deterministic formula) |
+| **Notification Delivery** | < 5s (to provider API) |
 
-### 10.3 Scalability Targets
+### 10.2 Availability
 
-| Dimension | Base | Peak | Elastic Max |
-|---|---|---|---|
-| **Registered Users** | 500,000 | — | Unlimited (DB sharding) |
-| **Daily Active Users** | 70,000 | 100,000 | 200,000+ |
-| **Concurrent Sessions** | 5,000 | 10,000 | 25,000 |
-| **Messages/Day** | 1,000,000 | 2,000,000 | 5,000,000 |
-| **Notifications/Day** | 200,000 | 500,000 | 1,000,000 |
+| Metric | Target |
+|---|---|
+| **System Uptime** | 99.9% (< 8.7 hours downtime/year) |
+| **Conversation Service** | 99.95% (< 4.4 hours/year) |
+| **Notification Service** | 99.9% (with retry and DLQ) |
+
+### 10.3 Scalability
+
+| Dimension | Base → Max |
+|---|---|
+| **Concurrent WebSockets** | 15K → 60K |
+| **API RPS** | 300 → 1,200 |
+| **Conversations/Day** | 100K → 400K |
+| **Notifications/Day** | 200K → 800K |
 
 ### 10.4 Security & Compliance
 
-| Requirement | Standard |
-|---|---|
-| **Data Encryption** | AES-256 at rest, TLS 1.3 in transit |
-| **Authentication** | OAuth 2.0 / OIDC with MFA |
-| **Regulatory** | RBI guidelines (India), PCI-DSS Level 2, GDPR |
-| **Audit** | Full audit trail with 7-year retention |
-| **Penetration Testing** | Quarterly VAPT assessments |
+- PCI-DSS Level 1 compliance
+- GDPR-compliant data handling
+- RBI data localization (India region)
+- Annual penetration testing
+- SOC 2 Type II certification target
 
 ---
 
-*Next: See [03-low-level-design.md](./03-low-level-design.md) for detailed API contracts, database schemas, and sequence diagrams.*
+*Next: See [03-low-level-design.md](./03-low-level-design.md) for detailed schemas, API contracts, and algorithms.*

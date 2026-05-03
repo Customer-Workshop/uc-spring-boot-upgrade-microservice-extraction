@@ -1,6 +1,6 @@
-# Relationship Manager — Architecture Document
+# Relationship Manager — Architecture Document (Non-AI Version)
 
-> **Version:** 1.0 (Draft)
+> **Version:** 2.0 (Non-AI)
 > **Date:** 2026-05-03
 > **Status:** Proposed — Awaiting Review
 
@@ -13,7 +13,7 @@
 3. [System Overview](#3-system-overview)
 4. [Architecture Principles](#4-architecture-principles)
 5. [Component Architecture](#5-component-architecture)
-6. [AI Integration Architecture](#6-ai-integration-architecture)
+6. [Rule-Based Processing Architecture](#6-rule-based-processing-architecture)
 7. [Security Architecture](#7-security-architecture)
 8. [Data Architecture](#8-data-architecture)
 9. [Integration Architecture](#9-integration-architecture)
@@ -23,7 +23,7 @@
 
 ## 1. Executive Summary
 
-The **Relationship Manager (RM)** platform is a conversational, AI-augmented banking application that engages customers — both anonymous and authenticated — through intelligent, multi-channel conversations. The platform captures customer financial profiles, builds risk assessments, generates wealth portfolio projections, and orchestrates periodic follow-ups across SMS, WhatsApp, Email, and Phone channels.
+The **Relationship Manager (RM)** platform is a conversational, rule-driven banking application that engages customers — both anonymous and authenticated — through structured, multi-channel conversations. The platform captures customer financial profiles, builds risk assessments using weighted scoring algorithms, generates wealth portfolio projections using deterministic models, and orchestrates periodic follow-ups across SMS, WhatsApp, Email, and Phone channels.
 
 The system is designed as an **event-driven microservices architecture** deployed on cloud infrastructure, capable of serving **500,000 registered users** with **70,000–100,000 daily active interactions**, and elastic enough to scale beyond those thresholds.
 
@@ -33,21 +33,21 @@ The system is designed as an **event-driven microservices architecture** deploye
 
 ### 2.1 Problem Statement
 
-Banks need a scalable, intelligent way to:
-- Acquire new customers through personalized digital conversations
+Banks need a scalable, structured way to:
+- Acquire new customers through guided digital conversations
 - Understand customer financial profiles and risk appetite
 - Recommend suitable banking and investment products
 - Maintain ongoing relationships through periodic, multi-channel follow-ups
-- Automate repetitive advisory tasks while maintaining a human-like experience
+- Automate repetitive advisory tasks while maintaining a professional experience
 
 ### 2.2 Key Business Capabilities
 
 | Capability | Description |
 |---|---|
-| **Customer Onboarding** | Conversational intake of demographics, income, investments, and retirement goals |
-| **Risk Profiling** | AI-driven assessment of risk tolerance and investment suitability |
-| **Product Recommendation** | Matching customer profiles to banking/investment products |
-| **Wealth Projection** | Modelling portfolio growth based on customer inputs and market data |
+| **Customer Onboarding** | Guided conversational intake of demographics, income, investments, and retirement goals |
+| **Risk Profiling** | Weighted scoring-based assessment of risk tolerance and investment suitability |
+| **Product Recommendation** | Rule-based matching of customer profiles to banking/investment products |
+| **Wealth Projection** | Deterministic compound-growth modelling based on customer inputs and asset returns |
 | **Follow-Up Orchestration** | Scheduling and executing periodic reviews across chosen channels |
 | **Reminder Service** | Multi-channel nudges (SMS, WhatsApp, Calendar, Email) |
 | **Conversation Continuity** | Seamless continuation from previous interactions |
@@ -58,7 +58,7 @@ Banks need a scalable, intelligent way to:
 |---|---|
 | **Anonymous Visitor** | Lands on the platform, explores without logging in; may convert to a registered user |
 | **Registered Customer** | Authenticated user with a full profile, active conversations, and scheduled follow-ups |
-| **Relationship Manager (Human)** | Bank staff who can review AI recommendations and intervene when needed |
+| **Relationship Manager (Human)** | Bank staff who can review system recommendations and intervene when needed |
 | **System Admin** | Manages products, conversation templates, and system configuration |
 
 ---
@@ -67,7 +67,7 @@ Banks need a scalable, intelligent way to:
 
 ### 3.1 Architectural Style
 
-**Event-Driven Microservices** with a **Conversational AI Core**
+**Event-Driven Microservices** with a **Rule-Based Conversation Engine**
 
 ```mermaid
 graph TB
@@ -82,9 +82,9 @@ graph TB
     end
 
     subgraph CORE["CORE SERVICES"]
-        CONV["Conversation Service<br/>Chat Engine, Session Mgmt, NLP"]
+        CONV["Conversation Service<br/>Template Engine, Session Mgmt"]
         PROF["Customer Profile Service<br/>Demographics, KYC, Risk Profile"]
-        PROD["Product & Recommendation<br/>Catalog, AI Recommendation, Projection"]
+        PROD["Product & Recommendation<br/>Catalog, Rule-Based Matching, Projection"]
     end
 
     subgraph EVENTBUS["EVENT BUS"]
@@ -94,7 +94,7 @@ graph TB
     subgraph ASYNC["ASYNC SERVICES"]
         FU["Follow-Up Orchestrator<br/>Scheduling, Agenda, Review"]
         NOTIF["Notification Service<br/>SMS, WhatsApp, Email, Calendar, Voice"]
-        ANALYTICS["Analytics & Reporting<br/>Dashboards, Funnels, AI Monitoring"]
+        ANALYTICS["Analytics & Reporting<br/>Dashboards, Funnels, Monitoring"]
     end
 
     subgraph DATA["DATA TIER"]
@@ -132,7 +132,7 @@ graph TB
 |---|---|
 | **Microservices over Monolith** | Independent scaling of conversation engine vs. notification services; team autonomy |
 | **Event-Driven Communication** | Decoupled services; natural fit for async operations (notifications, scheduling) |
-| **Conversational AI Core** | LLM-powered NLP reduces rigid dialog tree maintenance; supports natural conversation |
+| **Rule-Based Dialog Engine** | Template-driven conversation with pattern matching; deterministic, testable, no external API dependency |
 | **Multi-Channel Abstraction** | Single conversation model adapts to SMS, WhatsApp, Web, Voice — no channel-specific logic in core |
 | **CQRS for Read/Write** | High read-to-write ratio (dashboards, analytics) benefits from separated models |
 | **API Gateway** | Centralized auth, rate limiting, routing; simplifies client integration |
@@ -148,7 +148,7 @@ graph TB
 | 3 | **Event-Driven** | Asynchronous event propagation for loose coupling and resilience |
 | 4 | **Security by Design** | Zero-trust networking, encryption at rest and in transit, PII handling compliant with banking regulations |
 | 5 | **Elastic Scalability** | Horizontal pod autoscaling (HPA) and cluster autoscaling for burst traffic |
-| 6 | **AI-Augmented** | AI for conversation, risk profiling, recommendations, and follow-up intelligence |
+| 6 | **Deterministic Processing** | Rule-based scoring, template-driven conversations, and formula-based projections — no external AI dependencies |
 | 7 | **Observability** | Distributed tracing, structured logging, and metrics for all services |
 | 8 | **Resilience** | Circuit breakers, retries, bulkheads, and graceful degradation |
 | 9 | **Data Privacy** | GDPR/PCI-DSS compliant; PII encrypted, consent-managed, right-to-erasure supported |
@@ -164,20 +164,20 @@ The heart of the platform. Manages all customer interactions.
 
 **Responsibilities:**
 - Manage conversation sessions (anonymous and authenticated)
-- Drive the conversational flow using an AI-powered dialog engine
-- Extract structured data from natural language inputs
+- Drive the conversational flow using a template-based dialog engine
+- Extract structured data from customer inputs via pattern matching and form-based collection
 - Maintain conversation state and context across sessions
-- Hand off to human RM when confidence is low or customer requests it
+- Hand off to human RM when input is ambiguous or customer requests it
 
 **Sub-components:**
 
 | Component | Technology | Purpose |
 |---|---|---|
-| Dialog Engine | LLM (GPT-4 / Claude) + LangChain | Drives conversation flow, extracts entities |
+| Dialog Engine | Template Engine + State Machine | Drives conversation flow using predefined templates per phase |
 | Session Manager | Redis + PostgreSQL | Manages active sessions and persists history |
-| NLP Pipeline | LLM + Custom Prompts | Intent classification, entity extraction, sentiment analysis |
+| Input Parser | Regex + Validation Rules | Pattern matching for entity extraction (name, phone, email, amounts) |
 | Flow Orchestrator | Custom State Machine | Manages conversation phases (greeting → data collection → profiling → recommendation) |
-| Human Handoff | WebSocket + Queue | Routes to human RM when AI confidence < threshold |
+| Human Handoff | WebSocket + Queue | Routes to human RM when input is unclear or customer requests it |
 
 ### 5.2 Customer Profile Service
 
@@ -192,18 +192,18 @@ Manages all customer data and financial profiles.
 
 ### 5.3 Product & Recommendation Service
 
-AI-powered product matching and wealth projection.
+Rule-based product matching and wealth projection.
 
 **Responsibilities:**
 - Maintain product catalog (savings accounts, FDs, mutual funds, insurance, etc.)
-- Match customer risk profiles to suitable products
-- Generate wealth portfolio projections using financial models
+- Match customer risk profiles to suitable products using suitability rules
+- Generate wealth portfolio projections using deterministic compound-growth formulas
 - Track product performance and update recommendations
 
-**AI Components:**
-- **Risk Assessment Model**: Classifies customers into risk categories (Conservative, Moderate, Aggressive, Very Aggressive) based on age, income, goals, and stated preferences
-- **Recommendation Engine**: Collaborative filtering + rule-based engine for product suggestions
-- **Wealth Projection Model**: Monte Carlo simulation for portfolio growth projections
+**Processing Components:**
+- **Risk Assessment Engine**: Classifies customers into risk categories (Conservative, Moderate, Aggressive, Very Aggressive) using a weighted scoring algorithm based on age, income, goals, and stated preferences
+- **Recommendation Engine**: Rule-based suitability filtering + product ranking by fit score
+- **Wealth Projection Engine**: Deterministic compound-growth formula for portfolio projections
 
 ### 5.4 Follow-Up Orchestrator
 
@@ -211,7 +211,7 @@ Schedules and manages periodic customer reviews.
 
 **Responsibilities:**
 - Schedule follow-ups based on customer preferences and RM availability
-- Build agendas from previous conversation context and market changes
+- Build agendas from previous conversation data and action item status
 - Track action items for both RM and customer
 - Trigger reminders via the Notification Service
 
@@ -227,74 +227,74 @@ Multi-channel communication gateway.
 
 ### 5.6 Analytics & Reporting Service
 
-Business intelligence and AI model monitoring.
+Business intelligence and system monitoring.
 
 **Responsibilities:**
 - Track conversion funnels (visitor → conversation → profile → product)
-- Monitor AI model performance (accuracy, latency, hallucination rate)
+- Monitor system performance (latency, throughput, error rates)
 - Generate RM performance dashboards
 - Compliance and audit reporting
 
 ---
 
-## 6. AI Integration Architecture
+## 6. Rule-Based Processing Architecture
 
-### 6.1 AI Flows Overview
+### 6.1 Processing Flows Overview
 
 ```mermaid
 graph TB
-    subgraph AI_LAYER["AI ORCHESTRATION LAYER"]
+    subgraph PROC_LAYER["RULE-BASED PROCESSING LAYER"]
         subgraph ROW1[" "]
             direction LR
-            A1["Conversational AI Agent<br/>• Greeting<br/>• Data Capture<br/>• Contextual Responses<br/>• Sentiment Detection"]
-            A2["Risk Profiling AI Model<br/>• Questionnaire Analysis<br/>• Behavioral Scoring<br/>• Category Assignment"]
-            A3["Recommendation Engine<br/>• Product Match<br/>• Portfolio Build<br/>• Projection Simulation<br/>• Rebalancing Suggestions"]
+            A1["Template Dialog Engine<br/>• Greeting Templates<br/>• Phase-Specific Prompts<br/>• Validation Rules<br/>• Pattern Matching"]
+            A2["Weighted Scoring Engine<br/>• Feature Weighting<br/>• Score Computation<br/>• Category Assignment"]
+            A3["Product Matching Engine<br/>• Suitability Rules<br/>• Ranking by Fit Score<br/>• Portfolio Builder<br/>• Compound-Growth Projections"]
         end
         subgraph ROW2[" "]
             direction LR
-            A4["Follow-Up Intelligence<br/>• Optimal Time Prediction<br/>• Agenda Generation<br/>• Channel Selection"]
-            A5["Summarization Agent<br/>• Conversation Summary<br/>• Action Items Extraction<br/>• Brief Builder"]
-            A6["Anomaly Detection<br/>• Unusual Patterns<br/>• Fraud Signals<br/>• Compliance Violations"]
+            A4["Follow-Up Scheduler<br/>• Calendar-Based Scheduling<br/>• Template Agenda Builder<br/>• Channel Routing"]
+            A5["Summary Builder<br/>• Template Summaries<br/>• Action Item Tracker<br/>• Agenda Generator"]
+            A6["Alerting & Monitoring<br/>• Threshold Alerts<br/>• Compliance Checks<br/>• SLA Monitoring"]
         end
     end
 ```
 
-### 6.2 AI Flow Details
+### 6.2 Processing Flow Details
 
-#### Flow 1: Conversational AI Agent
-- **Purpose**: Drive natural, multi-turn conversations to collect customer data
-- **Model**: LLM (GPT-4o / Claude 3.5) with banking-specific system prompts
-- **Technique**: Retrieval-Augmented Generation (RAG) with product knowledge base
-- **Guardrails**: Content filtering, PII redaction in logs, hallucination detection
-- **Fallback**: Graceful handoff to human RM when confidence < 0.7
+#### Flow 1: Template Dialog Engine
+- **Purpose**: Drive structured, multi-turn conversations to collect customer data
+- **Approach**: Phase-specific templates with branching logic and validation rules
+- **Input Parsing**: Regex-based entity extraction (names, phone numbers, email, currency amounts, age)
+- **Validation**: Format checking, range validation, confirmation prompts
+- **Fallback**: Clarification prompts when input is ambiguous; handoff to human RM after 2 failed attempts
 
-#### Flow 2: Risk Profiling Model
+#### Flow 2: Weighted Scoring Engine
 - **Purpose**: Classify customers into risk categories based on collected data
-- **Model**: Gradient Boosted Trees (XGBoost) trained on historical customer data
+- **Approach**: Multi-factor weighted scoring algorithm with configurable weights
 - **Inputs**: Age group, income, investments, savings, retirement goals, stated preferences
 - **Output**: Risk score (1-10) + Category (Conservative / Moderate / Aggressive / Very Aggressive)
-- **Retraining**: Weekly batch retraining on new customer data
+- **Recalibration**: Weights reviewed quarterly by product team
 
 #### Flow 3: Product Recommendation Engine
 - **Purpose**: Match customer profiles to suitable products
-- **Approach**: Hybrid (Collaborative Filtering + Rule-Based + LLM Reasoning)
-- **Rules**: Regulatory suitability rules (e.g., don't recommend high-risk products to conservative profiles)
-- **Personalization**: User behavior signals (click-through, time-on-page)
+- **Approach**: Rule-based suitability filtering + weighted ranking
+- **Rules**: Regulatory suitability rules (e.g., don't recommend high-risk products to conservative profiles), age eligibility, minimum investment thresholds
+- **Ranking**: Products scored by fit (risk alignment, return potential, tax benefits)
 
-#### Flow 4: Wealth Projection Model
-- **Purpose**: Simulate portfolio growth over time
-- **Model**: Monte Carlo simulation with configurable market scenarios
+#### Flow 4: Wealth Projection Engine
+- **Purpose**: Project portfolio growth over time
+- **Model**: Deterministic compound-growth formula with asset-class-specific expected returns
 - **Inputs**: Current savings, monthly contribution capacity, risk tolerance, target retirement age/amount
-- **Output**: Projected portfolio value at 25th, 50th, 75th percentile with year-by-year breakdown
+- **Output**: Projected portfolio value (conservative, expected, optimistic) with year-by-year breakdown
 
-#### Flow 5: Follow-Up Intelligence
-- **Purpose**: Optimize follow-up timing, channel, and content
-- **Model**: Reinforcement Learning agent trained on engagement data
-- **Predictions**: Best time to contact, optimal channel, conversation agenda priority
+#### Flow 5: Follow-Up Scheduler
+- **Purpose**: Manage follow-up timing, channel, and agenda
+- **Approach**: Calendar-based scheduling with customer preference rules
+- **Agenda**: Template-based agenda built from previous conversation data and action items
 
-#### Flow 6: Conversation Summarization Agent
+#### Flow 6: Summary Builder
 - **Purpose**: Generate briefs for follow-up conversations
-- **Model**: LLM with structured output
+- **Approach**: Template-based summaries from stored conversation data
 - **Output**: Previous conversation summary, action items status, agenda for next interaction
 
 ---
@@ -341,22 +341,21 @@ graph TB
 | **Document Store** | S3 / Azure Blob | Documents and media | KYC documents, conversation transcripts, reports |
 | **Search & Analytics** | Elasticsearch | Full-text search, analytics | Conversation logs, product search, audit trails |
 | **Event Store** | Kafka (with retention) | Event sourcing | All domain events for replay and analytics |
-| **ML Feature Store** | Redis / DynamoDB | Feature serving | Pre-computed features for real-time model inference |
 
 ### 8.2 Data Flow
 
 ```mermaid
 flowchart TD
     A["Customer Input"] --> B["Conversation Service"]
-    B --> C["NLP Pipeline"]
+    B --> C["Input Parser & Validator"]
     C --> D["Structured Data"]
     D --> E["Customer Profile DB"]
     D --> F["Event Bus (Kafka)"]
-    E --> G["Risk Profiling Model"]
+    E --> G["Weighted Scoring Engine"]
     F --> H["Follow-Up Orchestrator"]
-    G --> I["Recommendation Engine"]
+    G --> I["Rule-Based Recommendation"]
     H --> J["Notification Service"]
-    I --> K["Wealth Projection"]
+    I --> K["Wealth Projection (Compound Growth)"]
     J --> L["SMS / WhatsApp / Email"]
     K --> M["Customer Dashboard"]
 ```
@@ -374,7 +373,6 @@ flowchart TD
 | **Email** | SendGrid / Amazon SES | Email notifications | REST API |
 | **Voice/IVR** | Twilio Voice | Phone-based follow-ups | REST + WebSocket |
 | **Calendar** | Google Calendar / Microsoft Graph | Meeting scheduling and reminders | REST (OAuth) |
-| **LLM Provider** | OpenAI / Anthropic / Azure OpenAI | Conversational AI | REST API |
 | **Market Data** | Bloomberg / Alpha Vantage | Real-time and historical market data | REST / WebSocket |
 | **KYC/AML** | Bank's internal system | Identity verification | REST / SOAP |
 | **Core Banking** | Bank's CBS | Account and product data | REST / ISO 20022 |
@@ -406,9 +404,9 @@ flowchart TD
 | **Circuit Breaker** | Resilience4j on all inter-service calls |
 | **Retry with Backoff** | Exponential backoff for transient failures |
 | **Bulkhead** | Thread pool isolation per downstream dependency |
-| **Timeout** | Configurable per-call (default 5s for sync, 30s for AI calls) |
+| **Timeout** | Configurable per-call (default 5s for sync calls) |
 | **Dead Letter Queue** | Failed events routed to DLQ for manual inspection |
-| **Graceful Degradation** | If AI is unavailable, fall back to rule-based flows |
+| **Graceful Degradation** | If a service is unavailable, serve cached data or queue requests |
 
 ### 10.3 CI/CD Pipeline
 

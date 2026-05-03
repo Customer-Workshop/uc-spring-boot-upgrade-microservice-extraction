@@ -1,6 +1,6 @@
-# Relationship Manager — Sequence Diagrams
+# Relationship Manager — Sequence Diagrams (Non-AI Version)
 
-> **Version:** 1.0 (Draft)
+> **Version:** 2.0 (Non-AI)
 > **Date:** 2026-05-03
 > **Status:** Proposed — Awaiting Review
 
@@ -26,7 +26,7 @@
 16. [UC-16: Customer Dashboard Data Load](#uc-16-customer-dashboard-data-load)
 17. [UC-17: Admin Product Catalog Update](#uc-17-admin-product-catalog-update)
 18. [UC-18: Conversation Resumption (Paused Session)](#uc-18-conversation-resumption-paused-session)
-19. [UC-19: AI Failure & Graceful Degradation](#uc-19-ai-failure--graceful-degradation)
+19. [UC-19: Input Parse Failure & Graceful Recovery](#uc-19-input-parse-failure--graceful-recovery)
 20. [UC-20: End-to-End New Customer Journey (Complete Flow)](#uc-20-end-to-end-new-customer-journey-complete-flow)
 
 ---
@@ -53,6 +53,7 @@ sequenceDiagram
     GW-->>W: 201 Created + WS URL
     W-->>C: Chat UI opens + WS connect
     W->>CS: WebSocket Connected
+    CS->>CS: Load greeting template
     CS-->>W: WS: greeting message
     W-->>C: "Hello! Welcome to ABC Bank. May I know your name?"
 ```
@@ -61,62 +62,60 @@ sequenceDiagram
 
 ## UC-02: Conversational Data Collection (Personal Details)
 
-The AI collects customer name, age group, location, phone, and email through natural conversation.
+The system collects customer name, age group, location, phone, and email through guided conversation.
 
 ```mermaid
 sequenceDiagram
     participant C as Customer
     participant GW as API Gateway
     participant CS as Conv Svc
-    participant LLM as LLM (GPT-4o)
+    participant TE as Template Engine
     participant PS as Profile Service
 
     C->>GW: WS: "Hi, I'm Ravi, 32 years from Hyderabad"
     GW->>CS: Forward message
-    CS->>LLM: Extract entities from message
-    LLM-->>CS: name="Ravi", age_group="30-40", location="Hyderabad" (confidence=0.96)
+    CS->>CS: Parse input (regex: name, age, location)
+    Note over CS: Extracted: name="Ravi", age=32→"30-40", location="Hyderabad"
     CS->>PS: Save partial profile
     PS-->>CS: 200 OK
-    CS->>LLM: Generate next question
-    LLM-->>CS: "Nice to meet you Ravi! Could you share your email and phone number?"
-    CS-->>C: WS: AI response + phase progress (25%)
+    CS->>TE: Load ask_contact template
+    TE-->>CS: "Nice to meet you Ravi! Could you share your email and phone number?"
+    CS-->>C: WS: response + phase progress (25%)
 
     C->>CS: WS: "Sure, my email is ravi@mail.com, phone 9876543210"
-    CS->>LLM: Extract + validate
-    LLM-->>CS: email, phone both valid
+    CS->>CS: Parse input (regex: email, phone)
+    Note over CS: Validated: email format OK, phone 10-digit OK
     CS->>PS: Update profile
     Note over CS: Phase transition: PERSONAL → FINANCIAL
-    CS->>LLM: Generate transition msg
-    LLM-->>CS: "Great Ravi! Now, tell me about your income..."
-    CS-->>C: WS: Phase change event + AI response
+    CS->>TE: Load financial phase intro
+    TE-->>CS: "Great Ravi! Now, tell me about your income..."
+    CS-->>C: WS: Phase change event + response
 ```
 
 ---
 
 ## UC-03: Financial Profile Collection
 
-The AI collects income source, income range, current investments, and savings.
+The system collects income source, income range, current investments, and savings.
 
 ```mermaid
 sequenceDiagram
     participant C as Customer
     participant CS as Conv Svc
-    participant LLM as LLM (GPT-4o)
+    participant TE as Template Engine
     participant PS as Profile Service
 
     C->>CS: WS: "I work in IT, salaried, around 1.2L per month"
-    CS->>LLM: Extract: income_source, income_range
-    LLM-->>CS: income_source="SALARIED", income_range="100-150K" (1.2L/mo = 14.4L/yr)
+    CS->>CS: Parse: keyword match to SALARIED, amount 14.4L/yr maps to 100-150K
     CS->>PS: Save to profile
-    CS->>LLM: Next question
-    LLM-->>CS: "That's great! Do you have any current investments like mutual funds, FDs, stocks?"
-    CS-->>C: WS: AI response
+    CS->>TE: Load ask_investments template
+    TE-->>CS: "That's great! Do you have any current investments like mutual funds, FDs, stocks?"
+    CS-->>C: WS: response
 
     C->>CS: WS: "Yes, I have about 2L in MFs, 5L in FD, and 1L in stocks. Savings around 3L"
-    CS->>LLM: Extract structured data
-    LLM-->>CS: investments: {mutual_funds: 200000, fd: 500000, equity: 100000}, savings: 300000
-    CS->>LLM: Confirm with customer
-    LLM-->>CS: Confirmation message
+    CS->>CS: Parse amounts: MF=200000, FD=500000, equity=100000, savings=300000
+    CS->>TE: Load confirmation template
+    TE-->>CS: Confirmation message
     CS-->>C: WS: "Let me confirm: ₹2L in MFs, ₹5L in FDs, ₹1L in stocks, ₹3L savings. Is that right?"
 
     C->>CS: WS: "Yes, that's correct"
@@ -128,27 +127,26 @@ sequenceDiagram
 
 ## UC-04: Retirement Goal Capture
 
-The AI collects retirement target amount and target age based on customer's age group.
+The system collects retirement target amount and target age based on customer's age group.
 
 ```mermaid
 sequenceDiagram
     participant C as Customer
     participant CS as Conv Svc
-    participant LLM as LLM (GPT-4o)
+    participant TE as Template Engine
     participant PS as Profile Service
 
-    Note over CS,LLM: Context: age group=30-40, income=100-150K
-    CS->>LLM: Generate contextual question
-    LLM-->>CS: Response
+    Note over CS,TE: Context: age group=30-40, income=100-150K
+    CS->>TE: Load contextual goal template (age_group=30-40)
+    TE-->>CS: Response
     CS-->>C: "Ravi, since you're in your early 30s, you have a great runway for building wealth. When would you like to retire? And how much would you like to have by then?"
 
     C->>CS: WS: "I want to retire at 55 with about 5 crores"
-    CS->>LLM: Extract goals
-    LLM-->>CS: retirement_target_age=55, retirement_target_amount=50000000, years_to_retire=20
+    CS->>CS: Parse: retirement_age=55, amount=50000000, years=20
     CS->>PS: Update profile
     Note over CS: Phase: GOALS → RISK_ASSESSMENT
-    CS->>LLM: Generate transition + risk context msg
-    LLM-->>CS: Response
+    CS->>TE: Load risk intro template
+    TE-->>CS: Response
     CS-->>C: "₹5 crores by 55 — great goal! Now let me understand your comfort with investment risk..."
 ```
 
@@ -156,34 +154,33 @@ sequenceDiagram
 
 ## UC-05: Risk Profile Assessment
 
-The system computes a risk score using the ML model and presents the result to the customer.
+The system computes a risk score using weighted scoring and presents the result to the customer.
 
 ```mermaid
 sequenceDiagram
     participant C as Customer
     participant CS as Conv Svc
-    participant LLM as LLM (GPT-4o)
+    participant TE as Template Engine
     participant PS as Profile Service
-    participant RS as Risk Svc (XGBoost)
+    participant RS as Risk Svc (Weighted Scoring)
     participant K as Kafka
 
     C->>CS: WS: "I'm okay with moderate risk, not too aggressive"
-    CS->>LLM: Extract risk preferences
-    LLM-->>CS: stated preference: "moderate" score=0.5
+    CS->>CS: Parse risk preference: keyword "moderate" → stated_preference=0.5
     CS->>PS: Fetch full profile
     PS-->>CS: Full customer profile
     CS->>RS: Request risk assessment
 
-    RS->>RS: Feature engineering (15 features)
-    RS->>RS: XGBoost prediction
-    RS->>RS: SHAP explanation
-    RS-->>CS: risk_score=6.5, category="MODERATE", top_factors=[age, income, savings_ratio]
+    RS->>RS: Compute 15 features (weighted factors)
+    RS->>RS: Weighted score calculation
+    RS->>RS: Map to category
+    RS-->>CS: risk_score=6.5, category="MODERATE", top_factors=[age, income_stability, savings_ratio]
 
     RS->>PS: Save risk profile
     RS->>K: Emit risk.assessed event
 
-    CS->>LLM: Generate explanation
-    LLM-->>CS: "Based on your age (30-40), stable income, and existing investments, you're a Moderate investor..."
+    CS->>TE: Load risk explanation template (category=MODERATE)
+    TE-->>CS: "Based on your age (30-40), stable income, and existing investments, you're a Moderate investor (score: 6.5/10)..."
     CS-->>C: Risk profile explanation + score card
 ```
 
@@ -191,13 +188,13 @@ sequenceDiagram
 
 ## UC-06: Product Recommendation & Wealth Projection
 
-The recommendation engine builds a portfolio and the wealth projection model simulates growth.
+The recommendation engine builds a portfolio and the wealth projection engine calculates growth.
 
 ```mermaid
 sequenceDiagram
     participant C as Customer
     participant CS as Conv Svc
-    participant LLM as LLM
+    participant TE as Template Engine
     participant REC as Recomm. Service
     participant PC as Product Catalog
     participant WP as Wealth Proj Svc
@@ -206,19 +203,18 @@ sequenceDiagram
     REC->>PC: Fetch products by risk level (MODERATE)
     PC-->>REC: 25 matching products
 
-    REC->>REC: Rule engine: filter by suitability
-    REC->>REC: Collaborative filtering: rank by similar customers
-    REC->>REC: LLM re-rank by context
+    REC->>REC: Rule engine: filter by suitability (age, income, risk)
+    REC->>REC: Rank by fit score (risk alignment + returns + tax benefits)
     REC->>REC: Build portfolio: Equity 40%, Debt 25%, FD 15%, Gold 10%, NPS 10%
 
     REC->>WP: Request wealth projection
-    WP->>WP: Monte Carlo (10K sims)
-    WP->>WP: Compute P25/P50/P75 per year
+    WP->>WP: Compound growth formula (3 scenarios)
+    WP->>WP: Compute conservative / expected / optimistic per year
     WP-->>REC: Portfolio + Projection
 
     REC-->>CS: Recommendation ready (callback/event)
-    CS->>LLM: Generate presentation
-    LLM-->>CS: Rich card with portfolio allocation + projection chart data
+    CS->>TE: Load portfolio presentation template
+    TE-->>CS: Rich card with portfolio allocation + projection chart data
     CS-->>C: Rich card: Portfolio allocation chart + wealth projection graph
 ```
 
@@ -232,18 +228,18 @@ Customer selects their preferred channel for follow-up communications.
 sequenceDiagram
     participant C as Customer
     participant CS as Conv Svc
-    participant LLM as LLM (GPT-4o)
+    participant TE as Template Engine
     participant PS as Profile Service
 
-    CS->>LLM: Generate channel selection prompt
-    LLM-->>CS: Quick reply message with options
+    CS->>TE: Load channel selection template
+    TE-->>CS: Quick reply message with options
     CS-->>C: "How would you like me to reach you for follow-ups?" [SMS] [WhatsApp] [Email] [Phone]
 
     C->>CS: WS: Click "WhatsApp"
     CS->>PS: Save preference (preferred_channel=WHATSAPP, opt_in_whatsapp=true)
     PS-->>CS: 200 OK
-    CS->>LLM: Ask for time preferences
-    LLM-->>CS: Response
+    CS->>TE: Load time preference template
+    TE-->>CS: Response
     CS-->>C: "Great choice! What time works best for follow-up messages? Weekday mornings or evenings?"
 
     C->>CS: WS: "Weekday mornings, around 10 AM"
@@ -261,13 +257,13 @@ The system creates a follow-up schedule and confirms with the customer.
 sequenceDiagram
     participant C as Customer
     participant CS as Conv Svc
-    participant LLM as LLM
+    participant TE as Template Engine
     participant FU as FollowUp Orch.
     participant NS as Notific. Service
     participant K as Kafka
 
-    CS->>LLM: Suggest schedule
-    LLM-->>CS: Response
+    CS->>TE: Load schedule suggestion template
+    TE-->>CS: Response
     CS-->>C: "Would you like monthly check-ins? I can set up the first one for next month."
 
     C->>CS: WS: "Yes, monthly works"
@@ -281,8 +277,8 @@ sequenceDiagram
     NS->>NS: Schedule confirmation notification (WhatsApp)
 
     Note over CS: Phase: FOLLOWUP → COMPLETED
-    CS->>LLM: Generate closing msg
-    LLM-->>CS: Response
+    CS->>TE: Load closing template
+    TE-->>CS: Response
     CS-->>C: "All set, Ravi! First review on June 3 at 10 AM via WhatsApp. It was great chatting!"
     CS->>K: Emit conversation.completed
 ```
@@ -339,7 +335,7 @@ sequenceDiagram
     REM->>PS: Fetch customer name + prefs
     PS-->>REM: {name:"Ravi", preferred_channel:"WA", timezone:"Asia/Kolkata"}
     REM->>FU: Get agenda summary
-    FU-->>REM: Agenda summary
+    FU-->>REM: Agenda summary (from template)
     REM->>NS: Send reminder notification
 
     Note over NS: Template: followup_reminder_v1, Channel: WA
@@ -356,14 +352,14 @@ sequenceDiagram
 
 ## UC-11: Follow-Up Conversation Execution
 
-A scheduled follow-up begins with an AI-generated agenda from previous context.
+A scheduled follow-up begins with a template-generated agenda from previous context.
 
 ```mermaid
 sequenceDiagram
     participant C as Customer (WhatsApp/Web)
     participant FU as FollowUp Orch.
     participant CS as Conv Svc
-    participant LLM as LLM (GPT-4o)
+    participant TE as Template Engine
     participant PS as Profile Service
 
     C->>FU: Click "Confirm"
@@ -371,11 +367,10 @@ sequenceDiagram
     CS-->>FU: Last conversation transcript + summary
     FU->>PS: Fetch current profile
     PS-->>FU: Current profile + risk + recommendations
-    FU->>LLM: Generate agenda
-    LLM-->>FU: Agenda: 1. Review NPS decision, 2. Market update, 3. Tax-saving options, 4. Rebalancing check
+    FU->>FU: Build agenda from template + action items + profile changes
     FU->>CS: Create new conversation (follow-up type)
-    CS->>LLM: Generate opening with context
-    LLM-->>CS: Response
+    CS->>TE: Load follow-up opening template with context
+    TE-->>CS: Response
     CS-->>C: "Hi Ravi! Good to connect again. Last time we discussed your retirement portfolio. You were looking into NPS. Any updates?"
     Note over C,CS: Conversation continues with agenda topics
 ```
@@ -384,25 +379,26 @@ sequenceDiagram
 
 ## UC-12: Human RM Handoff
 
-When AI confidence drops below threshold or customer explicitly requests a human.
+When input cannot be parsed after 2 attempts or customer explicitly requests a human.
 
 ```mermaid
 sequenceDiagram
     participant C as Customer
     participant CS as Conv Svc
-    participant LLM as LLM
+    participant TE as Template Engine
     participant RM as Human RM (Staff)
     participant NS as Notific. Service
 
     C->>CS: WS: "Can I talk to a real person?"
-    CS->>LLM: Detect handoff intent
-    LLM-->>CS: Intent: HUMAN_HANDOFF, confidence: 0.99
+    CS->>CS: Detect handoff keyword: "real person" / "human" / "advisor"
     CS->>CS: Update state: HANDED_OFF
-    CS->>LLM: Generate conversation summary for human RM
-    LLM-->>CS: Summary: "Ravi, 30-40, salaried, 100-150K, moderate risk. Discussed portfolio allocation. Customer wants human advisor."
+    CS->>CS: Generate conversation summary from stored data
+    Note over CS: Summary built from: profile data + conversation phases completed + action items
     CS->>RM: Find available RM & assign
     CS->>NS: Notify RM (in-app + dashboard)
     NS-->>CS: Notified
+    CS->>TE: Load handoff template
+    TE-->>CS: Response
     CS-->>C: "Of course, Ravi! I'm connecting you with Priya, your dedicated advisor. One moment..."
     RM->>RM: RM views summary + full chat history
     RM->>CS: RM joins WS
@@ -413,7 +409,7 @@ sequenceDiagram
 
 ## UC-13: WhatsApp Inbound Follow-Up Interaction
 
-Customer responds to a follow-up via WhatsApp, triggering an interactive conversation.
+Customer responds to a follow-up via WhatsApp, triggering a structured conversation.
 
 ```mermaid
 sequenceDiagram
@@ -422,7 +418,7 @@ sequenceDiagram
     participant GW as API Gateway Webhook
     participant NS as Notific. Service
     participant CS as Conv Svc
-    participant LLM as LLM (GPT-4o)
+    participant TE as Template Engine
 
     C->>WA: Send WA message: "Hi, I've enrolled in NPS"
     WA->>GW: Webhook POST /webhooks/whatsapp
@@ -431,8 +427,9 @@ sequenceDiagram
     NS->>NS: Check for active follow-up
     NS->>CS: Route to Conv Service
     CS->>CS: Load context (last conv + follow-up agenda)
-    CS->>LLM: Generate response
-    LLM-->>CS: "That's great news! Which NPS fund did you choose? Auto Choice or Active Choice?"
+    CS->>CS: Parse input: keyword match → NPS enrollment detected
+    CS->>TE: Load NPS follow-up template
+    TE-->>CS: "That's great news! Which NPS fund did you choose? Auto Choice or Active Choice?"
     CS-->>NS: Reply message
     NS->>WA: POST /v1/messages
     WA-->>C: WhatsApp response
@@ -460,9 +457,9 @@ sequenceDiagram
     PS-->>W: 200 OK
 
     K->>REC: Event consumed
-    REC->>REC: Check if rebalancing needed
+    REC->>REC: Check if rebalancing needed (rule engine)
     REC->>WP: Recalculate projection
-    WP->>WP: Run Monte Carlo (10K sims)
+    WP->>WP: Compound growth formula (3 scenarios)
     WP-->>REC: Updated projection
     REC->>K: Emit recommendation.updated
 
@@ -478,9 +475,9 @@ The system periodically re-assesses customer risk profiles.
 ```mermaid
 sequenceDiagram
     participant SCH as Scheduler (Weekly)
-    participant RS as Risk Svc (XGBoost)
+    participant RS as Risk Svc (Weighted Scoring)
     participant PS as Profile Service
-    participant LLM as LLM (GPT-4o-m)
+    participant TE as Template Engine
     participant REC as Recomm. Service
     participant K as Kafka
 
@@ -491,12 +488,12 @@ sequenceDiagram
     Note over RS,PS: For each profile:
     RS->>PS: Fetch full customer data
     PS-->>RS: Profile
-    RS->>RS: Feature engineering + XGBoost prediction
+    RS->>RS: Compute 15 features + weighted scoring
     RS->>RS: Compare new vs old score
 
-    Note over RS,LLM: If score changed:
-    RS->>LLM: Generate new explanation
-    LLM-->>RS: Updated explanation
+    Note over RS,TE: If score changed:
+    RS->>TE: Generate new explanation from template
+    TE-->>RS: Updated explanation
     RS->>PS: Save new risk profile (is_current=true)
     RS->>K: Emit risk.reassessed
 
@@ -546,7 +543,6 @@ sequenceDiagram
     participant UI as Admin UI
     participant GW as API Gateway
     participant PC as Product Catalog
-    participant VDB as Vector DB
     participant K as Kafka
 
     A->>UI: Add new product: "Green Bond Fund"
@@ -554,8 +550,7 @@ sequenceDiagram
     GW->>GW: Auth: admin role check
     GW->>PC: Create product
     PC->>PC: Save to DB
-    PC->>VDB: Generate embedding for RAG
-    VDB-->>PC: Embedded
+    PC->>PC: Update product index (Elasticsearch)
     PC->>K: Emit product.added
     PC-->>GW: Created
     GW-->>UI: 201 Created
@@ -573,7 +568,7 @@ sequenceDiagram
     participant C as Customer
     participant W as Web App
     participant CS as Conv Svc
-    participant LLM as LLM (GPT-4o)
+    participant TE as Template Engine
     participant R as Redis
 
     C->>W: Return to website (has session cookie)
@@ -586,46 +581,43 @@ sequenceDiagram
     C->>W: Click "Resume"
     W->>CS: POST /api/v1/conversations/{id}/resume
     CS->>CS: Update status: PAUSED → ACTIVE
-    CS->>LLM: Generate resumption message with context
-    LLM-->>CS: "Welcome back, Ravi! We were discussing your income and investments. Shall we continue?"
+    CS->>TE: Load resumption template with context
+    TE-->>CS: "Welcome back, Ravi! We were discussing your income and investments. Shall we continue?"
     CS-->>W: Resume message + chat history
     W-->>C: Chat UI with history and resumption message
 ```
 
 ---
 
-## UC-19: AI Failure & Graceful Degradation
+## UC-19: Input Parse Failure & Graceful Recovery
 
-When the LLM fails, the system falls back to rule-based responses.
+When the system cannot parse customer input, it falls back to structured options.
 
 ```mermaid
 sequenceDiagram
     participant C as Customer
     participant CS as Conv Svc
-    participant LLM as LLM (GPT-4o)
-    participant FB as Fallback Engine
+    participant TE as Template Engine
     participant MON as Monitoring (Alerting)
 
     C->>CS: WS: "What funds do you recommend?"
-    CS->>LLM: Call LLM
-    LLM-->>CS: TIMEOUT (10s)
-    CS->>LLM: Retry (1/1)
-    LLM-->>CS: 503 Service Unavailable
+    CS->>CS: Parse input
+    Note over CS: Current phase: FINANCIAL (expecting income data)
+    CS->>CS: No matching entities found for current phase
 
-    CS->>CS: Circuit breaker OPEN
-    CS->>MON: Log error + alert
-    CS->>FB: Fallback to rule engine
+    CS->>TE: Load clarification template (phase=FINANCIAL)
+    TE-->>CS: Clarification + structured options
+    CS-->>C: "I'd like to understand your income first. Could you select your income range? [60-70K] [70-80K] [80-100K] [100-150K] [150K+]"
 
-    FB->>FB: Determine phase + context
-    FB->>FB: Generate template response
-    FB-->>CS: Fallback response
-    CS-->>C: "I'd love to discuss investment options with you. Let me first understand your risk comfort. On a scale of 1-10, how comfortable are you with investment risk?"
+    C->>CS: WS: Click "100-150K"
+    CS->>CS: Parse selection: income_range="100-150K"
+    CS-->>C: "Great! Now, do you have any current investments?"
 
-    Note over CS,LLM: 5 min later, circuit breaker half-open
-    CS->>LLM: Probe LLM
-    LLM-->>CS: 200 OK (recovered)
-    CS->>CS: Circuit breaker CLOSED
-    CS->>CS: Resume LLM responses
+    Note over CS: If 2 consecutive parse failures:
+    CS->>TE: Load handoff offer template
+    TE-->>CS: Response
+    CS-->>C: "I'm having trouble understanding. Would you like me to connect you with a human advisor?"
+    CS->>MON: Log parse failure pattern for review
 ```
 
 ---
@@ -639,7 +631,7 @@ sequenceDiagram
     participant C as Customer
     participant W as Web App
     participant CS as Conv Svc
-    participant LLM as LLM
+    participant TE as Template Engine
     participant PS as Profile Svc
     participant RS as Risk Svc
     participant REC as Recomm Svc
@@ -651,12 +643,13 @@ sequenceDiagram
     Note over C,W: PHASE 1: ANONYMOUS ENTRY
     C->>W: Visit website → Chat widget opens
     W->>CS: Anonymous session created
-    CS-->>C: AI greeting: "Hello! Welcome to ABC Bank..."
+    CS->>TE: Load greeting template
+    CS-->>C: "Hello! Welcome to ABC Bank..."
 
     Note over C,PS: PHASE 2: PERSONAL DATA COLLECTION
     C->>CS: "I'm Ravi, 32, from Hyderabad"
-    CS->>LLM: Extract entities
-    LLM-->>CS: name=Ravi, age_group=30-40, location=Hyderabad
+    CS->>CS: Parse input (regex extraction)
+    Note over CS: name=Ravi, age_group=30-40, location=Hyderabad
     CS->>PS: Save partial profile
     CS-->>C: "Could you share your email and phone?"
     C->>CS: "ravi@mail.com, 9876543210"
@@ -679,18 +672,18 @@ sequenceDiagram
     CS-->>C: "How comfortable are you with investment risk?"
     C->>CS: "Moderate, not too aggressive"
     CS->>RS: Full profile for assessment
-    RS->>RS: XGBoost: 15 features → score=6.5 (MODERATE)
-    RS->>RS: SHAP: top factors = [age, income stability, savings ratio]
-    RS->>LLM: Generate explanation
+    RS->>RS: 15 weighted factors → score=6.5 (MODERATE)
+    RS->>RS: Top factors = [age, income stability, savings ratio]
+    RS->>TE: Generate explanation from template
     RS->>K: risk.assessed
     CS-->>C: Risk profile card → Phase RECOMMENDATION
 
     Note over REC,WP: PHASE 6: PRODUCT RECOMMENDATION
     K->>REC: risk.assessed event
-    REC->>REC: Rule engine → Collaborative filtering → LLM re-rank
+    REC->>REC: Rule engine → Suitability filter → Rank by fit score
     REC->>REC: Portfolio: Equity 40%, Debt 25%, FD 15%, Gold 10%, NPS 10%
-    REC->>WP: Monte Carlo (10K sims)
-    WP-->>REC: P50 = ₹2.8Cr in 20 years
+    REC->>WP: Compound growth projection (3 scenarios)
+    WP-->>REC: Expected = ₹2.8Cr in 20 years
     REC-->>CS: Rich card (pie chart + line chart)
     CS-->>C: Portfolio + projection → Phase CHANNEL_PREF
 
@@ -712,7 +705,7 @@ sequenceDiagram
 
     Note over NS,K: POST-CONVERSATION
     K->>K: Analytics: funnel metrics updated
-    K->>K: Summarization agent: conversation summary generated
+    CS->>CS: Generate summary from conversation data (template)
 
     Note over NS,C: FOLLOW-UP (June 2)
     FU->>NS: T-24hrs: send reminder
@@ -720,7 +713,7 @@ sequenceDiagram
     C->>NS: "Confirm"
 
     Note over FU,C: FOLLOW-UP (June 3)
-    FU->>LLM: Generate agenda from context
+    FU->>FU: Build agenda from template + action items
     FU-->>C: "Hi Ravi! Last time we discussed NPS. Any updates?"
     Note over C,FU: Interactive WhatsApp conversation continues → New action items tracked → Next follow-up: July 3
 ```

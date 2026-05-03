@@ -1,6 +1,6 @@
-# Relationship Manager — Infrastructure & Cost Estimation
+# Relationship Manager — Infrastructure & Cost Estimation (Non-AI Version)
 
-> **Version:** 1.0 (Draft)
+> **Version:** 2.0 (Non-AI)
 > **Date:** 2026-05-03
 > **Status:** Proposed — Awaiting Review
 
@@ -13,11 +13,10 @@
 3. [Compute Sizing](#3-compute-sizing)
 4. [Data Storage Sizing](#4-data-storage-sizing)
 5. [Network & CDN](#5-network--cdn)
-6. [AI/ML Infrastructure](#6-aiml-infrastructure)
-7. [Third-Party Service Costs](#7-third-party-service-costs)
-8. [Cost Summary](#8-cost-summary)
-9. [Elastic Scaling Strategy](#9-elastic-scaling-strategy)
-10. [Cost Optimization Recommendations](#10-cost-optimization-recommendations)
+6. [Third-Party Service Costs](#6-third-party-service-costs)
+7. [Cost Summary](#7-cost-summary)
+8. [Elastic Scaling Strategy](#8-elastic-scaling-strategy)
+9. [Cost Optimization Recommendations](#9-cost-optimization-recommendations)
 
 ---
 
@@ -72,7 +71,7 @@ graph TB
             ACM["ACM (TLS)"]
         end
         subgraph COMPUTE["Compute Layer — EKS Cluster (3 AZs)"]
-            GP["Node Group: General Purpose<br/>6× m6i.xlarge (4 vCPU, 16 GB)<br/>All microservices except AI"]
+            GP["Node Group: General Purpose<br/>6× m6i.xlarge (4 vCPU, 16 GB)<br/>All microservices"]
             SPOT["Node Group: Spot Instances<br/>4× m6i.large (2 vCPU, 8 GB)<br/>Analytics, batch, non-critical"]
             ALB["ALB × 2<br/>External + Internal"]
         end
@@ -114,6 +113,8 @@ graph TB
 | **Spot** | m6i.large | 4 | 8 | 32 GB | Analytics, batch | Spot (~60% off) |
 | **Total Base** | — | **10** | **32** | **128 GB** | — | — |
 
+> **Note**: No GPU or ML-specific node groups needed — all processing is deterministic and runs on standard compute nodes.
+
 ### 3.2 Pod Resource Allocation
 
 | Service | Min Pods | Max Pods (HPA) | CPU Request | Memory Request | Total Base CPU | Total Base Memory |
@@ -122,10 +123,10 @@ graph TB
 | Auth Service | 2 | 4 | 250m | 512 MB | 0.5 | 1 GB |
 | Conversation Service | 4 | 12 | 1000m | 1 GB | 4.0 | 4 GB |
 | Customer Profile Svc | 3 | 8 | 500m | 512 MB | 1.5 | 1.5 GB |
-| Risk Profiling Svc | 2 | 6 | 500m | 1 GB | 1.0 | 2 GB |
+| Risk Profiling Svc | 2 | 6 | 250m | 512 MB | 0.5 | 1 GB |
 | Product Catalog Svc | 2 | 4 | 250m | 512 MB | 0.5 | 1 GB |
-| Recommendation Svc | 2 | 6 | 500m | 1 GB | 1.0 | 2 GB |
-| Wealth Projection Svc | 2 | 4 | 1000m | 2 GB | 2.0 | 4 GB |
+| Recommendation Svc | 2 | 6 | 250m | 512 MB | 0.5 | 1 GB |
+| Wealth Projection Svc | 2 | 4 | 250m | 512 MB | 0.5 | 1 GB |
 | Follow-Up Orchestrator | 2 | 4 | 500m | 512 MB | 1.0 | 1 GB |
 | Notification Svc | 3 | 8 | 500m | 512 MB | 1.5 | 1.5 GB |
 | Reminder Svc | 2 | 4 | 250m | 256 MB | 0.5 | 0.5 GB |
@@ -133,9 +134,9 @@ graph TB
 | Admin Svc | 1 | 2 | 250m | 512 MB | 0.25 | 0.5 GB |
 | **Istio Sidecars** | — | — | 100m/pod | 128 MB/pod | ~3.0 | ~4 GB |
 | **System (kube, monitoring)** | — | — | — | — | ~2.0 | ~4 GB |
-| **TOTAL BASE** | **29** | **76** | — | — | **~20.75** | **~30 GB** |
+| **TOTAL BASE** | **29** | **76** | — | — | **~18.75** | **~25.5 GB** |
 
-**Headroom**: 32 vCPU available vs 20.75 used = **35% headroom** at base. HPA can scale pods up to 76, triggering Cluster Autoscaler to add nodes.
+**Headroom**: 32 vCPU available vs 18.75 used = **41% headroom** at base. Risk/Recommendation/Wealth services need less compute without ML inference.
 
 ### 3.3 Compute Cost Breakdown (Monthly)
 
@@ -234,43 +235,9 @@ graph TB
 
 ---
 
-## 6. AI/ML Infrastructure
+## 6. Third-Party Service Costs
 
-### 6.1 LLM API Usage
-
-| Model Use Case | Model | Requests/Day | Avg Tokens/Request | Monthly Tokens | Monthly Cost |
-|---|---|---|---|---|---|
-| **Conversation AI** | GPT-4o | 200,000 | 1,500 (in+out) | 9B tokens | **$4,500** |
-| **Risk Explanation** | GPT-4o-mini | 5,000 | 500 | 75M tokens | **$15** |
-| **Conversation Summary** | GPT-4o-mini | 10,000 | 800 | 240M tokens | **$48** |
-| **Agenda Generation** | GPT-4o-mini | 5,000 | 600 | 90M tokens | **$18** |
-| **Embeddings** | text-embedding-3-small | 50,000 | 500 | 750M tokens | **$15** |
-| **LLM API Total** | | | | | **~$4,596/mo** |
-
-> **Note**: GPT-4o pricing: ~$5/1M input + $15/1M output tokens. GPT-4o-mini: ~$0.15/1M input + $0.60/1M output. These are estimates that may vary with negotiated enterprise pricing.
-
-### 6.2 ML Model Hosting
-
-| Component | Configuration | Monthly Cost |
-|---|---|---|
-| SageMaker Endpoint (Risk Model) | 1× ml.m5.large (always-on) | **$100** |
-| SageMaker Training | Weekly retraining (~4 hours) | **$30** |
-| Vector DB (Pinecone) | s1 pod, 100K vectors | **$70** |
-| **ML Hosting Total** | | **~$200/mo** |
-
-### 6.3 AI Cost Breakdown (Monthly)
-
-| Component | Monthly Cost |
-|---|---|
-| LLM API (OpenAI/Azure) | **$4,596** |
-| ML Model Hosting | **$200** |
-| **AI Total** | **~$4,796/mo** |
-
----
-
-## 7. Third-Party Service Costs
-
-### 7.1 Communication Providers
+### 6.1 Communication Providers
 
 | Service | Volume/Month | Unit Price | Monthly Cost |
 |---|---|---|---|
@@ -280,7 +247,7 @@ graph TB
 | **Twilio Voice** | 5K minutes | $0.013/min (India) | **$65** |
 | **Communication Total** | | | **~$2,285/mo** |
 
-### 7.2 Monitoring & DevOps
+### 6.2 Monitoring & DevOps
 
 | Service | Configuration | Monthly Cost |
 |---|---|---|
@@ -291,7 +258,7 @@ graph TB
 | PagerDuty | Team plan, 5 users | **$100** |
 | **Monitoring Total** | | **~$200/mo** |
 
-### 7.3 Other Services
+### 6.3 Other Services
 
 | Service | Configuration | Monthly Cost |
 |---|---|---|
@@ -303,47 +270,47 @@ graph TB
 
 ---
 
-## 8. Cost Summary
+## 7. Cost Summary
 
-### 8.1 Monthly Cost Breakdown
+### 7.1 Monthly Cost Breakdown
 
 | Category | Monthly Cost | % of Total |
 |---|---|---|
-| **Compute (EKS + ALB)** | $1,113 | 9.7% |
-| **Data Storage (Aurora + Redis + Kafka + ES + S3)** | $2,736 | 23.9% |
-| **Network & CDN** | $242 | 2.1% |
-| **AI/ML (LLM APIs + Model Hosting)** | $4,796 | 41.9% |
-| **Communication (SMS + WhatsApp + Email + Voice)** | $2,285 | 20.0% |
-| **Monitoring & DevOps** | $200 | 1.7% |
-| **Other (Secrets, KMS, ECR)** | $30 | 0.3% |
-| **Subtotal** | **$11,402** | |
-| **Contingency (15%)** | $1,710 | |
-| **TOTAL MONTHLY** | **~$13,112** | |
-| **TOTAL ANNUAL** | **~$157,350** | |
+| **Compute (EKS + ALB)** | $1,113 | 16.8% |
+| **Data Storage (Aurora + Redis + Kafka + ES + S3)** | $2,736 | 41.3% |
+| **Network & CDN** | $242 | 3.7% |
+| **Communication (SMS + WhatsApp + Email + Voice)** | $2,285 | 34.5% |
+| **Monitoring & DevOps** | $200 | 3.0% |
+| **Other (Secrets, KMS, ECR)** | $30 | 0.5% |
+| **Subtotal** | **$6,606** | |
+| **Contingency (15%)** | $991 | |
+| **TOTAL MONTHLY** | **~$7,597** | |
+| **TOTAL ANNUAL** | **~$91,168** | |
 
-### 8.2 Cost Per User Metrics
+> **Savings vs AI Version**: Removing AI/ML infrastructure (LLM APIs, SageMaker, Vector DB) saves **~$4,796/mo ($57,552/yr)** — a **42% reduction** in total monthly cost.
+
+### 7.2 Cost Per User Metrics
 
 | Metric | Value |
 |---|---|
-| **Cost per Registered User/Month** | $0.026 |
-| **Cost per DAU/Month** | $0.187 (at 70K DAU) |
-| **Cost per Conversation** | $0.131 |
-| **Cost per Message** | $0.0066 |
+| **Cost per Registered User/Month** | $0.015 |
+| **Cost per DAU/Month** | $0.109 (at 70K DAU) |
+| **Cost per Conversation** | $0.076 |
+| **Cost per Message** | $0.0038 |
 
-### 8.3 Year 1 Total Cost of Ownership (TCO)
+### 7.3 Year 1 Total Cost of Ownership (TCO)
 
 | Category | Annual Cost |
 |---|---|
 | **Infrastructure (AWS)** | $49,454 |
-| **AI/ML Services** | $57,552 |
 | **Communication Services** | $27,420 |
 | **Monitoring & DevOps** | $2,760 |
-| **Contingency (15%)** | $20,553 |
-| **TOTAL YEAR 1** | **~$157,739** |
+| **Contingency (15%)** | $11,945 |
+| **TOTAL YEAR 1** | **~$91,579** |
 
-> **Note**: This excludes development team costs, licensing, and one-time setup fees.
+> **Note**: This excludes development team costs, licensing, and one-time setup fees. Compared to the AI version (~$157K/yr), the non-AI version saves ~$66K/yr.
 
-### 8.4 Cost at Scale (200K DAU)
+### 7.4 Cost at Scale (200K DAU)
 
 If traffic doubles to 200K DAU:
 
@@ -352,16 +319,15 @@ If traffic doubles to 200K DAU:
 | **Compute** | $1,113 | $2,500 | 2.2× (HPA + new nodes) |
 | **Data Storage** | $2,736 | $4,100 | 1.5× (read replicas + storage) |
 | **Network** | $242 | $450 | 1.9× |
-| **AI/ML** | $4,796 | $9,600 | 2.0× (linear with conversations) |
 | **Communication** | $2,285 | $4,600 | 2.0× (linear with notifications) |
 | **Monitoring** | $200 | $300 | 1.5× |
-| **TOTAL** | **$13,112** | **$24,600** | **~1.9×** |
+| **TOTAL** | **$7,597** | **$14,400** | **~1.9×** |
 
 ---
 
-## 9. Elastic Scaling Strategy
+## 8. Elastic Scaling Strategy
 
-### 9.1 Horizontal Pod Autoscaler (HPA) Configuration
+### 8.1 Horizontal Pod Autoscaler (HPA) Configuration
 
 ```yaml
 # Example HPA for Conversation Service
@@ -412,7 +378,7 @@ spec:
           periodSeconds: 120
 ```
 
-### 9.2 Cluster Autoscaler Configuration
+### 8.2 Cluster Autoscaler Configuration
 
 ```yaml
 # Cluster Autoscaler for EKS
@@ -442,7 +408,7 @@ spec:
     unneededTime: 5m
 ```
 
-### 9.3 Database Scaling Strategy
+### 8.3 Database Scaling Strategy
 
 ```
 AURORA POSTGRESQL:
@@ -463,21 +429,21 @@ KAFKA:
   - Storage auto-scaling on MSK
 ```
 
-### 9.4 Scaling Decision Matrix
+### 8.4 Scaling Decision Matrix
 
 | Traffic Level | DAU | EKS Nodes | DB Readers | Redis Nodes | Kafka Brokers | Est. Monthly Cost |
 |---|---|---|---|---|---|---|
-| **Low** | < 50K | 6+2 | 1 | 3 | 3 | ~$9,500 |
-| **Normal** | 70K | 6+4 | 2 | 3 | 3 | ~$13,100 |
-| **Peak** | 100K | 8+4 | 3 | 3 | 3 | ~$16,000 |
-| **High** | 150K | 10+6 | 4 | 4 | 4 | ~$20,500 |
-| **Max Elastic** | 200K | 12+8 | 5 | 5 | 5 | ~$24,600 |
+| **Low** | < 50K | 6+2 | 1 | 3 | 3 | ~$5,500 |
+| **Normal** | 70K | 6+4 | 2 | 3 | 3 | ~$7,600 |
+| **Peak** | 100K | 8+4 | 3 | 3 | 3 | ~$9,500 |
+| **High** | 150K | 10+6 | 4 | 4 | 4 | ~$12,000 |
+| **Max Elastic** | 200K | 12+8 | 5 | 5 | 5 | ~$14,400 |
 
 ---
 
-## 10. Cost Optimization Recommendations
+## 9. Cost Optimization Recommendations
 
-### 10.1 Reserved Instances / Savings Plans
+### 9.1 Reserved Instances / Savings Plans
 
 | Resource | Commitment | Savings |
 |---|---|---|
@@ -486,19 +452,7 @@ KAFKA:
 | **ElastiCache Redis** | 1-year Reserved Nodes | ~35% ($166/mo saved) |
 | **Total Annual Savings** | | **~$9,432/year** |
 
-### 10.2 AI Cost Optimization
-
-| Strategy | Potential Savings | Implementation |
-|---|---|---|
-| **Prompt Caching** | 20-30% on LLM costs | Cache common conversation patterns |
-| **Model Tiering** | 40-50% for simple queries | Use GPT-4o-mini for simple extractions, GPT-4o for complex reasoning |
-| **Batch Embeddings** | 50% on embedding costs | Batch product catalog updates |
-| **Fine-Tuned Smaller Model** | 60-70% long-term | Fine-tune Llama 3 for conversation flow (after 6 months of data) |
-| **Response Caching** | 10-15% | Cache identical question responses |
-
-**Estimated AI savings with optimization**: $1,500-2,000/mo (30-40%)
-
-### 10.3 Communication Cost Optimization
+### 9.2 Communication Cost Optimization
 
 | Strategy | Potential Savings |
 |---|---|
@@ -507,23 +461,22 @@ KAFKA:
 | **Batch Notifications** | Combine multiple notifications into daily digests |
 | **Channel Fallback** | Push notification first (free), then SMS/WhatsApp |
 
-### 10.4 Optimized Cost Projection
+### 9.3 Optimized Cost Projection
 
 | Scenario | Monthly Cost | Annual Cost |
 |---|---|---|
-| **Base (no optimization)** | $13,112 | $157,350 |
-| **With Reserved Instances** | $12,325 | $147,900 |
-| **With AI Optimization** | $10,625 | $127,500 |
-| **With Communication Optimization** | $9,825 | **$117,900** |
-| **Fully Optimized** | **~$9,800** | **~$117,600** |
+| **Base (no optimization)** | $7,597 | $91,168 |
+| **With Reserved Instances** | $6,811 | $81,736 |
+| **With Communication Optimization** | $5,811 | **$69,736** |
+| **Fully Optimized** | **~$5,800** | **~$69,600** |
 
-### 10.5 Growth Cost Projection (Years 1-3)
+### 9.4 Growth Cost Projection (Years 1-3)
 
 | Year | Users | DAU | Monthly Cost (Optimized) | Annual Cost |
 |---|---|---|---|---|
-| **Year 1** | 500K | 70-100K | $9,800 - $13,100 | $117,600 - $157,200 |
-| **Year 2** | 1M | 140-200K | $18,000 - $24,600 | $216,000 - $295,200 |
-| **Year 3** | 2M | 280-400K | $32,000 - $45,000 | $384,000 - $540,000 |
+| **Year 1** | 500K | 70-100K | $5,800 - $7,600 | $69,600 - $91,200 |
+| **Year 2** | 1M | 140-200K | $10,500 - $14,400 | $126,000 - $172,800 |
+| **Year 3** | 2M | 280-400K | $19,000 - $26,000 | $228,000 - $312,000 |
 
 > **Note**: Years 2 and 3 assume linear cost scaling, but economies of scale and optimization should reduce the actual ratio. Reserved Instance savings increase with larger commitments.
 
@@ -545,10 +498,23 @@ KAFKA:
 
 | Environment | Purpose | Scale | Monthly Cost |
 |---|---|---|---|
-| **Production** | Live customer-facing | Full | $13,112 |
-| **Staging** | Pre-production testing | 25% of prod | ~$3,278 |
-| **Development** | Developer environments | 10% of prod | ~$1,311 |
-| **Total All Environments** | | | **~$17,701** |
+| **Production** | Live customer-facing | Full | $7,597 |
+| **Staging** | Pre-production testing | 25% of prod | ~$1,899 |
+| **Development** | Developer environments | 10% of prod | ~$760 |
+| **Total All Environments** | | | **~$10,256** |
+
+## Appendix C: AI vs Non-AI Cost Comparison
+
+| Category | AI Version | Non-AI Version | Savings |
+|---|---|---|---|
+| **Compute** | $1,113 | $1,113 | $0 |
+| **Data Storage** | $2,736 | $2,736 | $0 |
+| **Network** | $242 | $242 | $0 |
+| **AI/ML (LLM + ML Hosting)** | $4,796 | $0 | **$4,796** |
+| **Communication** | $2,285 | $2,285 | $0 |
+| **Monitoring** | $200 | $200 | $0 |
+| **Other** | $30 | $30 | $0 |
+| **TOTAL (with contingency)** | **$13,112** | **$7,597** | **$5,515 (42%)** |
 
 ---
 
