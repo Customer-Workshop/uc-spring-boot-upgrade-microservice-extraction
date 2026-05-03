@@ -10,6 +10,7 @@ This directory contains the complete design documentation for the **Banking Rela
 | 2 | [High-Level Design (HLD)](./02-high-level-design.md) | Service decomposition, technology stack, communication patterns, data flows, deployment architecture |
 | 3 | [Low-Level Design (LLD)](./03-low-level-design.md) | Database schemas, API contracts, domain model, sequence diagrams, algorithm details |
 | 4 | [Infrastructure & Cost Estimation](./04-infrastructure-cost-estimation.md) | Capacity planning, AWS sizing, cost breakdown, elastic scaling strategy, optimization |
+| 5 | [Sequence Diagrams](./05-sequence-diagrams.md) | 20 detailed sequence diagrams covering all use cases: onboarding, data collection, risk profiling, recommendations, follow-ups, handoff, multi-channel, error handling |
 
 ## Key Highlights
 
@@ -21,4 +22,4 @@ This directory contains the complete design documentation for the **Banking Rela
 
 ## Reading Order
 
-Start with the **Architecture Document** for the big picture, then **HLD** for service-level design, **LLD** for implementation details, and **Infrastructure** for deployment and costs.
+Start with the **Architecture Document** for the big picture, then **HLD** for service-level design, **LLD** for implementation details, **Infrastructure** for deployment and costs, and **Sequence Diagrams** for detailed flow walkthroughs of all 20 use cases.
