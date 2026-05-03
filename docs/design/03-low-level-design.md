@@ -931,15 +931,23 @@ public enum IncomeRange {
     private final int max;
 }
 
-// Risk categories
+// Risk categories — boundary convention: upper bound is inclusive, lower bound is exclusive
+// (except CONSERVATIVE which includes 1.0). Use fromScore() for unambiguous lookup.
 public enum RiskCategory {
     CONSERVATIVE(1.0, 3.0),
     MODERATE(3.0, 6.0),
     AGGRESSIVE(6.0, 8.0),
     VERY_AGGRESSIVE(8.0, 10.0);
     
-    private final double minScore;
-    private final double maxScore;
+    private final double minScore;  // exclusive (score > minScore), except CONSERVATIVE
+    private final double maxScore;  // inclusive (score <= maxScore)
+    
+    public static RiskCategory fromScore(double score) {
+        if (score <= 3.0) return CONSERVATIVE;
+        if (score <= 6.0) return MODERATE;
+        if (score <= 8.0) return AGGRESSIVE;
+        return VERY_AGGRESSIVE;
+    }
 }
 
 // Conversation phases
@@ -1390,33 +1398,50 @@ public class NotificationRouter {
         CommunicationPreference pref = request.getCustomerPreference();
         NotificationType type = request.getType();
         
-        // Priority 1: Customer's explicit preference
-        if (pref.getPreferredChannel() != null && isWithinWindow(pref)) {
+        // Priority 1: Customer's explicit preference (with opt-in check)
+        if (pref.getPreferredChannel() != null 
+                && isOptedIn(pref, pref.getPreferredChannel()) 
+                && isWithinWindow(pref)) {
             return pref.getPreferredChannel();
         }
         
-        // Priority 2: Notification type defaults
+        // Priority 2: Notification type defaults (all paths check opt-in)
         switch (type) {
             case FOLLOWUP_REMINDER:
-                // Interactive channels preferred for reminders
                 if (pref.isOptInWhatsapp()) return WHATSAPP;
                 if (pref.isOptInSms()) return SMS;
-                return EMAIL;
+                if (pref.isOptInEmail()) return EMAIL;
+                break;
                 
             case RECOMMENDATION:
-                // Rich content channels for recommendations
                 if (pref.isOptInEmail()) return EMAIL;
                 if (pref.isOptInWhatsapp()) return WHATSAPP;
-                return PUSH;
+                break;
                 
             case ACTION_ITEM:
-                // Quick, attention-grabbing channels
                 if (pref.isOptInWhatsapp()) return WHATSAPP;
                 if (pref.isOptInSms()) return SMS;
-                return EMAIL;
-                
-            default:
-                return EMAIL;  // Safe default
+                if (pref.isOptInEmail()) return EMAIL;
+                break;
+        }
+        
+        // Priority 3: Fall back to any opted-in channel
+        if (pref.isOptInEmail()) return EMAIL;
+        if (pref.isOptInWhatsapp()) return WHATSAPP;
+        if (pref.isOptInSms()) return SMS;
+        if (pref.isOptInPhone()) return PHONE;
+        
+        // No consent: queue for in-app notification only (no external channel)
+        return IN_APP;
+    }
+    
+    private boolean isOptedIn(CommunicationPreference pref, NotificationChannel channel) {
+        switch (channel) {
+            case SMS:      return pref.isOptInSms();
+            case WHATSAPP: return pref.isOptInWhatsapp();
+            case EMAIL:    return pref.isOptInEmail();
+            case PHONE:    return pref.isOptInPhone();
+            default:       return true;
         }
     }
     
