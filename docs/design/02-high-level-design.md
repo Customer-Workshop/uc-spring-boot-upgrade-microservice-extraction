@@ -43,51 +43,37 @@
 
 ### 1.2 Service Dependency Map
 
-```
-                    ┌──────────────┐
-                    │  API Gateway │
-                    └──────┬───────┘
-                           │
-            ┌──────────────┼──────────────────────────┐
-            │              │                           │
-            ▼              ▼                           ▼
-    ┌──────────────┐ ┌──────────────┐         ┌──────────────┐
-    │ Auth Service │ │ Conversation │         │ Admin Service│
-    │              │ │ Service      │         │              │
-    └──────────────┘ └──────┬───────┘         └──────────────┘
-                            │
-              ┌─────────────┼─────────────┐
-              │             │             │
-              ▼             ▼             ▼
-    ┌──────────────┐ ┌──────────┐ ┌──────────────────┐
-    │ Customer     │ │ Product  │ │ Risk Profiling   │
-    │ Profile Svc  │ │ Catalog  │ │ Service          │
-    └──────┬───────┘ └────┬─────┘ └────────┬─────────┘
-           │              │                │
-           │         ┌────┴────┐           │
-           │         ▼         ▼           │
-           │   ┌──────────┐ ┌─────────────┐│
-           │   │Recommend.│ │ Wealth      ││
-           │   │Service   │ │ Projection  ││
-           │   └──────────┘ └─────────────┘│
-           │                               │
-           ▼                               ▼
-    ┌──────────────────────────────────────────────┐
-    │              Event Bus (Kafka)                │
-    └──────────────────────┬───────────────────────┘
-                           │
-              ┌────────────┼────────────┐
-              ▼            ▼            ▼
-    ┌──────────────┐ ┌──────────┐ ┌──────────────┐
-    │ Follow-Up    │ │Notific.  │ │ Analytics    │
-    │ Orchestrator │ │Service   │ │ Service      │
-    └──────┬───────┘ └──────────┘ └──────────────┘
-           │
-           ▼
-    ┌──────────────┐
-    │ Reminder     │
-    │ Service      │
-    └──────────────┘
+```mermaid
+graph TD
+    GW["API Gateway"]
+    AUTH["Auth Service"]
+    CONV["Conversation Service"]
+    ADMIN["Admin Service"]
+    PROF["Customer Profile Svc"]
+    PROD["Product Catalog"]
+    RISK["Risk Profiling Service"]
+    REC["Recommendation Service"]
+    WP["Wealth Projection"]
+    KAFKA["Event Bus (Kafka)"]
+    FU["Follow-Up Orchestrator"]
+    NOTIF["Notification Service"]
+    ANA["Analytics Service"]
+    REM["Reminder Service"]
+
+    GW --> AUTH
+    GW --> CONV
+    GW --> ADMIN
+    CONV --> PROF
+    CONV --> PROD
+    CONV --> RISK
+    PROD --> REC
+    PROD --> WP
+    PROF --> KAFKA
+    RISK --> KAFKA
+    KAFKA --> FU
+    KAFKA --> NOTIF
+    KAFKA --> ANA
+    FU --> REM
 ```
 
 ---
@@ -106,7 +92,7 @@
 | **Event Streaming** | Apache Kafka (MSK) | Durable, high-throughput event bus |
 | **Caching** | Redis Cluster (ElastiCache) | Session store, conversation context, API caching |
 | **Scheduling** | Spring Scheduler + Quartz | Follow-up and reminder scheduling |
-| **AI Orchestration** | LangChain4j / Spring AI | LLM integration, prompt management, RAG pipeline |
+| **AI Orchestration** | LangChain4j / Spring AI | Java-native LLM orchestration |
 
 ### 2.2 Frontend
 
@@ -189,93 +175,81 @@ Used for decoupled, eventually-consistent operations.
 
 ### 4.1 New Customer Conversation Flow
 
-```
-Customer              API Gateway        Conversation Svc       LLM Provider
-   │                     │                     │                     │
-   │ ──── Open Chat ────►│                     │                     │
-   │                     │ ── Create Session ──►│                     │
-   │                     │                     │                     │
-   │                     │◄── Session Token ───│                     │
-   │◄── WS Connection ──│                     │                     │
-   │                     │                     │                     │
-   │ ─── "Hello" ───────►│ ─── Message ───────►│                     │
-   │                     │                     │ ─── Generate ──────►│
-   │                     │                     │◄── Greeting ────────│
-   │◄── "Welcome! Can    │◄── Response ────────│                     │
-   │     I know your     │                     │                     │
-   │     name?" ─────────│                     │                     │
-   │                     │                     │                     │
-   │ ── "I'm John, 35,  ►│ ─── Message ───────►│                     │
-   │     Mumbai" ────────│                     │ ── Extract+Gen ────►│
-   │                     │                     │◄── Structured ──────│
-   │                     │                     │     Data + Reply    │
-   │                     │                     │                     │
-   │                     │                     │ ── Save Profile ───►│ Profile Svc
-   │                     │                     │                     │
-   │◄── "Great John!     │◄── Response ────────│                     │
-   │     What's your     │                     │                     │
-   │     income range?"──│                     │                     │
-   │                     │                     │                     │
-   ▼ ... (conversation continues through all phases) ...            ▼
+```mermaid
+sequenceDiagram
+    participant C as Customer
+    participant GW as API Gateway
+    participant CS as Conversation Svc
+    participant LLM as LLM Provider
+    participant PS as Profile Svc
+
+    C->>GW: Open Chat
+    GW->>CS: Create Session
+    CS-->>GW: Session Token
+    GW-->>C: WS Connection
+
+    C->>GW: "Hello"
+    GW->>CS: Message
+    CS->>LLM: Generate greeting
+    LLM-->>CS: Greeting response
+    CS-->>GW: Response
+    GW-->>C: "Welcome! May I know your name?"
+
+    C->>GW: "I'm John, 35, Mumbai"
+    GW->>CS: Message
+    CS->>LLM: Extract entities + generate reply
+    LLM-->>CS: Structured data + reply
+    CS->>PS: Save partial profile
+    CS-->>GW: Response
+    GW-->>C: "Great John! What's your income range?"
+
+    Note over C,PS: Conversation continues through all phases
 ```
 
 ### 4.2 Risk Profiling & Recommendation Flow
 
-```
-Profile Svc           Event Bus          Risk Svc          Recommendation Svc
-    │                    │                  │                      │
-    │ ─ profile.updated ►│                  │                      │
-    │                    │ ─ event ────────►│                      │
-    │                    │                  │                      │
-    │                    │                  │── Compute Risk ──┐   │
-    │                    │                  │  (XGBoost Model)  │   │
-    │                    │                  │◄─────────────────┘   │
-    │                    │                  │                      │
-    │                    │◄─ risk.assessed ─│                      │
-    │                    │                  │                      │
-    │                    │ ─── event ──────────────────────────────►│
-    │                    │                                         │
-    │                    │                  │  ┌── Fetch Products ─►│ Product Catalog
-    │                    │                  │  │◄─ Products ───────│
-    │                    │                  │  │                    │
-    │                    │                  │  │── Match & Rank ──┐│
-    │                    │                  │  │  (Hybrid Engine)  ││
-    │                    │                  │  │◄─────────────────┘│
-    │                    │                  │  │                    │
-    │                    │◄─ recommendation.generated ─────────────│
-    │                    │                                         │
+```mermaid
+sequenceDiagram
+    participant PS as Profile Svc
+    participant EB as Event Bus
+    participant RS as Risk Svc
+    participant REC as Recommendation Svc
+    participant PC as Product Catalog
+
+    PS->>EB: profile.updated
+    EB->>RS: event
+    RS->>RS: Compute Risk (XGBoost Model)
+    RS->>EB: risk.assessed
+    EB->>REC: event
+    REC->>PC: Fetch Products
+    PC-->>REC: Products list
+    REC->>REC: Match & Rank (Hybrid Engine)
+    REC->>EB: recommendation.generated
 ```
 
 ### 4.3 Follow-Up Scheduling Flow
 
-```
-Conversation Svc        Event Bus       Follow-Up Orch     Reminder Svc     Notification Svc
-      │                    │                 │                  │                  │
-      │─ conversation      │                 │                  │                  │
-      │  .completed ──────►│                 │                  │                  │
-      │                    │─── event ──────►│                  │                  │
-      │                    │                 │                  │                  │
-      │                    │                 │── Schedule ──┐   │                  │
-      │                    │                 │  follow-up   │   │                  │
-      │                    │                 │◄─────────────┘   │                  │
-      │                    │                 │                  │                  │
-      │                    │◄─ followup      │                  │                  │
-      │                    │   .scheduled ───│                  │                  │
-      │                    │                 │                  │                  │
-      │                    │── event ───────────────────────────►│                  │
-      │                    │                                    │  ┌── Confirm ──►│
-      │                    │                                    │  │ Notification │
-      │                    │                                    │  │◄─ Sent ──────│
-      │                    │                                    │  │              │
-      │                    │                 │  ... time passes ...               │
-      │                    │                 │                  │                  │
-      │                    │                 │                  │── followup.due ─►│
-      │                    │                 │                  │                  │
-      │                    │                 │                  │  │── Reminder ──►│
-      │                    │                 │                  │  │  (SMS/WA/     │
-      │                    │                 │                  │  │   Email/Cal)  │
-      │                    │                 │                  │  │◄─ Delivered ──│
-      │                    │                 │                  │                  │
+```mermaid
+sequenceDiagram
+    participant CS as Conversation Svc
+    participant EB as Event Bus
+    participant FU as Follow-Up Orch
+    participant RS as Reminder Svc
+    participant NS as Notification Svc
+
+    CS->>EB: conversation.completed
+    EB->>FU: event
+    FU->>FU: Schedule follow-up
+    FU->>EB: followup.scheduled
+    EB->>RS: event
+    RS->>NS: Send confirmation notification
+    NS-->>RS: Sent
+
+    Note over RS,NS: Time passes...
+
+    RS->>EB: followup.due
+    EB->>NS: event
+    NS->>NS: Send reminder (SMS/WA/Email/Calendar)
 ```
 
 ---
@@ -286,18 +260,15 @@ Conversation Svc        Event Bus       Follow-Up Orch     Reminder Svc     Noti
 
 The RM guides the customer through a structured but natural conversation across these phases:
 
-```
-┌─────────┐     ┌──────────┐     ┌──────────┐     ┌──────────┐     ┌──────────┐
-│  PHASE 1│     │  PHASE 2 │     │  PHASE 3 │     │  PHASE 4 │     │  PHASE 5 │
-│ Greeting│────►│ Personal │────►│ Financial│────►│  Goals & │────►│ Risk     │
-│ & Intro │     │ Details  │     │ Profile  │     │ Retire.  │     │ Profile  │
-└─────────┘     └──────────┘     └──────────┘     └──────────┘     └────┬─────┘
-                                                                        │
-    ┌──────────┐     ┌──────────┐     ┌──────────┐                     │
-    │  PHASE 8 │     │  PHASE 7 │     │  PHASE 6 │                     │
-    │ Follow-Up│◄────│ Channel  │◄────│ Product  │◄────────────────────┘
-    │ Schedule │     │ Pref.    │     │ Recomm.  │
-    └──────────┘     └──────────┘     └──────────┘
+```mermaid
+flowchart LR
+    P1["Phase 1<br/>Greeting & Intro"] --> P2["Phase 2<br/>Personal Details"]
+    P2 --> P3["Phase 3<br/>Financial Profile"]
+    P3 --> P4["Phase 4<br/>Goals & Retirement"]
+    P4 --> P5["Phase 5<br/>Risk Profile"]
+    P5 --> P6["Phase 6<br/>Product Recommendation"]
+    P6 --> P7["Phase 7<br/>Channel Preference"]
+    P7 --> P8["Phase 8<br/>Follow-Up Schedule"]
 ```
 
 ### 5.2 Phase Details
@@ -315,24 +286,38 @@ The RM guides the customer through a structured but natural conversation across 
 
 ### 5.3 Conversation State Machine
 
-```
-States: INIT → GREETING → PERSONAL → FINANCIAL → GOALS → RISK_ASSESSMENT → 
-        RECOMMENDATION → CHANNEL_PREF → FOLLOWUP_SCHEDULE → COMPLETED
+```mermaid
+stateDiagram-v2
+    [*] --> INIT
+    INIT --> GREETING: session_start
+    GREETING --> PERSONAL: greeting_acknowledged
+    PERSONAL --> FINANCIAL: personal_data_complete
+    FINANCIAL --> GOALS: financial_data_complete
+    GOALS --> RISK_ASSESSMENT: retirement_goals_captured
+    RISK_ASSESSMENT --> RECOMMENDATION: risk_profile_computed
+    RECOMMENDATION --> CHANNEL_PREF: products_presented
+    CHANNEL_PREF --> FOLLOWUP_SCHEDULE: channel_selected
+    FOLLOWUP_SCHEDULE --> COMPLETED: followup_confirmed
+    COMPLETED --> [*]
 
-Transitions:
-  INIT → GREETING:           on session_start
-  GREETING → PERSONAL:       on greeting_acknowledged
-  PERSONAL → FINANCIAL:      on personal_data_complete (name + age + 1 contact method)
-  FINANCIAL → GOALS:         on financial_data_complete (income source + range)
-  GOALS → RISK_ASSESSMENT:   on retirement_goals_captured
-  RISK_ASSESSMENT → RECOMMENDATION: on risk_profile_computed
-  RECOMMENDATION → CHANNEL_PREF:    on products_presented
-  CHANNEL_PREF → FOLLOWUP_SCHEDULE: on channel_selected
-  FOLLOWUP_SCHEDULE → COMPLETED:    on followup_confirmed
+    GREETING --> HUMAN_HANDOFF: customer_request OR confidence < 0.7
+    PERSONAL --> HUMAN_HANDOFF: customer_request OR confidence < 0.7
+    FINANCIAL --> HUMAN_HANDOFF: customer_request OR confidence < 0.7
+    GOALS --> HUMAN_HANDOFF: customer_request OR confidence < 0.7
+    RISK_ASSESSMENT --> HUMAN_HANDOFF: customer_request OR confidence < 0.7
+    RECOMMENDATION --> HUMAN_HANDOFF: customer_request OR confidence < 0.7
 
-  Any State → HUMAN_HANDOFF:  on customer_request OR confidence < 0.7
-  Any State → PAUSED:         on customer_inactive (5 min timeout)
-  PAUSED → {previous_state}:  on customer_returns
+    GREETING --> PAUSED: customer_inactive (5 min)
+    PERSONAL --> PAUSED: customer_inactive (5 min)
+    FINANCIAL --> PAUSED: customer_inactive (5 min)
+    GOALS --> PAUSED: customer_inactive (5 min)
+    RISK_ASSESSMENT --> PAUSED: customer_inactive (5 min)
+    RECOMMENDATION --> PAUSED: customer_inactive (5 min)
+    CHANNEL_PREF --> PAUSED: customer_inactive (5 min)
+
+    PAUSED --> GREETING: customer_returns
+    PAUSED --> PERSONAL: customer_returns
+    PAUSED --> FINANCIAL: customer_returns
 ```
 
 ---
@@ -343,27 +328,28 @@ Transitions:
 
 All channels are unified behind a **Channel Adapter** interface:
 
-```
-                    ┌─────────────────────────────┐
-                    │     Conversation Service     │
-                    │   (channel-agnostic core)    │
-                    └──────────────┬───────────────┘
-                                   │
-                    ┌──────────────┴───────────────┐
-                    │    Channel Adapter Manager    │
-                    └──┬──────┬──────┬──────┬──────┘
-                       │      │      │      │
-                ┌──────┴┐ ┌───┴───┐ ┌┴─────┐ ┌┴──────┐
-                │  Web  │ │  SMS  │ │WhatsA│ │ Voice │
-                │Adapter│ │Adapter│ │pp    │ │Adapter│
-                │       │ │       │ │Adapt.│ │       │
-                └───┬───┘ └───┬───┘ └──┬───┘ └───┬───┘
-                    │         │        │         │
-                    ▼         ▼        ▼         ▼
-                  WebSocket  Twilio   Meta      Twilio
-                  Client     SMS API  WhatsApp  Voice
-                                      Business
-                                      API
+```mermaid
+graph TD
+    CS["Conversation Service<br/>(channel-agnostic core)"]
+    CAM["Channel Adapter Manager"]
+    WA["Web Adapter"]
+    SA["SMS Adapter"]
+    WHA["WhatsApp Adapter"]
+    VA["Voice Adapter"]
+    WSC["WebSocket Client"]
+    TWSMS["Twilio SMS API"]
+    META["Meta WhatsApp Business API"]
+    TWV["Twilio Voice"]
+
+    CS --> CAM
+    CAM --> WA
+    CAM --> SA
+    CAM --> WHA
+    CAM --> VA
+    WA --> WSC
+    SA --> TWSMS
+    WHA --> META
+    VA --> TWV
 ```
 
 ### 6.2 Channel Capabilities Matrix
@@ -374,15 +360,15 @@ All channels are unified behind a **Channel Adapter** interface:
 | **Rich Media** | Yes | Yes | No | Yes | Yes | No |
 | **Charts/Graphs** | Yes | Yes | No | Image | Image | No |
 | **Real-Time** | WebSocket | WebSocket | No | Near-RT | No | Yes |
-| **Follow-Up Mode** | ✓ | ✓ | ✓ Text | ✓ Interactive | ✓ Text | ✓ Voice |
-| **Reminder Delivery** | Push | Push | ✓ | ✓ | ✓ | ✓ |
-| **Calendar Integration** | ✓ | ✓ | — | — | ✓ | — |
+| **Follow-Up Mode** | Push | Push | Text | Interactive | Text | Voice |
+| **Reminder Delivery** | Push | Push | Yes | Yes | Yes | Yes |
+| **Calendar Integration** | Yes | Yes | — | — | Yes | — |
 
 ### 6.3 Channel Selection Logic
 
 For follow-ups, the customer chooses their preferred channel. The system respects this but can suggest alternatives based on engagement data:
 
-```
+```python
 if customer.preferred_channel == SMS:
     send_text_summary()        # Brief, non-interactive
 elif customer.preferred_channel == EMAIL:
@@ -399,25 +385,14 @@ elif customer.preferred_channel == PHONE:
 
 ### 7.1 Anonymous Sessions
 
-```
-┌────────────────────────────────────────────┐
-│              Anonymous Session              │
-│                                            │
-│  Session ID: UUID (cookie/local storage)   │
-│  TTL: 7 days                               │
-│  Storage: Redis (hot) + PostgreSQL (warm)  │
-│                                            │
-│  Captured Data:                            │
-│  - Conversation transcript                 │
-│  - Partial profile data                    │
-│  - Risk assessment (if completed)          │
-│  - Product recommendations                 │
-│                                            │
-│  Limitations:                              │
-│  - No follow-up scheduling                 │
-│  - No notification delivery                │
-│  - Data purged after TTL                   │
-└────────────────────────────────────────────┘
+```mermaid
+graph LR
+    subgraph ANON["Anonymous Session"]
+        direction TB
+        ID["Session ID: UUID (cookie/local storage)<br/>TTL: 7 days<br/>Storage: Redis (hot) + PostgreSQL (warm)"]
+        DATA["Captured Data:<br/>• Conversation transcript<br/>• Partial profile data<br/>• Risk assessment (if completed)<br/>• Product recommendations"]
+        LIMIT["Limitations:<br/>• No follow-up scheduling<br/>• No notification delivery<br/>• Data purged after TTL"]
+    end
 ```
 
 ### 7.2 Session Conversion (Anonymous → Authenticated)
@@ -431,22 +406,13 @@ When an anonymous user registers or logs in:
 
 ### 7.3 Authenticated Sessions
 
-```
-┌────────────────────────────────────────────┐
-│           Authenticated Session             │
-│                                            │
-│  User ID: UUID (JWT sub claim)             │
-│  Session TTL: 30 minutes (refreshable)     │
-│  Storage: Redis (active) + PostgreSQL      │
-│                                            │
-│  Full Access:                              │
-│  - Complete conversation history           │
-│  - Persistent profile                      │
-│  - Follow-up scheduling                    │
-│  - Multi-channel notifications             │
-│  - Wealth projection dashboard             │
-│  - Document uploads (KYC)                  │
-└────────────────────────────────────────────┘
+```mermaid
+graph LR
+    subgraph AUTH["Authenticated Session"]
+        direction TB
+        ID2["User ID: UUID (JWT sub claim)<br/>Session TTL: 30 minutes (refreshable)<br/>Storage: Redis (active) + PostgreSQL"]
+        ACCESS["Full Access:<br/>• Complete conversation history<br/>• Persistent profile<br/>• Follow-up scheduling<br/>• Multi-channel notifications<br/>• Wealth projection dashboard<br/>• Document uploads (KYC)"]
+    end
 ```
 
 ---
@@ -455,120 +421,61 @@ When an anonymous user registers or logs in:
 
 ### 8.1 Conversation AI Pipeline
 
-```
-Customer Message
-       │
-       ▼
-┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-│  Pre-Process │────►│  Intent      │────►│  Entity      │
-│  - Sanitize  │     │  Classifier  │     │  Extractor   │
-│  - Language  │     │  (LLM)       │     │  (LLM + NER) │
-│    Detect    │     │              │     │              │
-└──────────────┘     └──────────────┘     └──────────────┘
-                                                 │
-       ┌─────────────────────────────────────────┤
-       │                                         │
-       ▼                                         ▼
-┌──────────────┐                         ┌──────────────┐
-│  Context     │                         │  State       │
-│  Builder     │                         │  Manager     │
-│  - History   │                         │  - Update    │
-│  - Profile   │                         │    phase     │
-│  - Products  │                         │  - Validate  │
-│  (RAG)       │                         │    data      │
-└──────┬───────┘                         └──────┬───────┘
-       │                                         │
-       └─────────────────┬───────────────────────┘
-                         │
-                         ▼
-                 ┌──────────────┐
-                 │  Response    │
-                 │  Generator   │
-                 │  (LLM)       │
-                 │  - System    │
-                 │    prompt    │
-                 │  - Context   │
-                 │  - Guardrails│
-                 └──────┬───────┘
-                        │
-                        ▼
-                 ┌──────────────┐
-                 │  Post-Process│
-                 │  - PII check │
-                 │  - Tone check│
-                 │  - Format    │
-                 └──────────────┘
-                        │
-                        ▼
-                 Customer Response
+```mermaid
+flowchart TD
+    INPUT["Customer Message"]
+    PRE["Pre-Process<br/>• Sanitize<br/>• Language Detect"]
+    INTENT["Intent Classifier<br/>(LLM)"]
+    ENTITY["Entity Extractor<br/>(LLM + NER)"]
+    CTX["Context Builder<br/>• History<br/>• Profile<br/>• Products (RAG)"]
+    STATE["State Manager<br/>• Update phase<br/>• Validate data"]
+    RESP["Response Generator<br/>(LLM)<br/>• System prompt<br/>• Context<br/>• Guardrails"]
+    POST["Post-Process<br/>• PII check<br/>• Tone check<br/>• Format"]
+    OUTPUT["Customer Response"]
+
+    INPUT --> PRE
+    PRE --> INTENT
+    INTENT --> ENTITY
+    ENTITY --> CTX
+    ENTITY --> STATE
+    CTX --> RESP
+    STATE --> RESP
+    RESP --> POST
+    POST --> OUTPUT
 ```
 
 ### 8.2 Risk Assessment Pipeline
 
-```
-Customer Profile Data
-        │
-        ▼
-┌───────────────┐     ┌───────────────┐     ┌───────────────┐
-│ Feature       │────►│ Risk Model    │────►│ Category      │
-│ Engineering   │     │ (XGBoost)     │     │ Mapper        │
-│               │     │               │     │               │
-│ - Age encode  │     │ Input: 15     │     │ Score 1-3:    │
-│ - Income norm │     │   features    │     │  Conservative │
-│ - Investment  │     │ Output: score │     │ Score 4-6:    │
-│   diversity   │     │   (1-10)      │     │  Moderate     │
-│ - Goal gap    │     │               │     │ Score 7-8:    │
-│   ratio       │     │               │     │  Aggressive   │
-│ - Savings     │     │               │     │ Score 9-10:   │
-│   rate        │     │               │     │  Very Aggr.   │
-└───────────────┘     └───────────────┘     └───────┬───────┘
-                                                     │
-                                                     ▼
-                                            ┌───────────────┐
-                                            │ LLM Explainer │
-                                            │               │
-                                            │ "Based on your│
-                                            │  profile, you │
-                                            │  are a        │
-                                            │  Moderate     │
-                                            │  investor..." │
-                                            └───────────────┘
+```mermaid
+flowchart LR
+    INPUT2["Customer Profile Data"]
+    FE["Feature Engineering<br/>• Age encode<br/>• Income normalize<br/>• Investment diversity<br/>• Goal gap ratio<br/>• Savings rate"]
+    MODEL["Risk Model (XGBoost)<br/>Input: 15 features<br/>Output: score (1-10)"]
+    CAT["Category Mapper<br/>Score 1-3: Conservative<br/>Score 3-6: Moderate<br/>Score 6-8: Aggressive<br/>Score 8-10: Very Aggressive"]
+    EXP["LLM Explainer<br/>'Based on your profile,<br/>you are a Moderate<br/>investor...'"]
+
+    INPUT2 --> FE
+    FE --> MODEL
+    MODEL --> CAT
+    CAT --> EXP
 ```
 
 ### 8.3 Recommendation Pipeline
 
-```
-Risk Profile + Customer Data
-        │
-        ▼
-┌───────────────┐
-│ Rule Engine   │── Filter: regulatory suitability
-│ (Hard Rules)  │   (e.g., no equity-heavy products for conservative)
-└───────┬───────┘
-        │
-        ▼
-┌───────────────┐
-│ Collaborative │── Score products based on similar customer preferences
-│ Filter        │
-└───────┬───────┘
-        │
-        ▼
-┌───────────────┐
-│ LLM Ranker    │── Re-rank based on customer's specific conversation context
-│               │   and stated preferences
-└───────┬───────┘
-        │
-        ▼
-┌───────────────┐
-│ Portfolio     │── Build a diversified portfolio from top-ranked products
-│ Builder       │   Allocation: Equity / Debt / Gold / FD / Insurance
-└───────┬───────┘
-        │
-        ▼
-┌───────────────┐
-│ Wealth        │── Monte Carlo simulation (10,000 scenarios)
-│ Projector     │   Output: 25th / 50th / 75th percentile year-by-year
-└───────────────┘
+```mermaid
+flowchart TD
+    INPUT3["Risk Profile + Customer Data"]
+    RULES["Rule Engine (Hard Rules)<br/>Filter: regulatory suitability"]
+    CF["Collaborative Filter<br/>Score by similar customer preferences"]
+    LLM_RANK["LLM Ranker<br/>Re-rank by conversation context"]
+    PB["Portfolio Builder<br/>Equity / Debt / Gold / FD / Insurance"]
+    MC["Wealth Projector<br/>Monte Carlo (10K scenarios)<br/>Output: P25/P50/P75 year-by-year"]
+
+    INPUT3 --> RULES
+    RULES --> CF
+    CF --> LLM_RANK
+    LLM_RANK --> PB
+    PB --> MC
 ```
 
 ---
@@ -577,57 +484,63 @@ Risk Profile + Customer Data
 
 ### 9.1 Kubernetes Cluster Layout
 
-```
-┌──────────────────────────────────────────────────────────────┐
-│                    AWS EKS Cluster                            │
-│                                                              │
-│  ┌─────────────── Namespace: rm-production ───────────────┐  │
-│  │                                                        │  │
-│  │  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐    │  │
-│  │  │Conv Svc │ │Profile  │ │Risk Svc │ │Recommend│    │  │
-│  │  │ 4 pods  │ │Svc      │ │ 2 pods  │ │Svc      │    │  │
-│  │  │ HPA:2-8 │ │ 3 pods  │ │ HPA:1-4 │ │ 2 pods  │    │  │
-│  │  └─────────┘ │ HPA:2-6 │ └─────────┘ │ HPA:1-4 │    │  │
-│  │              └─────────┘              └─────────┘     │  │
-│  │                                                        │  │
-│  │  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐    │  │
-│  │  │Followup │ │Notific. │ │Reminder │ │Analytics│    │  │
-│  │  │Orch     │ │Svc      │ │Svc      │ │Svc      │    │  │
-│  │  │ 2 pods  │ │ 3 pods  │ │ 2 pods  │ │ 2 pods  │    │  │
-│  │  │ HPA:1-4 │ │ HPA:2-6 │ │ HPA:1-3 │ │ HPA:1-3 │    │  │
-│  │  └─────────┘ └─────────┘ └─────────┘ └─────────┘     │  │
-│  │                                                        │  │
-│  │  ┌─────────┐ ┌─────────┐ ┌─────────┐                 │  │
-│  │  │Auth Svc │ │Product  │ │Admin Svc│                 │  │
-│  │  │ 2 pods  │ │Catalog  │ │ 1 pod   │                 │  │
-│  │  │ HPA:1-4 │ │ 2 pods  │ │ HPA:1-2 │                 │  │
-│  │  └─────────┘ │ HPA:1-3 │ └─────────┘                 │  │
-│  │              └─────────┘                              │  │
-│  └────────────────────────────────────────────────────────┘  │
-│                                                              │
-│  ┌─────────────── Namespace: rm-infra ────────────────────┐  │
-│  │  Kafka │ Redis │ Elasticsearch │ Prometheus │ Grafana  │  │
-│  └────────────────────────────────────────────────────────┘  │
-│                                                              │
-│  Node Groups:                                                │
-│  - General: m6i.xlarge (4 vCPU, 16 GB) × 6 nodes           │
-│  - AI/ML:  g5.xlarge (GPU) × 2 nodes (for local inference) │
-│  - Spot:   m6i.large × 4 nodes (analytics, batch)          │
-└──────────────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph EKS["AWS EKS Cluster"]
+        subgraph PROD_NS["Namespace: rm-production"]
+            CONV_POD["Conversation Svc<br/>4 pods, HPA:2-8"]
+            PROF_POD["Profile Svc<br/>3 pods, HPA:2-6"]
+            RISK_POD["Risk Svc<br/>2 pods, HPA:1-4"]
+            REC_POD["Recommend Svc<br/>2 pods, HPA:1-4"]
+            FU_POD["Follow-Up Orch<br/>2 pods, HPA:1-4"]
+            NOTIF_POD["Notification Svc<br/>3 pods, HPA:2-6"]
+            REM_POD["Reminder Svc<br/>2 pods, HPA:1-3"]
+            ANA_POD["Analytics Svc<br/>2 pods, HPA:1-3"]
+            AUTH_POD["Auth Svc<br/>2 pods, HPA:1-4"]
+            PC_POD["Product Catalog<br/>2 pods, HPA:1-3"]
+            ADM_POD["Admin Svc<br/>1 pod, HPA:1-2"]
+        end
+        subgraph INFRA_NS["Namespace: rm-infra"]
+            KAFKA_INF["Kafka"]
+            REDIS_INF["Redis"]
+            ES_INF["Elasticsearch"]
+            PROM_INF["Prometheus"]
+            GRAF_INF["Grafana"]
+        end
+    end
+
+    subgraph NODES["Node Groups"]
+        GEN["General: m6i.xlarge (4 vCPU, 16 GB) x 6"]
+        AI["AI/ML: g5.xlarge (GPU) x 2"]
+        SPOT["Spot: m6i.large x 4 (analytics, batch)"]
+    end
 ```
 
 ### 9.2 Multi-AZ Deployment
 
-```
-┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
-│   AZ-1 (a)      │  │   AZ-2 (b)      │  │   AZ-3 (c)      │
-│                  │  │                  │  │                  │
-│  EKS Nodes (2)  │  │  EKS Nodes (2)  │  │  EKS Nodes (2)  │
-│  RDS Primary    │  │  RDS Standby    │  │  RDS Read Repl. │
-│  Redis Primary  │  │  Redis Replica  │  │  Redis Replica  │
-│  Kafka Broker 1 │  │  Kafka Broker 2 │  │  Kafka Broker 3 │
-│  ES Node 1      │  │  ES Node 2      │  │  ES Node 3      │
-└─────────────────┘  └─────────────────┘  └─────────────────┘
+```mermaid
+graph LR
+    subgraph AZ1["AZ-1 (a)"]
+        AZ1_EKS["EKS Nodes (2)"]
+        AZ1_RDS["RDS Primary"]
+        AZ1_RED["Redis Primary"]
+        AZ1_KAF["Kafka Broker 1"]
+        AZ1_ES["ES Node 1"]
+    end
+    subgraph AZ2["AZ-2 (b)"]
+        AZ2_EKS["EKS Nodes (2)"]
+        AZ2_RDS["RDS Standby"]
+        AZ2_RED["Redis Replica"]
+        AZ2_KAF["Kafka Broker 2"]
+        AZ2_ES["ES Node 2"]
+    end
+    subgraph AZ3["AZ-3 (c)"]
+        AZ3_EKS["EKS Nodes (2)"]
+        AZ3_RDS["RDS Read Replica"]
+        AZ3_RED["Redis Replica"]
+        AZ3_KAF["Kafka Broker 3"]
+        AZ3_ES["ES Node 3"]
+    end
 ```
 
 ---

@@ -35,53 +35,26 @@
 
 A new visitor lands on the platform and starts a conversation without logging in.
 
-```
-┌──────────┐      ┌──────────┐      ┌────────────┐      ┌───────────┐      ┌─────────┐
-│ Customer │      │ Web App  │      │ API Gateway│      │  Conv Svc │      │  Redis  │
-│ (Browser)│      │ (Next.js)│      │  (Kong)    │      │           │      │         │
-└────┬─────┘      └────┬─────┘      └─────┬──────┘      └─────┬─────┘      └────┬────┘
-     │                  │                  │                    │                  │
-     │  Visit website   │                  │                    │                  │
-     │─────────────────►│                  │                    │                  │
-     │                  │                  │                    │                  │
-     │  Click "Chat     │                  │                    │                  │
-     │  with RM"        │                  │                    │                  │
-     │─────────────────►│                  │                    │                  │
-     │                  │                  │                    │                  │
-     │                  │  POST /api/v1/   │                    │                  │
-     │                  │  conversations   │                    │                  │
-     │                  │  {channel:"WEB"} │                    │                  │
-     │                  │─────────────────►│                    │                  │
-     │                  │                  │                    │                  │
-     │                  │                  │  Create anonymous  │                  │
-     │                  │                  │  session           │                  │
-     │                  │                  │───────────────────►│                  │
-     │                  │                  │                    │                  │
-     │                  │                  │                    │  Store session   │
-     │                  │                  │                    │  context         │
-     │                  │                  │                    │─────────────────►│
-     │                  │                  │                    │                  │
-     │                  │                  │                    │  ◄─── OK ────────│
-     │                  │                  │                    │                  │
-     │                  │                  │  ◄── {conv_id,     │                  │
-     │                  │                  │       ws_url,      │                  │
-     │                  │                  │       session_     │                  │
-     │                  │  ◄── 201 Created │       token}       │                  │
-     │                  │      + WS URL    │                    │                  │
-     │                  │                  │                    │                  │
-     │  ◄── Chat UI    │                  │                    │                  │
-     │      opens +    │                  │                    │                  │
-     │      WS connect │                  │                    │                  │
-     │                  │                  │                    │                  │
-     │                  │═══ WebSocket ════╪═══════════════════►│                  │
-     │                  │    Connected     │                    │                  │
-     │                  │                  │                    │                  │
-     │  ◄── "Hello!    │  ◄══ WS: greeting message ════════════│                  │
-     │      Welcome to │                  │                    │                  │
-     │      ABC Bank.  │                  │                    │                  │
-     │      May I know │                  │                    │                  │
-     │      your name?"│                  │                    │                  │
-     │                  │                  │                    │                  │
+```mermaid
+sequenceDiagram
+    participant C as Customer (Browser)
+    participant W as Web App (Next.js)
+    participant GW as API Gateway (Kong)
+    participant CS as Conv Svc
+    participant R as Redis
+
+    C->>W: Visit website
+    C->>W: Click "Chat with RM"
+    W->>GW: POST /api/v1/conversations {channel:"WEB"}
+    GW->>CS: Create anonymous session
+    CS->>R: Store session context
+    R-->>CS: OK
+    CS-->>GW: {conv_id, ws_url, session_token}
+    GW-->>W: 201 Created + WS URL
+    W-->>C: Chat UI opens + WS connect
+    W->>CS: WebSocket Connected
+    CS-->>W: WS: greeting message
+    W-->>C: "Hello! Welcome to ABC Bank. May I know your name?"
 ```
 
 ---
@@ -90,81 +63,32 @@ A new visitor lands on the platform and starts a conversation without logging in
 
 The AI collects customer name, age group, location, phone, and email through natural conversation.
 
-```
-┌──────────┐      ┌────────────┐      ┌───────────┐      ┌───────────┐      ┌──────────┐
-│ Customer │      │ API Gateway│      │  Conv Svc │      │    LLM    │      │ Profile  │
-│          │      │            │      │           │      │ (GPT-4o)  │      │ Service  │
-└────┬─────┘      └─────┬──────┘      └─────┬─────┘      └─────┬─────┘      └────┬─────┘
-     │                   │                   │                   │                  │
-     │  WS: "Hi, I'm    │                   │                   │                  │
-     │  Ravi, 32 years  │                   │                   │                  │
-     │  from Hyderabad" │                   │                   │                  │
-     │══════════════════►│                   │                   │                  │
-     │                   │══════════════════►│                   │                  │
-     │                   │                   │                   │                  │
-     │                   │                   │  Extract entities │                  │
-     │                   │                   │  from message     │                  │
-     │                   │                   │──────────────────►│                  │
-     │                   │                   │                   │                  │
-     │                   │                   │  ◄── Entities:    │                  │
-     │                   │                   │  name="Ravi"      │                  │
-     │                   │                   │  age_group="30-40"│                  │
-     │                   │                   │  location=        │                  │
-     │                   │                   │   "Hyderabad"     │                  │
-     │                   │                   │  confidence=0.96  │                  │
-     │                   │                   │                   │                  │
-     │                   │                   │  Save partial     │                  │
-     │                   │                   │  profile          │                  │
-     │                   │                   │────────────────────────────────────►│
-     │                   │                   │                   │                  │
-     │                   │                   │  ◄──── 200 OK ────────────────────│
-     │                   │                   │                   │                  │
-     │                   │                   │  Generate next    │                  │
-     │                   │                   │  question         │                  │
-     │                   │                   │──────────────────►│                  │
-     │                   │                   │                   │                  │
-     │                   │                   │  ◄── "Nice to     │                  │
-     │                   │                   │  meet you Ravi!   │                  │
-     │                   │                   │  Could you share  │                  │
-     │                   │                   │  your email and   │                  │
-     │                   │                   │  phone number?"   │                  │
-     │                   │                   │                   │                  │
-     │  ◄═══ WS: AI     │◄══════════════════│                   │                  │
-     │  response + phase │                   │                   │                  │
-     │  progress (25%)  │                   │                   │                  │
-     │                   │                   │                   │                  │
-     │  WS: "Sure, my   │                   │                   │                  │
-     │  email is ravi@   │                   │                   │                  │
-     │  mail.com, phone  │                   │                   │                  │
-     │  9876543210"      │                   │                   │                  │
-     │══════════════════►│══════════════════►│                   │                  │
-     │                   │                   │                   │                  │
-     │                   │                   │  Extract + validate                  │
-     │                   │                   │──────────────────►│                  │
-     │                   │                   │                   │                  │
-     │                   │                   │  ◄── email, phone │                  │
-     │                   │                   │  both valid       │                  │
-     │                   │                   │                   │                  │
-     │                   │                   │  Update profile   │                  │
-     │                   │                   │────────────────────────────────────►│
-     │                   │                   │                   │                  │
-     │                   │                   │  Phase transition:│                  │
-     │                   │                   │  PERSONAL →       │                  │
-     │                   │                   │  FINANCIAL        │                  │
-     │                   │                   │                   │                  │
-     │                   │                   │  Generate         │                  │
-     │                   │                   │  transition msg   │                  │
-     │                   │                   │──────────────────►│                  │
-     │                   │                   │                   │                  │
-     │                   │                   │  ◄── "Great Ravi! │                  │
-     │                   │                   │  Now, tell me     │                  │
-     │                   │                   │  about your       │                  │
-     │                   │                   │  income..."       │                  │
-     │                   │                   │                   │                  │
-     │  ◄═══ WS: Phase  │◄══════════════════│                   │                  │
-     │  change event +   │                   │                   │                  │
-     │  AI response      │                   │                   │                  │
-     │                   │                   │                   │                  │
+```mermaid
+sequenceDiagram
+    participant C as Customer
+    participant GW as API Gateway
+    participant CS as Conv Svc
+    participant LLM as LLM (GPT-4o)
+    participant PS as Profile Service
+
+    C->>GW: WS: "Hi, I'm Ravi, 32 years from Hyderabad"
+    GW->>CS: Forward message
+    CS->>LLM: Extract entities from message
+    LLM-->>CS: name="Ravi", age_group="30-40", location="Hyderabad" (confidence=0.96)
+    CS->>PS: Save partial profile
+    PS-->>CS: 200 OK
+    CS->>LLM: Generate next question
+    LLM-->>CS: "Nice to meet you Ravi! Could you share your email and phone number?"
+    CS-->>C: WS: AI response + phase progress (25%)
+
+    C->>CS: WS: "Sure, my email is ravi@mail.com, phone 9876543210"
+    CS->>LLM: Extract + validate
+    LLM-->>CS: email, phone both valid
+    CS->>PS: Update profile
+    Note over CS: Phase transition: PERSONAL → FINANCIAL
+    CS->>LLM: Generate transition msg
+    LLM-->>CS: "Great Ravi! Now, tell me about your income..."
+    CS-->>C: WS: Phase change event + AI response
 ```
 
 ---
@@ -173,84 +97,31 @@ The AI collects customer name, age group, location, phone, and email through nat
 
 The AI collects income source, income range, current investments, and savings.
 
-```
-┌──────────┐      ┌───────────┐      ┌───────────┐      ┌──────────┐
-│ Customer │      │  Conv Svc │      │    LLM    │      │ Profile  │
-│          │      │           │      │ (GPT-4o)  │      │ Service  │
-└────┬─────┘      └─────┬─────┘      └─────┬─────┘      └────┬─────┘
-     │                   │                   │                  │
-     │  WS: "I work in  │                   │                  │
-     │  IT, salaried,   │                   │                  │
-     │  around 1.2L     │                   │                  │
-     │  per month"      │                   │                  │
-     │══════════════════►│                   │                  │
-     │                   │                   │                  │
-     │                   │  Extract:         │                  │
-     │                   │  income_source,   │                  │
-     │                   │  income_range     │                  │
-     │                   │──────────────────►│                  │
-     │                   │                   │                  │
-     │                   │  ◄── income_source│                  │
-     │                   │  = "SALARIED"     │                  │
-     │                   │  income_range     │                  │
-     │                   │  = "100-150K"     │                  │
-     │                   │  (1.2L/mo =       │                  │
-     │                   │   14.4L/yr)       │                  │
-     │                   │                   │                  │
-     │                   │  Save to profile  │                  │
-     │                   │────────────────────────────────────►│
-     │                   │                   │                  │
-     │                   │  Next question    │                  │
-     │                   │──────────────────►│                  │
-     │                   │                   │                  │
-     │  ◄═══ "That's    │  ◄── Response     │                  │
-     │  great! Do you   │                   │                  │
-     │  have any current│                   │                  │
-     │  investments like │                   │                  │
-     │  mutual funds,   │                   │                  │
-     │  FDs, stocks?"   │                   │                  │
-     │                   │                   │                  │
-     │  WS: "Yes, I have│                   │                  │
-     │  about 2L in MFs,│                   │                  │
-     │  5L in FD, and   │                   │                  │
-     │  1L in stocks.   │                   │                  │
-     │  Savings around  │                   │                  │
-     │  3L"             │                   │                  │
-     │══════════════════►│                   │                  │
-     │                   │                   │                  │
-     │                   │  Extract          │                  │
-     │                   │  structured data  │                  │
-     │                   │──────────────────►│                  │
-     │                   │                   │                  │
-     │                   │  ◄── investments: │                  │
-     │                   │  {mutual_funds:   │                  │
-     │                   │   200000,         │                  │
-     │                   │   fd: 500000,     │                  │
-     │                   │   equity: 100000} │                  │
-     │                   │  savings: 300000  │                  │
-     │                   │                   │                  │
-     │                   │  Confirm with     │                  │
-     │                   │  customer         │                  │
-     │                   │──────────────────►│                  │
-     │                   │                   │                  │
-     │  ◄═══ "Let me    │  ◄── Confirmation │                  │
-     │  confirm: ₹2L in │  message          │                  │
-     │  MFs, ₹5L in FDs,│                   │                  │
-     │  ₹1L in stocks,  │                   │                  │
-     │  ₹3L savings.    │                   │                  │
-     │  Is that right?" │                   │                  │
-     │                   │                   │                  │
-     │  WS: "Yes,       │                   │                  │
-     │  that's correct" │                   │                  │
-     │══════════════════►│                   │                  │
-     │                   │                   │                  │
-     │                   │  Confirm entities │                  │
-     │                   │  Update profile   │                  │
-     │                   │────────────────────────────────────►│
-     │                   │                   │                  │
-     │                   │  Phase: FINANCIAL │                  │
-     │                   │  → GOALS          │                  │
-     │                   │                   │                  │
+```mermaid
+sequenceDiagram
+    participant C as Customer
+    participant CS as Conv Svc
+    participant LLM as LLM (GPT-4o)
+    participant PS as Profile Service
+
+    C->>CS: WS: "I work in IT, salaried, around 1.2L per month"
+    CS->>LLM: Extract: income_source, income_range
+    LLM-->>CS: income_source="SALARIED", income_range="100-150K" (1.2L/mo = 14.4L/yr)
+    CS->>PS: Save to profile
+    CS->>LLM: Next question
+    LLM-->>CS: "That's great! Do you have any current investments like mutual funds, FDs, stocks?"
+    CS-->>C: WS: AI response
+
+    C->>CS: WS: "Yes, I have about 2L in MFs, 5L in FD, and 1L in stocks. Savings around 3L"
+    CS->>LLM: Extract structured data
+    LLM-->>CS: investments: {mutual_funds: 200000, fd: 500000, equity: 100000}, savings: 300000
+    CS->>LLM: Confirm with customer
+    LLM-->>CS: Confirmation message
+    CS-->>C: WS: "Let me confirm: ₹2L in MFs, ₹5L in FDs, ₹1L in stocks, ₹3L savings. Is that right?"
+
+    C->>CS: WS: "Yes, that's correct"
+    CS->>PS: Confirm entities, Update profile
+    Note over CS: Phase: FINANCIAL → GOALS
 ```
 
 ---
@@ -259,69 +130,26 @@ The AI collects income source, income range, current investments, and savings.
 
 The AI collects retirement target amount and target age based on customer's age group.
 
-```
-┌──────────┐      ┌───────────┐      ┌───────────┐      ┌──────────┐
-│ Customer │      │  Conv Svc │      │    LLM    │      │ Profile  │
-│          │      │           │      │ (GPT-4o)  │      │ Service  │
-└────┬─────┘      └─────┬─────┘      └─────┬─────┘      └────┬─────┘
-     │                   │                   │                  │
-     │                   │  Context: age     │                  │
-     │                   │  group=30-40,     │                  │
-     │                   │  income=100-150K  │                  │
-     │                   │                   │                  │
-     │                   │  Generate         │                  │
-     │                   │  contextual       │                  │
-     │                   │  question         │                  │
-     │                   │──────────────────►│                  │
-     │                   │                   │                  │
-     │  ◄═══ "Ravi,     │  ◄── Response     │                  │
-     │  since you're in │                   │                  │
-     │  your early 30s, │                   │                  │
-     │  you have a great│                   │                  │
-     │  runway for      │                   │                  │
-     │  building wealth.│                   │                  │
-     │  When would you  │                   │                  │
-     │  like to retire? │                   │                  │
-     │  And how much    │                   │                  │
-     │  would you like  │                   │                  │
-     │  to have by      │                   │                  │
-     │  then?"          │                   │                  │
-     │                   │                   │                  │
-     │  WS: "I want to  │                   │                  │
-     │  retire at 55    │                   │                  │
-     │  with about 5    │                   │                  │
-     │  crores"         │                   │                  │
-     │══════════════════►│                   │                  │
-     │                   │                   │                  │
-     │                   │  Extract goals    │                  │
-     │                   │──────────────────►│                  │
-     │                   │                   │                  │
-     │                   │  ◄── retirement   │                  │
-     │                   │  _target_age=55   │                  │
-     │                   │  retirement_target│                  │
-     │                   │  _amount=50000000 │                  │
-     │                   │  years_to_retire  │                  │
-     │                   │  =20              │                  │
-     │                   │                   │                  │
-     │                   │  Update profile   │                  │
-     │                   │────────────────────────────────────►│
-     │                   │                   │                  │
-     │                   │  Phase: GOALS →   │                  │
-     │                   │  RISK_ASSESSMENT  │                  │
-     │                   │                   │                  │
-     │                   │  Generate         │                  │
-     │                   │  transition +     │                  │
-     │                   │  risk context msg │                  │
-     │                   │──────────────────►│                  │
-     │                   │                   │                  │
-     │  ◄═══ "₹5 crores │  ◄── Response     │                  │
-     │  by 55 — great   │                   │                  │
-     │  goal! Now let me│                   │                  │
-     │  understand your │                   │                  │
-     │  comfort with    │                   │                  │
-     │  investment      │                   │                  │
-     │  risk..."        │                   │                  │
-     │                   │                   │                  │
+```mermaid
+sequenceDiagram
+    participant C as Customer
+    participant CS as Conv Svc
+    participant LLM as LLM (GPT-4o)
+    participant PS as Profile Service
+
+    Note over CS,LLM: Context: age group=30-40, income=100-150K
+    CS->>LLM: Generate contextual question
+    LLM-->>CS: Response
+    CS-->>C: "Ravi, since you're in your early 30s, you have a great runway for building wealth. When would you like to retire? And how much would you like to have by then?"
+
+    C->>CS: WS: "I want to retire at 55 with about 5 crores"
+    CS->>LLM: Extract goals
+    LLM-->>CS: retirement_target_age=55, retirement_target_amount=50000000, years_to_retire=20
+    CS->>PS: Update profile
+    Note over CS: Phase: GOALS → RISK_ASSESSMENT
+    CS->>LLM: Generate transition + risk context msg
+    LLM-->>CS: Response
+    CS-->>C: "₹5 crores by 55 — great goal! Now let me understand your comfort with investment risk..."
 ```
 
 ---
@@ -330,83 +158,33 @@ The AI collects retirement target amount and target age based on customer's age 
 
 The system computes a risk score using the ML model and presents the result to the customer.
 
-```
-┌──────────┐   ┌───────────┐   ┌───────────┐   ┌──────────┐   ┌─────────┐   ┌───────┐
-│ Customer │   │  Conv Svc │   │    LLM    │   │ Profile  │   │Risk Svc │   │ Kafka │
-│          │   │           │   │ (GPT-4o)  │   │ Service  │   │(XGBoost)│   │       │
-└────┬─────┘   └─────┬─────┘   └─────┬─────┘   └────┬─────┘   └────┬────┘   └───┬───┘
-     │               │               │               │               │            │
-     │  WS: "I'm     │               │               │               │            │
-     │  okay with     │               │               │               │            │
-     │  moderate risk,│               │               │               │            │
-     │  not too       │               │               │               │            │
-     │  aggressive"   │               │               │               │            │
-     │═══════════════►│               │               │               │            │
-     │               │               │               │               │            │
-     │               │  Extract risk │               │               │            │
-     │               │  preferences  │               │               │            │
-     │               │──────────────►│               │               │            │
-     │               │               │               │               │            │
-     │               │  ◄── stated   │               │               │            │
-     │               │  preference:  │               │               │            │
-     │               │  "moderate"   │               │               │            │
-     │               │  score=0.5    │               │               │            │
-     │               │               │               │               │            │
-     │               │  Fetch full   │               │               │            │
-     │               │  profile      │               │               │            │
-     │               │──────────────────────────────►│               │            │
-     │               │               │               │               │            │
-     │               │  ◄── Full customer profile ───│               │            │
-     │               │               │               │               │            │
-     │               │  Request risk │               │               │            │
-     │               │  assessment   │               │               │            │
-     │               │──────────────────────────────────────────────►│            │
-     │               │               │               │               │            │
-     │               │               │               │  Feature      │            │
-     │               │               │               │  engineering  │            │
-     │               │               │               │  (15 features)│            │
-     │               │               │               │      │        │            │
-     │               │               │               │      ▼        │            │
-     │               │               │               │  XGBoost      │            │
-     │               │               │               │  prediction   │            │
-     │               │               │               │      │        │            │
-     │               │               │               │      ▼        │            │
-     │               │               │               │  SHAP         │            │
-     │               │               │               │  explanation  │            │
-     │               │               │               │               │            │
-     │               │  ◄── risk_score=6.5 ──────────────────────────│            │
-     │               │      category="MODERATE"      │               │            │
-     │               │      top_factors=[age,income,  │               │            │
-     │               │      savings_ratio]            │               │            │
-     │               │               │               │               │            │
-     │               │               │               │  Save risk    │            │
-     │               │               │               │  profile      │            │
-     │               │               │               │──────────────►│            │
-     │               │               │               │               │            │
-     │               │               │               │  Emit event   │            │
-     │               │               │               │───────────────────────────►│
-     │               │               │               │  risk.assessed│            │
-     │               │               │               │               │            │
-     │               │  Generate     │               │               │            │
-     │               │  explanation  │               │               │            │
-     │               │──────────────►│               │               │            │
-     │               │               │               │               │            │
-     │               │  ◄── "Based   │               │               │            │
-     │               │  on your age  │               │               │            │
-     │               │  (30-40),     │               │               │            │
-     │               │  stable       │               │               │            │
-     │               │  income, and  │               │               │            │
-     │               │  existing     │               │               │            │
-     │               │  investments, │               │               │            │
-     │               │  you're a     │               │               │            │
-     │               │  Moderate     │               │               │            │
-     │               │  investor..." │               │               │            │
-     │               │               │               │               │            │
-     │  ◄═══ Risk    │               │               │               │            │
-     │  profile      │               │               │               │            │
-     │  explanation  │               │               │               │            │
-     │  + score card │               │               │               │            │
-     │               │               │               │               │            │
+```mermaid
+sequenceDiagram
+    participant C as Customer
+    participant CS as Conv Svc
+    participant LLM as LLM (GPT-4o)
+    participant PS as Profile Service
+    participant RS as Risk Svc (XGBoost)
+    participant K as Kafka
+
+    C->>CS: WS: "I'm okay with moderate risk, not too aggressive"
+    CS->>LLM: Extract risk preferences
+    LLM-->>CS: stated preference: "moderate" score=0.5
+    CS->>PS: Fetch full profile
+    PS-->>CS: Full customer profile
+    CS->>RS: Request risk assessment
+
+    RS->>RS: Feature engineering (15 features)
+    RS->>RS: XGBoost prediction
+    RS->>RS: SHAP explanation
+    RS-->>CS: risk_score=6.5, category="MODERATE", top_factors=[age, income, savings_ratio]
+
+    RS->>PS: Save risk profile
+    RS->>K: Emit risk.assessed event
+
+    CS->>LLM: Generate explanation
+    LLM-->>CS: "Based on your age (30-40), stable income, and existing investments, you're a Moderate investor..."
+    CS-->>C: Risk profile explanation + score card
 ```
 
 ---
@@ -415,89 +193,33 @@ The system computes a risk score using the ML model and presents the result to t
 
 The recommendation engine builds a portfolio and the wealth projection model simulates growth.
 
-```
-┌──────────┐  ┌───────────┐  ┌───────────┐  ┌──────────┐  ┌─────────┐  ┌─────────┐
-│ Customer │  │  Conv Svc │  │    LLM    │  │ Recomm.  │  │ Product │  │ Wealth  │
-│          │  │           │  │           │  │ Service  │  │ Catalog │  │Proj Svc │
-└────┬─────┘  └─────┬─────┘  └─────┬─────┘  └────┬─────┘  └────┬────┘  └────┬────┘
-     │               │               │              │              │           │
-     │               │  (Triggered by risk.assessed event)         │           │
-     │               │               │              │              │           │
-     │               │               │  ◄── Event: risk.assessed   │           │
-     │               │               │              │              │           │
-     │               │               │  Fetch       │              │           │
-     │               │               │  products by │              │           │
-     │               │               │  risk level  │              │           │
-     │               │               │  (MODERATE)  │              │           │
-     │               │               │─────────────►│              │           │
-     │               │               │              │              │           │
-     │               │               │              │  Query       │           │
-     │               │               │              │  suitable    │           │
-     │               │               │              │  products    │           │
-     │               │               │              │─────────────►│           │
-     │               │               │              │              │           │
-     │               │               │              │  ◄── 25      │           │
-     │               │               │              │  matching    │           │
-     │               │               │              │  products    │           │
-     │               │               │              │              │           │
-     │               │               │  Rule engine:│              │           │
-     │               │               │  filter by   │              │           │
-     │               │               │  suitability │              │           │
-     │               │               │      │       │              │           │
-     │               │               │      ▼       │              │           │
-     │               │               │  Collaborative              │           │
-     │               │               │  filtering:  │              │           │
-     │               │               │  rank by     │              │           │
-     │               │               │  similar     │              │           │
-     │               │               │  customers   │              │           │
-     │               │               │      │       │              │           │
-     │               │               │      ▼       │              │           │
-     │               │               │  LLM re-rank │              │           │
-     │               │               │  by context  │              │           │
-     │               │               │      │       │              │           │
-     │               │               │      ▼       │              │           │
-     │               │               │  Build       │              │           │
-     │               │               │  portfolio:  │              │           │
-     │               │               │  Equity 40%  │              │           │
-     │               │               │  Debt 25%    │              │           │
-     │               │               │  FD 15%      │              │           │
-     │               │               │  Gold 10%    │              │           │
-     │               │               │  NPS 10%     │              │           │
-     │               │               │              │              │           │
-     │               │               │  Request     │              │           │
-     │               │               │  wealth      │              │           │
-     │               │               │  projection  │              │           │
-     │               │               │─────────────────────────────────────────►│
-     │               │               │              │              │           │
-     │               │               │              │              │  Monte    │
-     │               │               │              │              │  Carlo    │
-     │               │               │              │              │  (10K     │
-     │               │               │              │              │  sims)    │
-     │               │               │              │              │     │     │
-     │               │               │              │              │     ▼     │
-     │               │               │              │              │  Compute  │
-     │               │               │              │              │  P25/P50/ │
-     │               │               │              │              │  P75 per  │
-     │               │               │              │              │  year     │
-     │               │               │              │              │           │
-     │               │               │  ◄── Portfolio + Projection ────────────│
-     │               │               │              │              │           │
-     │               │  ◄── Recommendation ready    │              │           │
-     │               │      (callback/event)        │              │           │
-     │               │               │              │              │           │
-     │               │  Generate     │              │              │           │
-     │               │  presentation │              │              │           │
-     │               │──────────────►│              │              │           │
-     │               │               │              │              │           │
-     │  ◄═══ Rich    │  ◄── Rich card│              │              │           │
-     │  card:        │  with portfolio              │              │           │
-     │  Portfolio    │  allocation + │              │              │           │
-     │  allocation   │  projection   │              │              │           │
-     │  chart +      │  chart data   │              │              │           │
-     │  wealth       │               │              │              │           │
-     │  projection   │               │              │              │           │
-     │  graph        │               │              │              │           │
-     │               │               │              │              │           │
+```mermaid
+sequenceDiagram
+    participant C as Customer
+    participant CS as Conv Svc
+    participant LLM as LLM
+    participant REC as Recomm. Service
+    participant PC as Product Catalog
+    participant WP as Wealth Proj Svc
+
+    Note over REC: Triggered by risk.assessed event
+    REC->>PC: Fetch products by risk level (MODERATE)
+    PC-->>REC: 25 matching products
+
+    REC->>REC: Rule engine: filter by suitability
+    REC->>REC: Collaborative filtering: rank by similar customers
+    REC->>REC: LLM re-rank by context
+    REC->>REC: Build portfolio: Equity 40%, Debt 25%, FD 15%, Gold 10%, NPS 10%
+
+    REC->>WP: Request wealth projection
+    WP->>WP: Monte Carlo (10K sims)
+    WP->>WP: Compute P25/P50/P75 per year
+    WP-->>REC: Portfolio + Projection
+
+    REC-->>CS: Recommendation ready (callback/event)
+    CS->>LLM: Generate presentation
+    LLM-->>CS: Rich card with portfolio allocation + projection chart data
+    CS-->>C: Rich card: Portfolio allocation chart + wealth projection graph
 ```
 
 ---
@@ -506,67 +228,27 @@ The recommendation engine builds a portfolio and the wealth projection model sim
 
 Customer selects their preferred channel for follow-up communications.
 
-```
-┌──────────┐      ┌───────────┐      ┌───────────┐      ┌──────────┐
-│ Customer │      │  Conv Svc │      │    LLM    │      │ Profile  │
-│          │      │           │      │ (GPT-4o)  │      │ Service  │
-└────┬─────┘      └─────┬─────┘      └─────┬─────┘      └────┬─────┘
-     │                   │                   │                  │
-     │                   │  Generate channel │                  │
-     │                   │  selection prompt │                  │
-     │                   │──────────────────►│                  │
-     │                   │                   │                  │
-     │  ◄═══ "How would │  ◄── Quick reply  │                  │
-     │  you like me to  │  message with     │                  │
-     │  reach you for   │  options          │                  │
-     │  follow-ups?"    │                   │                  │
-     │                   │                   │                  │
-     │  [Quick Reply     │                   │                  │
-     │   Buttons:]       │                   │                  │
-     │  [SMS] [WhatsApp] │                   │                  │
-     │  [Email] [Phone]  │                   │                  │
-     │                   │                   │                  │
-     │  WS: Click        │                   │                  │
-     │  "WhatsApp"       │                   │                  │
-     │══════════════════►│                   │                  │
-     │                   │                   │                  │
-     │                   │  Save preference  │                  │
-     │                   │────────────────────────────────────►│
-     │                   │                   │                  │
-     │                   │                   │  Update:         │
-     │                   │                   │  preferred_      │
-     │                   │                   │  channel=        │
-     │                   │                   │  WHATSAPP        │
-     │                   │                   │  opt_in_whatsapp │
-     │                   │                   │  =true           │
-     │                   │                   │                  │
-     │                   │  ◄── 200 OK ──────────────────────│
-     │                   │                   │                  │
-     │                   │  Ask for time     │                  │
-     │                   │  preferences      │                  │
-     │                   │──────────────────►│                  │
-     │                   │                   │                  │
-     │  ◄═══ "Great     │  ◄── Response     │                  │
-     │  choice! What    │                   │                  │
-     │  time works best │                   │                  │
-     │  for follow-up   │                   │                  │
-     │  messages?        │                   │                  │
-     │  Weekday mornings │                   │                  │
-     │  or evenings?"   │                   │                  │
-     │                   │                   │                  │
-     │  WS: "Weekday    │                   │                  │
-     │  mornings,       │                   │                  │
-     │  around 10 AM"   │                   │                  │
-     │══════════════════►│                   │                  │
-     │                   │                   │                  │
-     │                   │  Update prefs:    │                  │
-     │                   │  time=10:00,      │                  │
-     │                   │  days=MON-FRI     │                  │
-     │                   │────────────────────────────────────►│
-     │                   │                   │                  │
-     │                   │  Phase: CHANNEL   │                  │
-     │                   │  → FOLLOWUP       │                  │
-     │                   │                   │                  │
+```mermaid
+sequenceDiagram
+    participant C as Customer
+    participant CS as Conv Svc
+    participant LLM as LLM (GPT-4o)
+    participant PS as Profile Service
+
+    CS->>LLM: Generate channel selection prompt
+    LLM-->>CS: Quick reply message with options
+    CS-->>C: "How would you like me to reach you for follow-ups?" [SMS] [WhatsApp] [Email] [Phone]
+
+    C->>CS: WS: Click "WhatsApp"
+    CS->>PS: Save preference (preferred_channel=WHATSAPP, opt_in_whatsapp=true)
+    PS-->>CS: 200 OK
+    CS->>LLM: Ask for time preferences
+    LLM-->>CS: Response
+    CS-->>C: "Great choice! What time works best for follow-up messages? Weekday mornings or evenings?"
+
+    C->>CS: WS: "Weekday mornings, around 10 AM"
+    CS->>PS: Update prefs: time=10:00, days=MON-FRI
+    Note over CS: Phase: CHANNEL → FOLLOWUP
 ```
 
 ---
@@ -575,83 +257,34 @@ Customer selects their preferred channel for follow-up communications.
 
 The system creates a follow-up schedule and confirms with the customer.
 
-```
-┌──────────┐   ┌───────────┐   ┌───────────┐   ┌──────────┐   ┌─────────┐   ┌───────┐
-│ Customer │   │  Conv Svc │   │    LLM    │   │ FollowUp │   │Notific. │   │ Kafka │
-│          │   │           │   │           │   │ Orch.    │   │ Service │   │       │
-└────┬─────┘   └─────┬─────┘   └─────┬─────┘   └────┬─────┘   └────┬────┘   └───┬───┘
-     │               │               │               │               │            │
-     │               │  Suggest       │               │               │            │
-     │               │  schedule      │               │               │            │
-     │               │──────────────►│               │               │            │
-     │               │               │               │               │            │
-     │  ◄═══ "Would │  ◄── Response │               │               │            │
-     │  you like     │               │               │               │            │
-     │  monthly      │               │               │               │            │
-     │  check-ins?   │               │               │               │            │
-     │  I can set up │               │               │               │            │
-     │  the first one│               │               │               │            │
-     │  for next     │               │               │               │            │
-     │  month."      │               │               │               │            │
-     │               │               │               │               │            │
-     │  WS: "Yes,    │               │               │               │            │
-     │  monthly      │               │               │               │            │
-     │  works"       │               │               │               │            │
-     │═══════════════►│               │               │               │            │
-     │               │               │               │               │            │
-     │               │  Create       │               │               │            │
-     │               │  schedule     │               │               │            │
-     │               │──────────────────────────────►│               │            │
-     │               │               │               │               │            │
-     │               │               │  Create:      │               │            │
-     │               │               │  schedule(    │               │            │
-     │               │               │   freq=MONTHLY│               │            │
-     │               │               │   channel=WA  │               │            │
-     │               │               │   time=10:00  │               │            │
-     │               │               │   first=Jun 3)│               │            │
-     │               │               │               │               │            │
-     │               │               │  Create first │               │            │
-     │               │               │  instance     │               │            │
-     │               │               │               │               │            │
-     │               │  ◄── Schedule created ────────│               │            │
-     │               │      next: Jun 3, 10 AM       │               │            │
-     │               │               │               │               │            │
-     │               │               │               │  Emit event   │            │
-     │               │               │               │───────────────────────────►│
-     │               │               │               │  followup.    │            │
-     │               │               │               │  scheduled    │            │
-     │               │               │               │               │            │
-     │               │               │               │  ◄── Event consumed ───────│
-     │               │               │               │               │            │
-     │               │               │               │  Schedule     │            │
-     │               │               │               │  confirmation │            │
-     │               │               │               │  notification │            │
-     │               │               │               │──────────────►│            │
-     │               │               │               │               │            │
-     │               │               │               │               │  Send      │
-     │               │               │               │               │  WhatsApp  │
-     │               │               │               │               │  confirm.  │
-     │               │               │               │               │            │
-     │               │  Phase: FOLLOWUP → COMPLETED  │               │            │
-     │               │               │               │               │            │
-     │               │  Generate     │               │               │            │
-     │               │  closing msg  │               │               │            │
-     │               │──────────────►│               │               │            │
-     │               │               │               │               │            │
-     │  ◄═══ "All    │  ◄── Response │               │               │            │
-     │  set, Ravi!   │               │               │               │            │
-     │  First review │               │               │               │            │
-     │  on June 3 at │               │               │               │            │
-     │  10 AM via    │               │               │               │            │
-     │  WhatsApp.    │               │               │               │            │
-     │  It was great │               │               │               │            │
-     │  chatting!"   │               │               │               │            │
-     │               │               │               │               │            │
-     │               │  Emit event:  │               │               │            │
-     │               │  conversation │               │               │            │
-     │               │  .completed   │               │               │            │
-     │               │───────────────────────────────────────────────────────────►│
-     │               │               │               │               │            │
+```mermaid
+sequenceDiagram
+    participant C as Customer
+    participant CS as Conv Svc
+    participant LLM as LLM
+    participant FU as FollowUp Orch.
+    participant NS as Notific. Service
+    participant K as Kafka
+
+    CS->>LLM: Suggest schedule
+    LLM-->>CS: Response
+    CS-->>C: "Would you like monthly check-ins? I can set up the first one for next month."
+
+    C->>CS: WS: "Yes, monthly works"
+    CS->>FU: Create schedule
+
+    FU->>FU: Create schedule (freq=MONTHLY, channel=WA, time=10:00, first=Jun 3)
+    FU->>FU: Create first instance
+    FU-->>CS: Schedule created, next: Jun 3, 10 AM
+    FU->>K: Emit followup.scheduled
+    K->>NS: Event consumed
+    NS->>NS: Schedule confirmation notification (WhatsApp)
+
+    Note over CS: Phase: FOLLOWUP → COMPLETED
+    CS->>LLM: Generate closing msg
+    LLM-->>CS: Response
+    CS-->>C: "All set, Ravi! First review on June 3 at 10 AM via WhatsApp. It was great chatting!"
+    CS->>K: Emit conversation.completed
 ```
 
 ---
@@ -660,65 +293,29 @@ The system creates a follow-up schedule and confirms with the customer.
 
 An anonymous user decides to register, and all data migrates seamlessly.
 
-```
-┌──────────┐   ┌──────────┐   ┌────────────┐   ┌───────────┐   ┌──────────┐   ┌─────────┐
-│ Customer │   │ Web App  │   │ API Gateway│   │ Auth Svc  │   │ Conv Svc │   │ Profile │
-│          │   │          │   │            │   │           │   │          │   │ Service │
-└────┬─────┘   └────┬─────┘   └─────┬──────┘   └─────┬─────┘   └────┬─────┘   └────┬────┘
-     │              │               │                 │               │              │
-     │  Click       │               │                 │               │              │
-     │  "Register"  │               │                 │               │              │
-     │─────────────►│               │                 │               │              │
-     │              │               │                 │               │              │
-     │              │  POST /auth/  │                 │               │              │
-     │              │  register     │                 │               │              │
-     │              │  {email,pass, │                 │               │              │
-     │              │  anon_session │                 │               │              │
-     │              │  _id}         │                 │               │              │
-     │              │──────────────►│                 │               │              │
-     │              │               │                 │               │              │
-     │              │               │  Register       │               │              │
-     │              │               │  request        │               │              │
-     │              │               │────────────────►│               │              │
-     │              │               │                 │               │              │
-     │              │               │                 │  Create user  │              │
-     │              │               │                 │  account      │              │
-     │              │               │                 │               │              │
-     │              │               │                 │  Fetch anon   │              │
-     │              │               │                 │  profile data │              │
-     │              │               │                 │──────────────────────────────►│
-     │              │               │                 │               │              │
-     │              │               │                 │  ◄── Anon profile data ──────│
-     │              │               │                 │  (name, age, income,         │
-     │              │               │                 │   investments, goals)        │
-     │              │               │                 │               │              │
-     │              │               │                 │  Migrate      │              │
-     │              │               │                 │  profile to   │              │
-     │              │               │                 │  user account │              │
-     │              │               │                 │──────────────────────────────►│
-     │              │               │                 │               │              │
-     │              │               │                 │  Migrate      │              │
-     │              │               │                 │  conversations│              │
-     │              │               │                 │──────────────►│              │
-     │              │               │                 │               │              │
-     │              │               │                 │               │  Update      │
-     │              │               │                 │               │  conv.       │
-     │              │               │                 │               │  customer_id │
-     │              │               │                 │               │              │
-     │              │               │                 │               │  Delete anon │
-     │              │               │                 │               │  session     │
-     │              │               │                 │               │              │
-     │              │               │                 │  ◄── Migrated │              │
-     │              │               │                 │               │              │
-     │              │               │  ◄── 201 {token,│               │              │
-     │              │  ◄── JWT +    │  refresh,       │               │              │
-     │              │  profile      │  migrated:true} │               │              │
-     │              │               │                 │               │              │
-     │  ◄── Logged  │               │                 │               │              │
-     │  in, chat    │               │                 │               │              │
-     │  continues   │               │                 │               │              │
-     │  seamlessly  │               │                 │               │              │
-     │              │               │                 │               │              │
+```mermaid
+sequenceDiagram
+    participant C as Customer
+    participant W as Web App
+    participant GW as API Gateway
+    participant AUTH as Auth Svc
+    participant CS as Conv Svc
+    participant PS as Profile Service
+
+    C->>W: Click "Register"
+    W->>GW: POST /auth/register {email, pass, anon_session_id}
+    GW->>AUTH: Register request
+    AUTH->>AUTH: Create user account
+    AUTH->>PS: Fetch anon profile data
+    PS-->>AUTH: Anon profile data (name, age, income, investments, goals)
+    AUTH->>PS: Migrate profile to user account
+    AUTH->>CS: Migrate conversations
+    CS->>CS: Update conv.customer_id
+    CS->>CS: Delete anon session
+    CS-->>AUTH: Migrated
+    AUTH-->>GW: 201 {token, refresh, migrated:true}
+    GW-->>W: JWT + profile
+    W-->>C: Logged in, chat continues seamlessly
 ```
 
 ---
@@ -727,87 +324,32 @@ An anonymous user decides to register, and all data migrates seamlessly.
 
 The reminder service triggers a notification 24 hours before a scheduled follow-up.
 
-```
-┌──────────┐   ┌─────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐
-│ Scheduler│   │Reminder │   │FollowUp  │   │ Profile  │   │Notific.  │   │ WhatsApp │
-│ (Cron)   │   │ Service │   │ Orch.    │   │ Service  │   │ Service  │   │ API(Meta)│
-└────┬─────┘   └────┬────┘   └────┬─────┘   └────┬─────┘   └────┬─────┘   └────┬─────┘
-     │              │              │              │               │               │
-     │  Tick        │              │              │               │               │
-     │  (every min) │              │              │               │               │
-     │─────────────►│              │              │               │               │
-     │              │              │              │               │               │
-     │              │  Query       │              │               │               │
-     │              │  due         │              │               │               │
-     │              │  reminders   │              │               │               │
-     │              │  (T-24hrs)   │              │               │               │
-     │              │─────────────►│              │               │               │
-     │              │              │              │               │               │
-     │              │  ◄── Instance│              │               │               │
-     │              │  {id, cust_  │              │               │               │
-     │              │  id, date,   │              │               │               │
-     │              │  channel=WA} │              │               │               │
-     │              │              │              │               │               │
-     │              │  Fetch       │              │               │               │
-     │              │  customer    │              │               │               │
-     │              │  name +      │              │               │               │
-     │              │  prefs       │              │               │               │
-     │              │──────────────────────────►│               │               │
-     │              │              │              │               │               │
-     │              │  ◄── {name:"Ravi",          │               │               │
-     │              │   preferred_channel:"WA",   │               │               │
-     │              │   timezone:"Asia/Kolkata"}  │               │               │
-     │              │              │              │               │               │
-     │              │  Get agenda  │              │               │               │
-     │              │  summary     │              │               │               │
-     │              │─────────────►│              │               │               │
-     │              │              │              │               │               │
-     │              │  ◄── Agenda  │              │               │               │
-     │              │  summary     │              │               │               │
-     │              │              │              │               │               │
-     │              │  Send        │              │               │               │
-     │              │  reminder    │              │               │               │
-     │              │  notification│              │               │               │
-     │              │──────────────────────────────────────────►│               │
-     │              │              │              │               │               │
-     │              │              │              │  Template:    │               │
-     │              │              │              │  followup_    │               │
-     │              │              │              │  reminder_v1  │               │
-     │              │              │              │  Channel: WA  │               │
-     │              │              │              │               │               │
-     │              │              │              │               │  POST /v1/    │
-     │              │              │              │               │  messages     │
-     │              │              │              │               │  (interactive)│
-     │              │              │              │               │──────────────►│
-     │              │              │              │               │               │
-     │              │              │              │               │  ◄── 200 OK  │
-     │              │              │              │               │  msg_id=xyz   │
-     │              │              │              │               │               │
-     │              │              │              │               │               │
-     │              │              │              │     CUSTOMER'S PHONE:         │
-     │              │              │              │     ┌────────────────────┐     │
-     │              │              │              │     │ 📱 WhatsApp        │     │
-     │              │              │              │     │                    │     │
-     │              │              │              │     │ ABC Bank RM        │     │
-     │              │              │              │     │ Hi Ravi 👋         │     │
-     │              │              │              │     │ Your review is on  │     │
-     │              │              │              │     │ Jun 3 at 10 AM.    │     │
-     │              │              │              │     │                    │     │
-     │              │              │              │     │ [Confirm]          │     │
-     │              │              │              │     │ [Reschedule]       │     │
-     │              │              │              │     │ [Cancel]           │     │
-     │              │              │              │     └────────────────────┘     │
-     │              │              │              │               │               │
-     │              │              │              │  Webhook:      │               │
-     │              │              │              │  delivered     │               │
-     │              │              │              │               │◄──────────────│
-     │              │              │              │               │               │
-     │              │  Update      │              │               │               │
-     │              │  instance:   │              │               │               │
-     │              │  REMINDER_   │              │               │               │
-     │              │  SENT        │              │               │               │
-     │              │─────────────►│              │               │               │
-     │              │              │              │               │               │
+```mermaid
+sequenceDiagram
+    participant SCH as Scheduler (Cron)
+    participant REM as Reminder Service
+    participant FU as FollowUp Orch.
+    participant PS as Profile Service
+    participant NS as Notific. Service
+    participant WA as WhatsApp API (Meta)
+
+    SCH->>REM: Tick (every min)
+    REM->>FU: Query due reminders (T-24hrs)
+    FU-->>REM: Instance {id, cust_id, date, channel=WA}
+    REM->>PS: Fetch customer name + prefs
+    PS-->>REM: {name:"Ravi", preferred_channel:"WA", timezone:"Asia/Kolkata"}
+    REM->>FU: Get agenda summary
+    FU-->>REM: Agenda summary
+    REM->>NS: Send reminder notification
+
+    Note over NS: Template: followup_reminder_v1, Channel: WA
+    NS->>WA: POST /v1/messages (interactive)
+    WA-->>NS: 200 OK, msg_id=xyz
+
+    Note over WA: Customer's phone receives WhatsApp:<br/>"Hi Ravi 👋 Your review is on Jun 3 at 10 AM"<br/>[Confirm] [Reschedule] [Cancel]
+
+    WA-->>NS: Webhook: delivered
+    REM->>FU: Update instance: REMINDER_SENT
 ```
 
 ---
@@ -816,73 +358,26 @@ The reminder service triggers a notification 24 hours before a scheduled follow-
 
 A scheduled follow-up begins with an AI-generated agenda from previous context.
 
-```
-┌──────────┐   ┌──────────┐   ┌──────────┐   ┌───────────┐   ┌───────────┐
-│ Customer │   │FollowUp  │   │  Conv Svc│   │    LLM    │   │ Profile   │
-│ (WhatsApp│   │ Orch.    │   │          │   │ (GPT-4o)  │   │ Service   │
-│  /Web)   │   │          │   │          │   │           │   │           │
-└────┬─────┘   └────┬─────┘   └────┬─────┘   └─────┬─────┘   └─────┬─────┘
-     │              │              │                 │                │
-     │  Customer    │              │                 │                │
-     │  clicks      │              │                 │                │
-     │  "Confirm"   │              │                 │                │
-     │═════════════►│              │                 │                │
-     │              │              │                 │                │
-     │              │  Fetch       │                 │                │
-     │              │  previous    │                 │                │
-     │              │  conversation│                 │                │
-     │              │  summary     │                 │                │
-     │              │─────────────►│                 │                │
-     │              │              │                 │                │
-     │              │  ◄── Last    │                 │                │
-     │              │  conversation│                 │                │
-     │              │  transcript  │                 │                │
-     │              │  + summary   │                 │                │
-     │              │              │                 │                │
-     │              │  Fetch       │                 │                │
-     │              │  current     │                 │                │
-     │              │  profile     │                 │                │
-     │              │──────────────────────────────────────────────►│
-     │              │              │                 │                │
-     │              │  ◄── Current profile + risk + recommendations ─│
-     │              │              │                 │                │
-     │              │  Generate    │                 │                │
-     │              │  agenda      │                 │                │
-     │              │──────────────────────────────►│                │
-     │              │              │                 │                │
-     │              │  ◄── Agenda: │                 │                │
-     │              │  1. Review NPS decision        │                │
-     │              │  2. Market update              │                │
-     │              │  3. Tax-saving options          │                │
-     │              │  4. Rebalancing check           │                │
-     │              │              │                 │                │
-     │              │  Create new  │                 │                │
-     │              │  conversation│                 │                │
-     │              │  (follow-up  │                 │                │
-     │              │  type)       │                 │                │
-     │              │─────────────►│                 │                │
-     │              │              │                 │                │
-     │              │              │  Generate       │                │
-     │              │              │  opening with   │                │
-     │              │              │  context        │                │
-     │              │              │────────────────►│                │
-     │              │              │                 │                │
-     │  ◄═══ "Hi   │              │  ◄── Response   │                │
-     │  Ravi! Good │              │                 │                │
-     │  to connect  │              │                 │                │
-     │  again. Last │              │                 │                │
-     │  time we     │              │                 │                │
-     │  discussed   │              │                 │                │
-     │  your        │              │                 │                │
-     │  retirement  │              │                 │                │
-     │  portfolio.  │              │                 │                │
-     │  You were    │              │                 │                │
-     │  looking into│              │                 │                │
-     │  NPS. Any    │              │                 │                │
-     │  updates?"   │              │                 │                │
-     │              │              │                 │                │
-     │  ... (conversation continues with agenda topics) ...         │
-     │              │              │                 │                │
+```mermaid
+sequenceDiagram
+    participant C as Customer (WhatsApp/Web)
+    participant FU as FollowUp Orch.
+    participant CS as Conv Svc
+    participant LLM as LLM (GPT-4o)
+    participant PS as Profile Service
+
+    C->>FU: Click "Confirm"
+    FU->>CS: Fetch previous conversation summary
+    CS-->>FU: Last conversation transcript + summary
+    FU->>PS: Fetch current profile
+    PS-->>FU: Current profile + risk + recommendations
+    FU->>LLM: Generate agenda
+    LLM-->>FU: Agenda: 1. Review NPS decision, 2. Market update, 3. Tax-saving options, 4. Rebalancing check
+    FU->>CS: Create new conversation (follow-up type)
+    CS->>LLM: Generate opening with context
+    LLM-->>CS: Response
+    CS-->>C: "Hi Ravi! Good to connect again. Last time we discussed your retirement portfolio. You were looking into NPS. Any updates?"
+    Note over C,CS: Conversation continues with agenda topics
 ```
 
 ---
@@ -891,85 +386,27 @@ A scheduled follow-up begins with an AI-generated agenda from previous context.
 
 When AI confidence drops below threshold or customer explicitly requests a human.
 
-```
-┌──────────┐   ┌───────────┐   ┌───────────┐   ┌──────────┐   ┌──────────┐
-│ Customer │   │  Conv Svc │   │    LLM    │   │ Human RM │   │Notific.  │
-│          │   │           │   │           │   │ (Staff)  │   │ Service  │
-└────┬─────┘   └─────┬─────┘   └─────┬─────┘   └────┬─────┘   └────┬─────┘
-     │               │               │               │               │
-     │  WS: "Can I   │               │               │               │
-     │  talk to a    │               │               │               │
-     │  real person?" │               │               │               │
-     │═══════════════►│               │               │               │
-     │               │               │               │               │
-     │               │  Detect       │               │               │
-     │               │  handoff      │               │               │
-     │               │  intent       │               │               │
-     │               │──────────────►│               │               │
-     │               │               │               │               │
-     │               │  ◄── Intent:  │               │               │
-     │               │  HUMAN_HANDOFF│               │               │
-     │               │  confidence:  │               │               │
-     │               │  0.99         │               │               │
-     │               │               │               │               │
-     │               │  Update state:│               │               │
-     │               │  HANDED_OFF   │               │               │
-     │               │               │               │               │
-     │               │  Generate     │               │               │
-     │               │  conversation │               │               │
-     │               │  summary for  │               │               │
-     │               │  human RM     │               │               │
-     │               │──────────────►│               │               │
-     │               │               │               │               │
-     │               │  ◄── Summary: │               │               │
-     │               │  "Ravi, 30-40,│               │               │
-     │               │  salaried,    │               │               │
-     │               │  100-150K,    │               │               │
-     │               │  moderate risk│               │               │
-     │               │  Discussed    │               │               │
-     │               │  portfolio    │               │               │
-     │               │  allocation.  │               │               │
-     │               │  Customer     │               │               │
-     │               │  wants human  │               │               │
-     │               │  advisor."    │               │               │
-     │               │               │               │               │
-     │               │  Find available RM            │               │
-     │               │  & assign     │               │               │
-     │               │───────────────────────────────►│               │
-     │               │               │               │               │
-     │               │               │  Notify RM    │               │
-     │               │               │  (in-app +    │               │
-     │               │               │  dashboard)   │               │
-     │               │               │───────────────────────────────►│
-     │               │               │               │               │
-     │               │               │               │  ◄── Notified│
-     │               │               │               │               │
-     │  ◄═══ "Of    │               │               │               │
-     │  course, Ravi!│               │               │               │
-     │  I'm          │               │               │               │
-     │  connecting   │               │               │               │
-     │  you with     │               │               │               │
-     │  Priya, your  │               │               │               │
-     │  dedicated    │               │               │               │
-     │  advisor.     │               │               │               │
-     │  One moment..." │               │               │               │
-     │               │               │               │               │
-     │               │               │               │  RM views    │
-     │               │               │               │  summary +   │
-     │               │               │               │  full chat   │
-     │               │               │               │  history     │
-     │               │               │               │              │
-     │               │               │               │  RM joins WS │
-     │               │◄══════════════════════════════│              │
-     │               │               │               │              │
-     │  ◄═══ "Hi    │               │               │              │
-     │  Ravi, this  │               │               │              │
-     │  is Priya.   │               │               │              │
-     │  I've reviewed│               │               │              │
-     │  your profile.│               │               │              │
-     │  How can I    │               │               │              │
-     │  help?"       │               │               │              │
-     │               │               │               │              │
+```mermaid
+sequenceDiagram
+    participant C as Customer
+    participant CS as Conv Svc
+    participant LLM as LLM
+    participant RM as Human RM (Staff)
+    participant NS as Notific. Service
+
+    C->>CS: WS: "Can I talk to a real person?"
+    CS->>LLM: Detect handoff intent
+    LLM-->>CS: Intent: HUMAN_HANDOFF, confidence: 0.99
+    CS->>CS: Update state: HANDED_OFF
+    CS->>LLM: Generate conversation summary for human RM
+    LLM-->>CS: Summary: "Ravi, 30-40, salaried, 100-150K, moderate risk. Discussed portfolio allocation. Customer wants human advisor."
+    CS->>RM: Find available RM & assign
+    CS->>NS: Notify RM (in-app + dashboard)
+    NS-->>CS: Notified
+    CS-->>C: "Of course, Ravi! I'm connecting you with Priya, your dedicated advisor. One moment..."
+    RM->>RM: RM views summary + full chat history
+    RM->>CS: RM joins WS
+    CS-->>C: "Hi Ravi, this is Priya. I've reviewed your profile. How can I help?"
 ```
 
 ---
@@ -978,70 +415,27 @@ When AI confidence drops below threshold or customer explicitly requests a human
 
 Customer responds to a follow-up via WhatsApp, triggering an interactive conversation.
 
-```
-┌──────────┐   ┌──────────┐   ┌────────────┐   ┌──────────┐   ┌───────────┐   ┌───────────┐
-│ Customer │   │ WhatsApp │   │ API Gateway│   │Notific.  │   │  Conv Svc │   │    LLM    │
-│ (Phone)  │   │ API(Meta)│   │  Webhook   │   │ Service  │   │           │   │ (GPT-4o)  │
-└────┬─────┘   └────┬─────┘   └─────┬──────┘   └────┬─────┘   └─────┬─────┘   └─────┬─────┘
-     │              │               │                │               │               │
-     │  Send WA     │               │                │               │               │
-     │  message:    │               │                │               │               │
-     │  "Hi, I've   │               │                │               │               │
-     │  enrolled    │               │                │               │               │
-     │  in NPS"     │               │                │               │               │
-     │─────────────►│               │                │               │               │
-     │              │               │                │               │               │
-     │              │  Webhook POST │                │               │               │
-     │              │  /webhooks/   │                │               │               │
-     │              │  whatsapp     │                │               │               │
-     │              │──────────────►│                │               │               │
-     │              │               │                │               │               │
-     │              │               │  Route to      │               │               │
-     │              │               │  Notification  │               │               │
-     │              │               │  Service       │               │               │
-     │              │               │───────────────►│               │               │
-     │              │               │                │               │               │
-     │              │               │                │  Identify     │               │
-     │              │               │                │  customer by  │               │
-     │              │               │                │  phone number │               │
-     │              │               │                │               │               │
-     │              │               │                │  Check for    │               │
-     │              │               │                │  active       │               │
-     │              │               │                │  follow-up    │               │
-     │              │               │                │               │               │
-     │              │               │                │  Route to     │               │
-     │              │               │                │  Conv Service │               │
-     │              │               │                │──────────────►│               │
-     │              │               │                │               │               │
-     │              │               │                │               │  Load context │
-     │              │               │                │               │  (last conv + │
-     │              │               │                │               │  follow-up    │
-     │              │               │                │               │  agenda)      │
-     │              │               │                │               │               │
-     │              │               │                │               │  Generate     │
-     │              │               │                │               │  response     │
-     │              │               │                │               │──────────────►│
-     │              │               │                │               │               │
-     │              │               │                │               │  ◄── "That's  │
-     │              │               │                │               │  great news!  │
-     │              │               │                │               │  Which NPS    │
-     │              │               │                │               │  fund did you │
-     │              │               │                │               │  choose?      │
-     │              │               │                │               │  Auto Choice  │
-     │              │               │                │               │  or Active    │
-     │              │               │                │               │  Choice?"     │
-     │              │               │                │               │               │
-     │              │               │                │  ◄── Reply    │               │
-     │              │               │                │  message      │               │
-     │              │               │                │               │               │
-     │              │               │                │  Send via WA  │               │
-     │              │               │                │  API          │               │
-     │              │  ◄── POST /v1/messages ────────│               │               │
-     │              │               │                │               │               │
-     │  ◄───────────│               │                │               │               │
-     │  WhatsApp    │               │                │               │               │
-     │  response    │               │                │               │               │
-     │              │               │                │               │               │
+```mermaid
+sequenceDiagram
+    participant C as Customer (Phone)
+    participant WA as WhatsApp API (Meta)
+    participant GW as API Gateway Webhook
+    participant NS as Notific. Service
+    participant CS as Conv Svc
+    participant LLM as LLM (GPT-4o)
+
+    C->>WA: Send WA message: "Hi, I've enrolled in NPS"
+    WA->>GW: Webhook POST /webhooks/whatsapp
+    GW->>NS: Route to Notification Service
+    NS->>NS: Identify customer by phone number
+    NS->>NS: Check for active follow-up
+    NS->>CS: Route to Conv Service
+    CS->>CS: Load context (last conv + follow-up agenda)
+    CS->>LLM: Generate response
+    LLM-->>CS: "That's great news! Which NPS fund did you choose? Auto Choice or Active Choice?"
+    CS-->>NS: Reply message
+    NS->>WA: POST /v1/messages
+    WA-->>C: WhatsApp response
 ```
 
 ---
@@ -1050,64 +444,29 @@ Customer responds to a follow-up via WhatsApp, triggering an interactive convers
 
 Customer updates their investments, triggering a new projection.
 
-```
-┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌─────────┐   ┌───────┐
-│ Customer │   │ Web App  │   │ Profile  │   │ Recomm.  │   │ Wealth  │   │ Kafka │
-│ (Dashboard│   │          │   │ Service  │   │ Service  │   │Proj Svc │   │       │
-└────┬─────┘   └────┬─────┘   └────┬─────┘   └────┬─────┘   └────┬────┘   └───┬───┘
-     │              │              │              │               │            │
-     │  Update      │              │              │               │            │
-     │  investment  │              │              │               │            │
-     │  details on  │              │              │               │            │
-     │  dashboard   │              │              │               │            │
-     │─────────────►│              │              │               │            │
-     │              │              │              │               │            │
-     │              │  PATCH       │              │               │            │
-     │              │  /customers/ │              │               │            │
-     │              │  {id}/profile│              │               │            │
-     │              │─────────────►│              │               │            │
-     │              │              │              │               │            │
-     │              │              │  Update      │               │            │
-     │              │              │  financial   │               │            │
-     │              │              │  profile     │               │            │
-     │              │              │              │               │            │
-     │              │              │  Emit event  │               │            │
-     │              │              │──────────────────────────────────────────►│
-     │              │              │  profile.    │               │            │
-     │              │              │  updated     │               │            │
-     │              │              │              │               │            │
-     │              │  ◄── 200 OK │              │               │            │
-     │              │              │              │               │            │
-     │              │              │  ◄── Event consumed ─────────────────────│
-     │              │              │              │               │            │
-     │              │              │              │  Check if     │            │
-     │              │              │              │  rebalancing  │            │
-     │              │              │              │  needed       │            │
-     │              │              │              │               │            │
-     │              │              │              │  Recalculate  │            │
-     │              │              │              │  projection   │            │
-     │              │              │              │──────────────►│            │
-     │              │              │              │               │            │
-     │              │              │              │               │  Run Monte│
-     │              │              │              │               │  Carlo    │
-     │              │              │              │               │  (10K     │
-     │              │              │              │               │  sims)    │
-     │              │              │              │               │            │
-     │              │              │              │  ◄── Updated  │            │
-     │              │              │              │  projection   │            │
-     │              │              │              │               │            │
-     │              │              │              │  Emit event   │            │
-     │              │              │              │───────────────────────────►│
-     │              │              │              │  recommendation           │
-     │              │              │              │  .updated     │            │
-     │              │              │              │               │            │
-     │  ◄══ WS:    │  ◄── Push notification       │               │            │
-     │  Dashboard   │  (new projection available)  │               │            │
-     │  updated     │              │              │               │            │
-     │  with new    │              │              │               │            │
-     │  projection  │              │              │               │            │
-     │  chart       │              │              │               │            │
-     │              │              │              │               │            │
+```mermaid
+sequenceDiagram
+    participant C as Customer (Dashboard)
+    participant W as Web App
+    participant PS as Profile Service
+    participant REC as Recomm. Service
+    participant WP as Wealth Proj Svc
+    participant K as Kafka
+
+    C->>W: Update investment details on dashboard
+    W->>PS: PATCH /customers/{id}/profile
+    PS->>PS: Update financial profile
+    PS->>K: Emit profile.updated
+    PS-->>W: 200 OK
+
+    K->>REC: Event consumed
+    REC->>REC: Check if rebalancing needed
+    REC->>WP: Recalculate projection
+    WP->>WP: Run Monte Carlo (10K sims)
+    WP-->>REC: Updated projection
+    REC->>K: Emit recommendation.updated
+
+    W-->>C: WS: Dashboard updated with new projection chart
 ```
 
 ---
@@ -1116,73 +475,33 @@ Customer updates their investments, triggering a new projection.
 
 The system periodically re-assesses customer risk profiles.
 
-```
-┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌─────────┐   ┌───────┐
-│ Scheduler│   │ Risk Svc │   │ Profile  │   │    LLM   │   │ Recomm. │   │ Kafka │
-│ (Weekly) │   │ (XGBoost)│   │ Service  │   │(GPT-4o-m)│   │ Service │   │       │
-└────┬─────┘   └────┬─────┘   └────┬─────┘   └────┬─────┘   └────┬────┘   └───┬───┘
-     │              │              │              │               │            │
-     │  Batch job:  │              │              │               │            │
-     │  reassess    │              │              │               │            │
-     │  expiring    │              │              │               │            │
-     │  profiles    │              │              │               │            │
-     │─────────────►│              │              │               │            │
-     │              │              │              │               │            │
-     │              │  Query       │              │               │            │
-     │              │  profiles    │              │               │            │
-     │              │  expiring    │              │               │            │
-     │              │  within 7d   │              │               │            │
-     │              │─────────────►│              │               │            │
-     │              │              │              │               │            │
-     │              │  ◄── List of │              │               │            │
-     │              │  200 profiles│              │               │            │
-     │              │              │              │               │            │
-     │              │  [For each profile]:        │               │            │
-     │              │              │              │               │            │
-     │              │  Fetch full  │              │               │            │
-     │              │  customer    │              │               │            │
-     │              │  data        │              │               │            │
-     │              │─────────────►│              │               │            │
-     │              │              │              │               │            │
-     │              │  ◄── Profile │              │               │            │
-     │              │              │              │               │            │
-     │              │  Feature     │              │               │            │
-     │              │  engineering │              │               │            │
-     │              │  + XGBoost   │              │               │            │
-     │              │  prediction  │              │               │            │
-     │              │              │              │               │            │
-     │              │  Compare new │              │               │            │
-     │              │  vs old score│              │               │            │
-     │              │              │              │               │            │
-     │              │  [If score changed]:         │               │            │
-     │              │              │              │               │            │
-     │              │  Generate    │              │               │            │
-     │              │  new         │              │               │            │
-     │              │  explanation │              │               │            │
-     │              │─────────────────────────────►│               │            │
-     │              │              │              │               │            │
-     │              │  ◄── Updated │              │               │            │
-     │              │  explanation │              │               │            │
-     │              │              │              │               │            │
-     │              │  Save new    │              │               │            │
-     │              │  risk profile│              │               │            │
-     │              │  (is_current │              │               │            │
-     │              │  = true)     │              │               │            │
-     │              │─────────────►│              │               │            │
-     │              │              │              │               │            │
-     │              │  Emit event  │              │               │            │
-     │              │──────────────────────────────────────────────────────────►│
-     │              │  risk.       │              │               │            │
-     │              │  reassessed  │              │               │            │
-     │              │              │              │               │            │
-     │              │              │              │  ◄── Event ────────────────│
-     │              │              │              │               │            │
-     │              │              │              │  Trigger      │            │
-     │              │              │              │  recommendation│           │
-     │              │              │              │  update if     │           │
-     │              │              │              │  category      │           │
-     │              │              │              │  changed       │           │
-     │              │              │              │               │            │
+```mermaid
+sequenceDiagram
+    participant SCH as Scheduler (Weekly)
+    participant RS as Risk Svc (XGBoost)
+    participant PS as Profile Service
+    participant LLM as LLM (GPT-4o-m)
+    participant REC as Recomm. Service
+    participant K as Kafka
+
+    SCH->>RS: Batch job: reassess expiring profiles
+    RS->>PS: Query profiles expiring within 7d
+    PS-->>RS: List of 200 profiles
+
+    Note over RS,PS: For each profile:
+    RS->>PS: Fetch full customer data
+    PS-->>RS: Profile
+    RS->>RS: Feature engineering + XGBoost prediction
+    RS->>RS: Compare new vs old score
+
+    Note over RS,LLM: If score changed:
+    RS->>LLM: Generate new explanation
+    LLM-->>RS: Updated explanation
+    RS->>PS: Save new risk profile (is_current=true)
+    RS->>K: Emit risk.reassessed
+
+    K->>REC: Event consumed
+    REC->>REC: Trigger recommendation update if category changed
 ```
 
 ---
@@ -1191,56 +510,28 @@ The system periodically re-assesses customer risk profiles.
 
 Customer views their dashboard with portfolio, projection, and upcoming follow-ups.
 
-```
-┌──────────┐   ┌──────────┐   ┌────────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐
-│ Customer │   │ Web App  │   │ API Gateway│   │ Profile  │   │ Recomm.  │   │ FollowUp │
-│ (Browser)│   │ (Next.js)│   │ (GraphQL)  │   │ Service  │   │ Service  │   │ Orch.    │
-└────┬─────┘   └────┬─────┘   └─────┬──────┘   └────┬─────┘   └────┬─────┘   └────┬─────┘
-     │              │               │                │               │               │
-     │  Navigate    │               │                │               │               │
-     │  to Dashboard│               │                │               │               │
-     │─────────────►│               │                │               │               │
-     │              │               │                │               │               │
-     │              │  GraphQL      │                │               │               │
-     │              │  query {      │                │               │               │
-     │              │   dashboard { │                │               │               │
-     │              │    profile    │                │               │               │
-     │              │    riskProfile│                │               │               │
-     │              │    portfolio  │                │               │               │
-     │              │    projection │                │               │               │
-     │              │    nextFollowUp                │               │               │
-     │              │   }           │                │               │               │
-     │              │  }            │                │               │               │
-     │              │──────────────►│                │               │               │
-     │              │               │                │               │               │
-     │              │               │  Parallel      │               │               │
-     │              │               │  resolution:   │               │               │
-     │              │               │                │               │               │
-     │              │               │── getProfile ──►│               │               │
-     │              │               │── getRisk ─────►│               │               │
-     │              │               │── getPortfolio ────────────────►│               │
-     │              │               │── getProjection ───────────────►│               │
-     │              │               │── getFollowUp ─────────────────────────────────►│
-     │              │               │                │               │               │
-     │              │               │  ◄── Profile ──│               │               │
-     │              │               │  ◄── Risk ─────│               │               │
-     │              │               │  ◄── Portfolio ────────────────│               │
-     │              │               │  ◄── Projection ──────────────│               │
-     │              │               │  ◄── Next follow-up ──────────────────────────│
-     │              │               │                │               │               │
-     │              │  ◄── Unified  │                │               │               │
-     │              │  GraphQL      │                │               │               │
-     │              │  response     │                │               │               │
-     │              │               │                │               │               │
-     │  ◄── Dashboard renders:     │                │               │               │
-     │  - Profile summary          │                │               │               │
-     │  - Risk score gauge         │                │               │               │
-     │  - Portfolio pie chart      │                │               │               │
-     │  - Wealth projection        │                │               │               │
-     │    line chart               │                │               │               │
-     │  - Next follow-up card      │                │               │               │
-     │  - Action items list        │                │               │               │
-     │              │               │                │               │               │
+```mermaid
+sequenceDiagram
+    participant C as Customer (Browser)
+    participant W as Web App (Next.js)
+    participant GW as API Gateway (GraphQL)
+    participant PS as Profile Service
+    participant REC as Recomm. Service
+    participant FU as FollowUp Orch.
+
+    C->>W: Navigate to Dashboard
+    W->>GW: GraphQL query { dashboard { profile, riskProfile, portfolio, projection, nextFollowUp } }
+    GW->>GW: Parallel resolution:
+    GW->>PS: getProfile
+    GW->>PS: getRisk
+    GW->>REC: getPortfolio
+    GW->>REC: getProjection
+    GW->>FU: getFollowUp
+    PS-->>GW: Profile + Risk
+    REC-->>GW: Portfolio + Projection
+    FU-->>GW: Next follow-up
+    GW-->>W: Unified GraphQL response
+    W-->>C: Dashboard renders: Profile summary, Risk score gauge, Portfolio pie chart, Wealth projection line chart, Next follow-up card, Action items list
 ```
 
 ---
@@ -1249,49 +540,26 @@ Customer views their dashboard with portfolio, projection, and upcoming follow-u
 
 Bank admin adds or updates products in the catalog.
 
-```
-┌──────────┐   ┌──────────┐   ┌────────────┐   ┌──────────┐   ┌─────────┐   ┌───────┐
-│ Admin    │   │ Admin UI │   │ API Gateway│   │ Product  │   │ Vector  │   │ Kafka │
-│ (Staff)  │   │          │   │            │   │ Catalog  │   │ DB      │   │       │
-└────┬─────┘   └────┬─────┘   └─────┬──────┘   └────┬─────┘   └────┬────┘   └───┬───┘
-     │              │               │                │               │            │
-     │  Add new     │               │                │               │            │
-     │  product:    │               │                │               │            │
-     │  "Green Bond │               │                │               │            │
-     │  Fund"       │               │                │               │            │
-     │─────────────►│               │                │               │            │
-     │              │               │                │               │            │
-     │              │  POST /admin/ │                │               │            │
-     │              │  products     │                │               │            │
-     │              │  {name, cat,  │                │               │            │
-     │              │  returns,     │                │               │            │
-     │              │  risk_level}  │                │               │            │
-     │              │──────────────►│                │               │            │
-     │              │               │                │               │            │
-     │              │               │  Auth: admin   │               │            │
-     │              │               │  role check    │               │            │
-     │              │               │                │               │            │
-     │              │               │  Create        │               │            │
-     │              │               │  product       │               │            │
-     │              │               │───────────────►│               │            │
-     │              │               │                │               │            │
-     │              │               │                │  Save to DB   │            │
-     │              │               │                │               │            │
-     │              │               │                │  Generate     │            │
-     │              │               │                │  embedding    │            │
-     │              │               │                │  for RAG      │            │
-     │              │               │                │──────────────►│            │
-     │              │               │                │               │            │
-     │              │               │                │  ◄── Embedded │            │
-     │              │               │                │               │            │
-     │              │               │                │  Emit event   │            │
-     │              │               │                │───────────────────────────►│
-     │              │               │                │  product.     │            │
-     │              │               │                │  added        │            │
-     │              │               │                │               │            │
-     │              │  ◄── 201     │  ◄── Created   │               │            │
-     │  ◄── Success │  Created     │                │               │            │
-     │              │               │                │               │            │
+```mermaid
+sequenceDiagram
+    participant A as Admin (Staff)
+    participant UI as Admin UI
+    participant GW as API Gateway
+    participant PC as Product Catalog
+    participant VDB as Vector DB
+    participant K as Kafka
+
+    A->>UI: Add new product: "Green Bond Fund"
+    UI->>GW: POST /admin/products {name, cat, returns, risk_level}
+    GW->>GW: Auth: admin role check
+    GW->>PC: Create product
+    PC->>PC: Save to DB
+    PC->>VDB: Generate embedding for RAG
+    VDB-->>PC: Embedded
+    PC->>K: Emit product.added
+    PC-->>GW: Created
+    GW-->>UI: 201 Created
+    UI-->>A: Success
 ```
 
 ---
@@ -1300,74 +568,28 @@ Bank admin adds or updates products in the catalog.
 
 Customer returns to a previously paused conversation.
 
-```
-┌──────────┐   ┌──────────┐   ┌───────────┐   ┌───────────┐   ┌─────────┐
-│ Customer │   │ Web App  │   │  Conv Svc │   │    LLM    │   │  Redis  │
-│          │   │          │   │           │   │ (GPT-4o)  │   │         │
-└────┬─────┘   └────┬─────┘   └─────┬─────┘   └─────┬─────┘   └────┬────┘
-     │              │               │                │               │
-     │  Return to   │               │                │               │
-     │  website     │               │                │               │
-     │  (has session│               │                │               │
-     │  cookie)     │               │                │               │
-     │─────────────►│               │                │               │
-     │              │               │                │               │
-     │              │  GET /api/v1/ │                │               │
-     │              │  conversations│                │               │
-     │              │  ?status=     │                │               │
-     │              │  PAUSED       │                │               │
-     │              │──────────────►│                │               │
-     │              │               │                │               │
-     │              │               │  Check Redis   │               │
-     │              │               │  for active    │               │
-     │              │               │  session        │               │
-     │              │               │───────────────────────────────►│
-     │              │               │                │               │
-     │              │               │  ◄── Session found:            │
-     │              │               │  conv_id, phase=FINANCIAL,     │
-     │              │               │  context={name:"Ravi",...}     │
-     │              │               │                │               │
-     │              │  ◄── Paused  │                │               │
-     │              │  conversation │                │               │
-     │              │  found        │                │               │
-     │              │               │                │               │
-     │  ◄── "Resume │               │                │               │
-     │  conversation│               │                │               │
-     │  ?" prompt   │               │                │               │
-     │              │               │                │               │
-     │  Click       │               │                │               │
-     │  "Resume"    │               │                │               │
-     │─────────────►│               │                │               │
-     │              │               │                │               │
-     │              │  POST /api/v1│                │               │
-     │              │  /conversations               │               │
-     │              │  /{id}/resume │                │               │
-     │              │──────────────►│                │               │
-     │              │               │                │               │
-     │              │               │  Update status:│               │
-     │              │               │  PAUSED →      │               │
-     │              │               │  ACTIVE        │               │
-     │              │               │                │               │
-     │              │               │  Generate      │               │
-     │              │               │  resumption    │               │
-     │              │               │  message with  │               │
-     │              │               │  context       │               │
-     │              │               │───────────────►│               │
-     │              │               │                │               │
-     │              │               │  ◄── "Welcome  │               │
-     │              │               │  back, Ravi!   │               │
-     │              │               │  We were       │               │
-     │              │               │  discussing    │               │
-     │              │               │  your income   │               │
-     │              │               │  and           │               │
-     │              │               │  investments.  │               │
-     │              │               │  Shall we      │               │
-     │              │               │  continue?"    │               │
-     │              │               │                │               │
-     │  ◄═══ Resume │◄═════════════│                │               │
-     │  message +   │               │                │               │
-     │  chat history│               │                │               │
-     │              │               │                │               │
+```mermaid
+sequenceDiagram
+    participant C as Customer
+    participant W as Web App
+    participant CS as Conv Svc
+    participant LLM as LLM (GPT-4o)
+    participant R as Redis
+
+    C->>W: Return to website (has session cookie)
+    W->>CS: GET /api/v1/conversations?status=PAUSED
+    CS->>R: Check Redis for active session
+    R-->>CS: Session found: conv_id, phase=FINANCIAL, context={name:"Ravi",...}
+    CS-->>W: Paused conversation found
+    W-->>C: "Resume conversation?" prompt
+
+    C->>W: Click "Resume"
+    W->>CS: POST /api/v1/conversations/{id}/resume
+    CS->>CS: Update status: PAUSED → ACTIVE
+    CS->>LLM: Generate resumption message with context
+    LLM-->>CS: "Welcome back, Ravi! We were discussing your income and investments. Shall we continue?"
+    CS-->>W: Resume message + chat history
+    W-->>C: Chat UI with history and resumption message
 ```
 
 ---
@@ -1376,88 +598,34 @@ Customer returns to a previously paused conversation.
 
 When the LLM fails, the system falls back to rule-based responses.
 
-```
-┌──────────┐   ┌───────────┐   ┌───────────┐   ┌──────────┐   ┌──────────┐
-│ Customer │   │  Conv Svc │   │    LLM    │   │ Fallback │   │Monitoring│
-│          │   │           │   │ (GPT-4o)  │   │ Engine   │   │(Alerting)│
-└────┬─────┘   └─────┬─────┘   └─────┬─────┘   └────┬─────┘   └────┬─────┘
-     │               │               │               │               │
-     │  WS: "What    │               │               │               │
-     │  funds do you │               │               │               │
-     │  recommend?"  │               │               │               │
-     │═══════════════►│               │               │               │
-     │               │               │               │               │
-     │               │  Call LLM     │               │               │
-     │               │──────────────►│               │               │
-     │               │               │               │               │
-     │               │  ◄── TIMEOUT  │               │               │
-     │               │  (10s)        │               │               │
-     │               │               │               │               │
-     │               │  Retry (1/1)  │               │               │
-     │               │──────────────►│               │               │
-     │               │               │               │               │
-     │               │  ◄── 503     │               │               │
-     │               │  Service      │               │               │
-     │               │  Unavailable  │               │               │
-     │               │               │               │               │
-     │               │  Circuit      │               │               │
-     │               │  breaker OPEN │               │               │
-     │               │               │               │               │
-     │               │  Log error +  │               │               │
-     │               │  alert        │               │               │
-     │               │──────────────────────────────────────────────►│
-     │               │               │               │               │
-     │               │  Fallback to  │               │               │
-     │               │  rule engine  │               │               │
-     │               │──────────────────────────────►│               │
-     │               │               │               │               │
-     │               │               │  Determine    │               │
-     │               │               │  phase +      │               │
-     │               │               │  context      │               │
-     │               │               │               │               │
-     │               │               │  Generate     │               │
-     │               │               │  template     │               │
-     │               │               │  response     │               │
-     │               │               │               │               │
-     │               │  ◄── "I'd love│               │               │
-     │               │  to discuss   │               │               │
-     │               │  investment   │               │               │
-     │               │  options with │               │               │
-     │               │  you. Let me  │               │               │
-     │               │  first       │               │               │
-     │               │  understand  │               │               │
-     │               │  your risk   │               │               │
-     │               │  comfort.    │               │               │
-     │               │  On a scale  │               │               │
-     │               │  of 1-10,    │               │               │
-     │               │  how          │               │               │
-     │               │  comfortable │               │               │
-     │               │  are you with│               │               │
-     │               │  investment  │               │               │
-     │               │  risk?"      │               │               │
-     │               │               │               │               │
-     │  ◄═══ Fallback│               │               │               │
-     │  response     │               │               │               │
-     │  (still       │               │               │               │
-     │  natural,     │               │               │               │
-     │  template-    │               │               │               │
-     │  based)       │               │               │               │
-     │               │               │               │               │
-     │               │  [5 min later, circuit breaker half-open]     │
-     │               │               │               │               │
-     │               │  Probe LLM   │               │               │
-     │               │──────────────►│               │               │
-     │               │               │               │               │
-     │               │  ◄── 200 OK  │               │               │
-     │               │  (recovered)  │               │               │
-     │               │               │               │               │
-     │               │  Circuit      │               │               │
-     │               │  breaker      │               │               │
-     │               │  CLOSED       │               │               │
-     │               │               │               │               │
-     │               │  Resume LLM   │               │               │
-     │               │  responses    │               │               │
-     │               │               │               │               │
+```mermaid
+sequenceDiagram
+    participant C as Customer
+    participant CS as Conv Svc
+    participant LLM as LLM (GPT-4o)
+    participant FB as Fallback Engine
+    participant MON as Monitoring (Alerting)
+
+    C->>CS: WS: "What funds do you recommend?"
+    CS->>LLM: Call LLM
+    LLM-->>CS: TIMEOUT (10s)
+    CS->>LLM: Retry (1/1)
+    LLM-->>CS: 503 Service Unavailable
+
+    CS->>CS: Circuit breaker OPEN
+    CS->>MON: Log error + alert
+    CS->>FB: Fallback to rule engine
+
+    FB->>FB: Determine phase + context
+    FB->>FB: Generate template response
+    FB-->>CS: Fallback response
+    CS-->>C: "I'd love to discuss investment options with you. Let me first understand your risk comfort. On a scale of 1-10, how comfortable are you with investment risk?"
+
+    Note over CS,LLM: 5 min later, circuit breaker half-open
+    CS->>LLM: Probe LLM
+    LLM-->>CS: 200 OK (recovered)
+    CS->>CS: Circuit breaker CLOSED
+    CS->>CS: Resume LLM responses
 ```
 
 ---
@@ -1466,107 +634,95 @@ When the LLM fails, the system falls back to rule-based responses.
 
 Complete journey from anonymous visit to scheduled follow-up.
 
-```
-PHASE 1: ANONYMOUS ENTRY
-═══════════════════════════════════════════════════════════════
-│ Customer visits website → Chat widget opens
-│ → Anonymous session created (Redis + PostgreSQL)
-│ → WS connection established
-│ → AI greeting: "Hello! Welcome to ABC Bank..."
-│
-PHASE 2: PERSONAL DATA COLLECTION
-═══════════════════════════════════════════════════════════════
-│ Customer: "I'm Ravi, 32, from Hyderabad"
-│ → LLM extracts: name=Ravi, age_group=30-40, location=Hyderabad
-│ → Partial profile saved
-│ → AI: "Could you share your email and phone?"
-│ Customer: "ravi@mail.com, 9876543210"
-│ → Profile updated, phase → FINANCIAL
-│
-PHASE 3: FINANCIAL PROFILE
-═══════════════════════════════════════════════════════════════
-│ AI: "What do you do for a living?"
-│ Customer: "Salaried, IT, about 1.2L/month"
-│ → income_source=SALARIED, income_range=100-150K
-│ AI: "Any current investments?"
-│ Customer: "2L MFs, 5L FD, 1L stocks, 3L savings"
-│ → investments + savings saved
-│ → AI confirms data, phase → GOALS
-│
-PHASE 4: RETIREMENT GOALS
-═══════════════════════════════════════════════════════════════
-│ AI: "When would you like to retire and with how much?"
-│ Customer: "55, about 5 crores"
-│ → retirement_age=55, target=50000000
-│ → Phase → RISK_ASSESSMENT
-│
-PHASE 5: RISK ASSESSMENT
-═══════════════════════════════════════════════════════════════
-│ AI: "How comfortable are you with investment risk?"
-│ Customer: "Moderate, not too aggressive"
-│ → Full profile sent to Risk Service
-│ → XGBoost: 15 features → score=6.5 (MODERATE)
-│ → SHAP: top factors = [age, income stability, savings ratio]
-│ → LLM generates explanation
-│ → Event: risk.assessed → Kafka
-│ → AI presents risk profile card to customer
-│ → Phase → RECOMMENDATION
-│
-PHASE 6: PRODUCT RECOMMENDATION
-═══════════════════════════════════════════════════════════════
-│ risk.assessed event → Recommendation Service
-│ → Rule engine: filter by suitability
-│ → Collaborative filtering: rank by similar customers
-│ → LLM re-rank: context-aware ordering
-│ → Portfolio: Equity 40%, Debt 25%, FD 15%, Gold 10%, NPS 10%
-│ → Wealth Projection Service: Monte Carlo (10K sims)
-│ → Projection: P50 = ₹2.8Cr in 20 years
-│ → Rich card sent to customer (pie chart + line chart)
-│ → Phase → CHANNEL_PREF
-│
-PHASE 7: CHANNEL PREFERENCE
-═══════════════════════════════════════════════════════════════
-│ AI: "How would you like me to follow up?"
-│ [SMS] [WhatsApp] [Email] [Phone]
-│ Customer clicks "WhatsApp"
-│ AI: "What time works best?"
-│ Customer: "Weekday mornings, 10 AM"
-│ → Preferences saved
-│ → Phase → FOLLOWUP_SCHEDULE
-│
-PHASE 8: FOLLOW-UP SCHEDULING
-═══════════════════════════════════════════════════════════════
-│ AI: "Monthly check-ins work?"
-│ Customer: "Yes"
-│ → Schedule created: MONTHLY, WhatsApp, 10 AM, first=Jun 3
-│ → Event: followup.scheduled → Kafka
-│ → Confirmation notification sent via WhatsApp
-│ → AI: "All set! See you June 3. Happy investing!"
-│ → Event: conversation.completed → Kafka
-│
-POST-CONVERSATION
-═══════════════════════════════════════════════════════════════
-│ Analytics Service: updates funnel metrics
-│ Summarization Agent: generates conversation summary
-│ Customer registers (optional) → UC-09 migration
-│
-FOLLOW-UP (June 2)
-═══════════════════════════════════════════════════════════════
-│ Reminder Service: T-24hrs check → send reminder
-│ → WhatsApp: "Review tomorrow at 10 AM" [Confirm/Reschedule]
-│ Customer: "Confirm"
-│
-FOLLOW-UP (June 3)
-═══════════════════════════════════════════════════════════════
-│ Follow-Up Orchestrator: generate agenda from context
-│ → AI: "Hi Ravi! Last time we discussed NPS. Any updates?"
-│ → Interactive WhatsApp conversation continues
-│ → New action items tracked
-│ → Next follow-up: July 3
-│
-═══════════════════════════════════════════════════════════════
-                    CYCLE CONTINUES
-═══════════════════════════════════════════════════════════════
+```mermaid
+sequenceDiagram
+    participant C as Customer
+    participant W as Web App
+    participant CS as Conv Svc
+    participant LLM as LLM
+    participant PS as Profile Svc
+    participant RS as Risk Svc
+    participant REC as Recomm Svc
+    participant WP as Wealth Proj
+    participant FU as FollowUp Orch
+    participant NS as Notific Svc
+    participant K as Kafka
+
+    Note over C,W: PHASE 1: ANONYMOUS ENTRY
+    C->>W: Visit website → Chat widget opens
+    W->>CS: Anonymous session created
+    CS-->>C: AI greeting: "Hello! Welcome to ABC Bank..."
+
+    Note over C,PS: PHASE 2: PERSONAL DATA COLLECTION
+    C->>CS: "I'm Ravi, 32, from Hyderabad"
+    CS->>LLM: Extract entities
+    LLM-->>CS: name=Ravi, age_group=30-40, location=Hyderabad
+    CS->>PS: Save partial profile
+    CS-->>C: "Could you share your email and phone?"
+    C->>CS: "ravi@mail.com, 9876543210"
+    CS->>PS: Profile updated → Phase FINANCIAL
+
+    Note over C,PS: PHASE 3: FINANCIAL PROFILE
+    CS-->>C: "What do you do for a living?"
+    C->>CS: "Salaried, IT, about 1.2L/month"
+    CS->>PS: income_source=SALARIED, income_range=100-150K
+    CS-->>C: "Any current investments?"
+    C->>CS: "2L MFs, 5L FD, 1L stocks, 3L savings"
+    CS->>PS: investments + savings saved → Phase GOALS
+
+    Note over C,PS: PHASE 4: RETIREMENT GOALS
+    CS-->>C: "When would you like to retire and with how much?"
+    C->>CS: "55, about 5 crores"
+    CS->>PS: retirement_age=55, target=50000000 → Phase RISK_ASSESSMENT
+
+    Note over C,RS: PHASE 5: RISK ASSESSMENT
+    CS-->>C: "How comfortable are you with investment risk?"
+    C->>CS: "Moderate, not too aggressive"
+    CS->>RS: Full profile for assessment
+    RS->>RS: XGBoost: 15 features → score=6.5 (MODERATE)
+    RS->>RS: SHAP: top factors = [age, income stability, savings ratio]
+    RS->>LLM: Generate explanation
+    RS->>K: risk.assessed
+    CS-->>C: Risk profile card → Phase RECOMMENDATION
+
+    Note over REC,WP: PHASE 6: PRODUCT RECOMMENDATION
+    K->>REC: risk.assessed event
+    REC->>REC: Rule engine → Collaborative filtering → LLM re-rank
+    REC->>REC: Portfolio: Equity 40%, Debt 25%, FD 15%, Gold 10%, NPS 10%
+    REC->>WP: Monte Carlo (10K sims)
+    WP-->>REC: P50 = ₹2.8Cr in 20 years
+    REC-->>CS: Rich card (pie chart + line chart)
+    CS-->>C: Portfolio + projection → Phase CHANNEL_PREF
+
+    Note over C,NS: PHASE 7: CHANNEL PREFERENCE
+    CS-->>C: "How would you like me to follow up?" [SMS] [WhatsApp] [Email] [Phone]
+    C->>CS: Click "WhatsApp"
+    CS-->>C: "What time works best?"
+    C->>CS: "Weekday mornings, 10 AM"
+    CS->>PS: Preferences saved → Phase FOLLOWUP_SCHEDULE
+
+    Note over C,K: PHASE 8: FOLLOW-UP SCHEDULING
+    CS-->>C: "Monthly check-ins work?"
+    C->>CS: "Yes"
+    CS->>FU: Schedule: MONTHLY, WhatsApp, 10 AM, first=Jun 3
+    FU->>K: followup.scheduled
+    K->>NS: Confirmation notification via WhatsApp
+    CS-->>C: "All set! See you June 3. Happy investing!"
+    CS->>K: conversation.completed
+
+    Note over NS,K: POST-CONVERSATION
+    K->>K: Analytics: funnel metrics updated
+    K->>K: Summarization agent: conversation summary generated
+
+    Note over NS,C: FOLLOW-UP (June 2)
+    FU->>NS: T-24hrs: send reminder
+    NS-->>C: WhatsApp: "Review tomorrow at 10 AM" [Confirm/Reschedule]
+    C->>NS: "Confirm"
+
+    Note over FU,C: FOLLOW-UP (June 3)
+    FU->>LLM: Generate agenda from context
+    FU-->>C: "Hi Ravi! Last time we discussed NPS. Any updates?"
+    Note over C,FU: Interactive WhatsApp conversation continues → New action items tracked → Next follow-up: July 3
 ```
 
 ---

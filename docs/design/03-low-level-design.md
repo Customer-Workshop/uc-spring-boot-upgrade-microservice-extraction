@@ -798,83 +798,105 @@ POST /api/v1/auth/login
 
 ### 3.1 Core Domain Entities
 
-```
-┌───────────────────────────────────────────────────────────────────────┐
-│                        DOMAIN MODEL                                   │
-│                                                                       │
-│  ┌──────────────┐         ┌──────────────────┐                       │
-│  │   Customer   │────1:1──│ FinancialProfile │                       │
-│  │              │         │                  │                       │
-│  │ - id         │         │ - incomeSource   │                       │
-│  │ - name       │         │ - incomeRange    │                       │
-│  │ - email      │         │ - investments    │                       │
-│  │ - phone      │         │ - savings        │                       │
-│  │ - ageGroup   │         │ - retirementGoal │                       │
-│  │ - location   │         └──────────────────┘                       │
-│  └──────┬───────┘                                                     │
-│         │                                                             │
-│         ├────1:N──┌──────────────────┐                               │
-│         │         │   RiskProfile    │                                │
-│         │         │                  │                                │
-│         │         │ - riskScore      │                                │
-│         │         │ - riskCategory   │                                │
-│         │         │ - explanation    │                                │
-│         │         │ - modelVersion   │                                │
-│         │         └──────────────────┘                               │
-│         │                                                             │
-│         ├────1:N──┌──────────────────┐       ┌──────────────────┐   │
-│         │         │  Conversation    │──1:N──│    Message        │   │
-│         │         │                  │       │                  │   │
-│         │         │ - status         │       │ - senderType     │   │
-│         │         │ - currentPhase   │       │ - content        │   │
-│         │         │ - channel        │       │ - contentType    │   │
-│         │         │ - context        │       │ - metadata       │   │
-│         │         │ - summary        │       │ - sequenceNum    │   │
-│         │         └──────────────────┘       └──────────────────┘   │
-│         │                                                             │
-│         ├────1:N──┌──────────────────┐       ┌──────────────────┐   │
-│         │         │ FollowUpSchedule │──1:N──│ FollowUpInstance │   │
-│         │         │                  │       │                  │   │
-│         │         │ - frequency      │       │ - dueDate        │   │
-│         │         │ - nextDueDate    │       │ - agenda         │   │
-│         │         │ - preferredChan. │       │ - status         │   │
-│         │         │ - status         │       │ - outcome        │   │
-│         │         └──────────────────┘       └──────┬───────────┘   │
-│         │                                           │               │
-│         │                                    1:N    │               │
-│         │                                    ┌──────┴───────────┐   │
-│         │                                    │   ActionItem     │   │
-│         │                                    │                  │   │
-│         │                                    │ - assignedTo     │   │
-│         │                                    │ - description    │   │
-│         │                                    │ - status         │   │
-│         │                                    └──────────────────┘   │
-│         │                                                             │
-│         ├────1:N──┌──────────────────┐                               │
-│         │         │ Recommendation   │                                │
-│         │         │                  │                                │
-│         │         │ - portfolio      │───N:M──┌──────────────┐       │
-│         │         │ - projection     │        │   Product    │       │
-│         │         │ - status         │        │              │       │
-│         │         └──────────────────┘        │ - name       │       │
-│         │                                     │ - category   │       │
-│         ├────1:1──┌──────────────────┐        │ - riskLevel  │       │
-│         │         │   CommPreference │        │ - returns    │       │
-│         │         │                  │        └──────────────┘       │
-│         │         │ - channel        │                                │
-│         │         │ - timeWindow     │                                │
-│         │         │ - optIns         │                                │
-│         │         └──────────────────┘                               │
-│         │                                                             │
-│         └────1:N──┌──────────────────┐                               │
-│                   │   Notification   │                                │
-│                   │                  │                                │
-│                   │ - channel        │                                │
-│                   │ - type           │                                │
-│                   │ - status         │                                │
-│                   │ - deliveryInfo   │                                │
-│                   └──────────────────┘                               │
-└───────────────────────────────────────────────────────────────────────┘
+```mermaid
+classDiagram
+    class Customer {
+        UUID id
+        String name
+        String email
+        String phone
+        AgeGroup ageGroup
+        String location
+    }
+
+    class FinancialProfile {
+        IncomeSource incomeSource
+        IncomeRange incomeRange
+        Map investments
+        Decimal savings
+        Decimal retirementTarget
+    }
+
+    class RiskProfile {
+        Decimal riskScore
+        RiskCategory riskCategory
+        String explanation
+        String modelVersion
+    }
+
+    class Conversation {
+        ConversationPhase currentPhase
+        String status
+        String channel
+        JSON context
+        String summary
+    }
+
+    class Message {
+        String senderType
+        String content
+        String contentType
+        JSON metadata
+        int sequenceNum
+    }
+
+    class FollowUpSchedule {
+        String frequency
+        Date nextDueDate
+        String preferredChannel
+        String status
+    }
+
+    class FollowUpInstance {
+        Date dueDate
+        JSON agenda
+        String status
+        JSON outcome
+    }
+
+    class ActionItem {
+        String assignedTo
+        String description
+        String status
+    }
+
+    class Recommendation {
+        JSON portfolio
+        JSON projection
+        String status
+    }
+
+    class Product {
+        String name
+        String category
+        String riskLevel
+        Decimal returns
+    }
+
+    class CommPreference {
+        String channel
+        String timeWindow
+        Map optIns
+    }
+
+    class Notification {
+        String channel
+        String type
+        String status
+        JSON deliveryInfo
+    }
+
+    Customer "1" --> "1" FinancialProfile
+    Customer "1" --> "*" RiskProfile
+    Customer "1" --> "*" Conversation
+    Customer "1" --> "*" FollowUpSchedule
+    Customer "1" --> "*" Recommendation
+    Customer "1" --> "1" CommPreference
+    Customer "1" --> "*" Notification
+    Conversation "1" --> "*" Message
+    FollowUpSchedule "1" --> "*" FollowUpInstance
+    FollowUpInstance "1" --> "*" ActionItem
+    Recommendation "*" --> "*" Product
 ```
 
 ### 3.2 Value Objects
@@ -939,123 +961,88 @@ public enum CommunicationChannel {
 
 ### 4.1 Complete New Customer Onboarding Flow
 
-```
-Customer     Web App      API GW      Conv Svc     LLM        Profile    Risk Svc   Recomm Svc   Kafka
-   │            │           │            │          │            │           │            │          │
-   │─ Open ────►│           │            │          │            │           │            │          │
-   │  Chat      │─ POST ───►│            │          │            │           │            │          │
-   │            │  /convers. │─ Create ──►│          │            │           │            │          │
-   │            │           │  Session    │─ Init ──►│            │           │            │          │
-   │            │           │            │  Prompt   │            │           │            │          │
-   │            │           │            │◄─ Greet ──│            │           │            │          │
-   │            │◄─ WS URL──│◄─ Session──│          │            │           │            │          │
-   │◄─ Connect──│  + Token  │            │          │            │           │            │          │
-   │  WebSocket │           │            │          │            │           │            │          │
-   │            │           │            │          │            │           │            │          │
-   │◄─ "Hello!  │◄──────────│◄───────────│          │            │           │            │          │
-   │   May I    │           │            │          │            │           │            │          │
-   │   know..." │           │            │          │            │           │            │          │
-   │            │           │            │          │            │           │            │          │
-   │── "I'm     │──────────►│───────────►│          │            │           │            │          │
-   │   John..." │           │            │─ Extract►│            │           │            │          │
-   │            │           │            │◄─ {name, │            │           │            │          │
-   │            │           │            │  age,loc}│            │           │            │          │
-   │            │           │            │          │            │           │            │          │
-   │            │           │            │── Save ──────────────►│           │            │          │
-   │            │           │            │  partial  │           │           │            │          │
-   │            │           │            │  profile  │           │           │            │          │
-   │            │           │            │          │            │           │            │          │
-   │            │           │            │─ Generate►│            │           │            │          │
-   │            │           │            │◄─ Next Q──│            │           │            │          │
-   │◄─ "What's  │◄──────────│◄───────────│          │            │           │            │          │
-   │  income?"  │           │            │          │            │           │            │          │
-   │            │           │            │          │            │           │            │          │
-   │  ... (financial data collection continues) ...              │           │            │          │
-   │  ... (goals and retirement data collection) ...             │           │            │          │
-   │            │           │            │          │            │           │            │          │
-   │            │           │            │── Update ────────────►│           │            │          │
-   │            │           │            │  full     │── Emit ──────────────────────────────────────►│
-   │            │           │            │  profile  │  profile  │           │            │          │
-   │            │           │            │          │  .updated  │           │            │          │
-   │            │           │            │          │            │           │            │          │
-   │            │           │            │          │            │  ◄── Event│            │          │
-   │            │           │            │          │            │  Consume  │            │          │
-   │            │           │            │          │            │── Assess──│            │          │
-   │            │           │            │          │            │   Risk    │            │          │
-   │            │           │            │          │            │◄─ Score ──│            │          │
-   │            │           │            │          │            │           │── Emit ──────────────►│
-   │            │           │            │          │            │           │  risk.     │          │
-   │            │           │            │          │            │           │  assessed  │          │
-   │            │           │            │          │            │           │            │          │
-   │            │           │            │          │            │           │    ◄── Event          │
-   │            │           │            │          │            │           │    Consume │          │
-   │            │           │            │          │            │           │── Match ──►│          │
-   │            │           │            │          │            │           │  Products  │          │
-   │            │           │            │          │            │           │◄─ Portfolio│          │
-   │            │           │            │          │            │           │            │          │
-   │            │           │            │◄─ Risk + Recommendation ──────────────────────│          │
-   │            │           │            │  (via API callback)   │           │            │          │
-   │            │           │            │          │            │           │            │          │
-   │            │           │            │─ Present►│            │           │            │          │
-   │            │           │            │◄─ Rich ──│            │           │            │          │
-   │            │           │            │  Card     │            │           │            │          │
-   │◄─ Portfolio│◄──────────│◄───────────│          │            │           │            │          │
-   │   + Chart  │           │            │          │            │           │            │          │
-   │            │           │            │          │            │           │            │          │
-   │── "I like  │──────────►│───────────►│          │            │           │            │          │
-   │   WhatsApp │           │            │─ Update pref ────────►│           │            │          │
-   │   for      │           │            │          │            │           │            │          │
-   │   follow-  │           │            │          │            │           │            │          │
-   │   up"      │           │            │          │            │           │            │          │
-   │            │           │            │          │            │           │            │          │
-   │            │           │            │── Emit ──────────────────────────────────────────────────►│
-   │            │           │            │  conv.completed       │           │            │          │
-   │            │           │            │          │            │           │            │          │
-   │◄─ "Great!  │◄──────────│◄───────────│          │            │           │            │          │
-   │  See you   │           │            │          │            │           │            │          │
-   │  on June 3"│           │            │          │            │           │            │          │
-   │            │           │            │          │            │           │            │          │
+```mermaid
+sequenceDiagram
+    participant C as Customer
+    participant W as Web App
+    participant GW as API Gateway
+    participant CS as Conv Svc
+    participant LLM as LLM
+    participant PS as Profile Svc
+    participant RS as Risk Svc
+    participant REC as Recomm Svc
+    participant K as Kafka
+
+    C->>W: Open Chat
+    W->>GW: POST /conversations
+    GW->>CS: Create Session
+    CS->>LLM: Init Prompt
+    LLM-->>CS: Greeting
+    CS-->>GW: Session + WS URL
+    GW-->>W: WS Connection
+    W-->>C: "Hello! May I know your name?"
+
+    C->>CS: "I'm John, 35, Mumbai"
+    CS->>LLM: Extract entities
+    LLM-->>CS: {name, age, location}
+    CS->>PS: Save partial profile
+    CS->>LLM: Generate next question
+    LLM-->>CS: Response
+    CS-->>C: "What's your income?"
+
+    Note over C,CS: Financial + Goals data collection continues
+
+    CS->>PS: Update full profile
+    PS->>K: profile.updated
+    K->>RS: Event consumed
+    RS->>RS: Assess Risk (XGBoost)
+    RS->>K: risk.assessed
+    K->>REC: Event consumed
+    REC->>REC: Match Products + Build Portfolio
+    REC-->>CS: Risk + Recommendation (callback)
+    CS->>LLM: Present as rich card
+    LLM-->>CS: Rich card content
+    CS-->>C: Portfolio + Wealth Projection Chart
+
+    C->>CS: "I like WhatsApp for follow-up"
+    CS->>PS: Update channel preference
+    CS->>K: conversation.completed
+    CS-->>C: "Great! See you on June 3"
 ```
 
 ### 4.2 Follow-Up Execution Flow
 
-```
-Scheduler      Reminder Svc   Follow-Up Orch    LLM          Notification Svc    WhatsApp API
-   │               │               │               │               │                 │
-   │── Cron Tick ──►│               │               │               │                 │
-   │  (every min)  │               │               │               │                 │
-   │               │── Check due ──►│               │               │                 │
-   │               │  follow-ups   │               │               │                 │
-   │               │◄─ Due list ───│               │               │                 │
-   │               │               │               │               │                 │
-   │               │  [For each due follow-up]:    │               │                 │
-   │               │               │               │               │                 │
-   │               │── Reminder ──────────────────────────────────►│                 │
-   │               │  24hrs before │               │               │── Send ────────►│
-   │               │               │               │               │  WhatsApp msg   │
-   │               │               │               │               │◄─ Delivered ────│
-   │               │               │               │               │                 │
-   │  ... 24 hours later ...       │               │               │                 │
-   │               │               │               │               │                 │
-   │── Cron Tick ──►│               │               │               │                 │
-   │               │── Start ──────►│               │               │                 │
-   │               │  follow-up    │── Generate ──►│               │                 │
-   │               │               │   agenda      │               │                 │
-   │               │               │◄─ Agenda ─────│               │                 │
-   │               │               │               │               │                 │
-   │               │               │── Send interactive msg ──────►│                 │
-   │               │               │  with agenda & action items   │── Send ────────►│
-   │               │               │               │               │  Interactive    │
-   │               │               │               │               │  WhatsApp msg   │
-   │               │               │               │               │◄─ Delivered ────│
-   │               │               │               │               │                 │
-   │               │               │  Customer responds via WhatsApp...              │
-   │               │               │◄─ Webhook ──────────────────────────────────────│
-   │               │               │               │               │                 │
-   │               │               │── Continue    │               │                 │
-   │               │               │   conversation│               │                 │
-   │               │               │   (via Conv Svc)              │                 │
-   │               │               │               │               │                 │
+```mermaid
+sequenceDiagram
+    participant SCH as Scheduler (Cron)
+    participant REM as Reminder Svc
+    participant FU as Follow-Up Orch
+    participant LLM as LLM
+    participant NS as Notification Svc
+    participant WA as WhatsApp API
+
+    SCH->>REM: Cron Tick (every min)
+    REM->>FU: Check due follow-ups
+    FU-->>REM: Due list
+
+    Note over REM,NS: For each due follow-up (24hrs before)
+
+    REM->>NS: Send reminder
+    NS->>WA: Send WhatsApp message
+    WA-->>NS: Delivered
+
+    Note over SCH,WA: 24 hours later...
+
+    SCH->>REM: Cron Tick
+    REM->>FU: Start follow-up
+    FU->>LLM: Generate agenda
+    LLM-->>FU: Agenda
+    FU->>NS: Send interactive msg with agenda
+    NS->>WA: Send Interactive WhatsApp msg
+    WA-->>NS: Delivered
+
+    WA->>FU: Customer responds (Webhook)
+    FU->>FU: Continue conversation (via Conv Svc)
 ```
 
 ---
@@ -1290,21 +1277,21 @@ CONSERVATIVE (score 1-3):
   - Gold:       5-10%   (Sovereign Gold Bonds)
   - Insurance:  10%     (Term insurance, endowment)
 
-MODERATE (score 3.1-6):
+MODERATE (score 3-6):
   - Equity:     30-40%  (Large + Mid-cap, diversified funds)
   - Debt:       25-35%  (Corporate bonds, debt funds)
   - FD:         10-20%  (Bank FDs, recurring deposits)
   - Gold:       5-10%   (SGBs, gold ETFs)
   - NPS:        10%     (National Pension System)
 
-AGGRESSIVE (score 6.1-8):
+AGGRESSIVE (score 6-8):
   - Equity:     50-60%  (Multi-cap, mid-cap, sector funds)
   - Debt:       15-20%  (Dynamic bond funds)
   - Gold:       5-10%   (SGBs)
   - NPS:        10%     (NPS with aggressive choice)
   - Alt:        5-10%   (REITs, international equity)
 
-VERY AGGRESSIVE (score 8.1-10):
+VERY AGGRESSIVE (score 8-10):
   - Equity:     65-75%  (Small-cap, thematic, direct equity)
   - Debt:       10-15%  (Credit risk funds, dynamic bonds)
   - Gold:       5%      (Gold ETFs)

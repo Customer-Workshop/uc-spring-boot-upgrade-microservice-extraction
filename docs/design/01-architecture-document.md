@@ -69,61 +69,61 @@ Banks need a scalable, intelligent way to:
 
 **Event-Driven Microservices** with a **Conversational AI Core**
 
-```
-┌──────────────────────────────────────────────────────────────────────┐
-│                        CLIENT TIER                                   │
-│  ┌─────────────┐  ┌─────────────┐  ┌──────────────────────────────┐ │
-│  │  Web App     │  │ Mobile App  │  │ Channel Adapters             │ │
-│  │  (React/Next)│  │ (React      │  │ (WhatsApp, SMS, Email, Phone)│ │
-│  │              │  │  Native)    │  │                              │ │
-│  └──────┬───────┘  └──────┬──────┘  └──────────────┬───────────────┘ │
-└─────────┼─────────────────┼────────────────────────┼─────────────────┘
-          │                 │                        │
-          ▼                 ▼                        ▼
-┌──────────────────────────────────────────────────────────────────────┐
-│                     API GATEWAY / BFF                                 │
-│  ┌──────────────────────────────────────────────────────────────────┐ │
-│  │  Kong / AWS API Gateway                                          │ │
-│  │  - Rate Limiting, Auth, Routing, Protocol Translation            │ │
-│  └──────────────────────────────────────────────────────────────────┘ │
-└──────────────────────────────┬───────────────────────────────────────┘
-                               │
-          ┌────────────────────┼────────────────────┐
-          ▼                    ▼                     ▼
-┌─────────────────┐ ┌──────────────────┐ ┌──────────────────────────┐
-│  CONVERSATION    │ │  CUSTOMER        │ │  PRODUCT &               │
-│  SERVICE         │ │  PROFILE SERVICE │ │  RECOMMENDATION SERVICE  │
-│  - Chat Engine   │ │  - Demographics  │ │  - Product Catalog       │
-│  - Session Mgmt  │ │  - KYC           │ │  - AI Recommendation     │
-│  - NLP Pipeline  │ │  - Risk Profile  │ │  - Wealth Projection     │
-└────────┬─────────┘ └────────┬─────────┘ └────────────┬─────────────┘
-         │                    │                         │
-         ▼                    ▼                         ▼
-┌──────────────────────────────────────────────────────────────────────┐
-│                     EVENT BUS (Kafka / Amazon EventBridge)            │
-└──────────────────────────────┬───────────────────────────────────────┘
-                               │
-          ┌────────────────────┼────────────────────┐
-          ▼                    ▼                     ▼
-┌─────────────────┐ ┌──────────────────┐ ┌──────────────────────────┐
-│  FOLLOW-UP       │ │  NOTIFICATION    │ │  ANALYTICS &             │
-│  ORCHESTRATOR    │ │  SERVICE         │ │  REPORTING SERVICE       │
-│  - Scheduling    │ │  - SMS Gateway   │ │  - Dashboards            │
-│  - Agenda Builder│ │  - WhatsApp API  │ │  - Funnel Analysis       │
-│  - Review Tracker│ │  - Email Service │ │  - AI Model Monitoring   │
-│                  │ │  - Calendar Sync │ │                          │
-│                  │ │  - Voice (IVR)   │ │                          │
-└──────────────────┘ └──────────────────┘ └──────────────────────────┘
-                               │
-                               ▼
-┌──────────────────────────────────────────────────────────────────────┐
-│                     DATA TIER                                        │
-│  ┌──────────┐ ┌───────────┐ ┌───────────┐ ┌───────────────────────┐ │
-│  │PostgreSQL│ │  Redis     │ │ S3 / Blob │ │ Elasticsearch         │ │
-│  │(Primary) │ │  (Cache &  │ │ (Documents│ │ (Search & Analytics)  │ │
-│  │          │ │   Session) │ │  & Media) │ │                       │ │
-│  └──────────┘ └───────────┘ └───────────┘ └───────────────────────┘ │
-└──────────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph CLIENT["CLIENT TIER"]
+        WEB["Web App<br/>(React/Next)"]
+        MOB["Mobile App<br/>(React Native)"]
+        CHAN["Channel Adapters<br/>(WhatsApp, SMS, Email, Phone)"]
+    end
+
+    subgraph APIGW["API GATEWAY / BFF"]
+        KONG["Kong / AWS API Gateway<br/>Rate Limiting, Auth, Routing"]
+    end
+
+    subgraph CORE["CORE SERVICES"]
+        CONV["Conversation Service<br/>Chat Engine, Session Mgmt, NLP"]
+        PROF["Customer Profile Service<br/>Demographics, KYC, Risk Profile"]
+        PROD["Product & Recommendation<br/>Catalog, AI Recommendation, Projection"]
+    end
+
+    subgraph EVENTBUS["EVENT BUS"]
+        KAFKA["Kafka / Amazon EventBridge"]
+    end
+
+    subgraph ASYNC["ASYNC SERVICES"]
+        FU["Follow-Up Orchestrator<br/>Scheduling, Agenda, Review"]
+        NOTIF["Notification Service<br/>SMS, WhatsApp, Email, Calendar, Voice"]
+        ANALYTICS["Analytics & Reporting<br/>Dashboards, Funnels, AI Monitoring"]
+    end
+
+    subgraph DATA["DATA TIER"]
+        PG["PostgreSQL<br/>(Primary)"]
+        REDIS["Redis<br/>(Cache & Session)"]
+        S3["S3 / Blob<br/>(Documents & Media)"]
+        ES["Elasticsearch<br/>(Search & Analytics)"]
+    end
+
+    WEB --> KONG
+    MOB --> KONG
+    CHAN --> KONG
+    KONG --> CONV
+    KONG --> PROF
+    KONG --> PROD
+    CONV --> KAFKA
+    PROF --> KAFKA
+    PROD --> KAFKA
+    KAFKA --> FU
+    KAFKA --> NOTIF
+    KAFKA --> ANALYTICS
+    FU --> PG
+    NOTIF --> REDIS
+    ANALYTICS --> ES
+    CONV --> PG
+    CONV --> REDIS
+    PROF --> PG
+    PROD --> PG
+    PROD --> S3
 ```
 
 ### 3.2 Key Architectural Decisions
@@ -241,34 +241,22 @@ Business intelligence and AI model monitoring.
 
 ### 6.1 AI Flows Overview
 
-```
-┌──────────────────────────────────────────────────────────────────┐
-│                     AI ORCHESTRATION LAYER                        │
-│                                                                  │
-│  ┌────────────────┐  ┌─────────────────┐  ┌──────────────────┐  │
-│  │ Conversational │  │ Risk Profiling   │  │ Recommendation   │  │
-│  │ AI Agent       │  │ AI Model         │  │ Engine           │  │
-│  │                │  │                  │  │                  │  │
-│  │ - Greeting     │  │ - Questionnaire  │  │ - Product Match  │  │
-│  │ - Data Capture │  │   Analysis       │  │ - Portfolio Build│  │
-│  │ - Contextual   │  │ - Behavioral     │  │ - Projection     │  │
-│  │   Responses    │  │   Scoring        │  │   Simulation     │  │
-│  │ - Sentiment    │  │ - Category       │  │ - Rebalancing    │  │
-│  │   Detection    │  │   Assignment     │  │   Suggestions    │  │
-│  └────────────────┘  └─────────────────┘  └──────────────────┘  │
-│                                                                  │
-│  ┌────────────────┐  ┌─────────────────┐  ┌──────────────────┐  │
-│  │ Follow-Up      │  │ Summarization    │  │ Anomaly          │  │
-│  │ Intelligence   │  │ Agent            │  │ Detection        │  │
-│  │                │  │                  │  │                  │  │
-│  │ - Optimal Time │  │ - Conversation   │  │ - Unusual        │  │
-│  │   Prediction   │  │   Summary        │  │   Patterns       │  │
-│  │ - Agenda       │  │ - Action Items   │  │ - Fraud Signals  │  │
-│  │   Generation   │  │   Extraction     │  │ - Compliance     │  │
-│  │ - Channel      │  │ - Brief Builder  │  │   Violations     │  │
-│  │   Selection    │  │                  │  │                  │  │
-│  └────────────────┘  └─────────────────┘  └──────────────────┘  │
-└──────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph AI_LAYER["AI ORCHESTRATION LAYER"]
+        subgraph ROW1[" "]
+            direction LR
+            A1["Conversational AI Agent<br/>• Greeting<br/>• Data Capture<br/>• Contextual Responses<br/>• Sentiment Detection"]
+            A2["Risk Profiling AI Model<br/>• Questionnaire Analysis<br/>• Behavioral Scoring<br/>• Category Assignment"]
+            A3["Recommendation Engine<br/>• Product Match<br/>• Portfolio Build<br/>• Projection Simulation<br/>• Rebalancing Suggestions"]
+        end
+        subgraph ROW2[" "]
+            direction LR
+            A4["Follow-Up Intelligence<br/>• Optimal Time Prediction<br/>• Agenda Generation<br/>• Channel Selection"]
+            A5["Summarization Agent<br/>• Conversation Summary<br/>• Action Items Extraction<br/>• Brief Builder"]
+            A6["Anomaly Detection<br/>• Unusual Patterns<br/>• Fraud Signals<br/>• Compliance Violations"]
+        end
+    end
 ```
 
 ### 6.2 AI Flow Details
@@ -357,24 +345,20 @@ Business intelligence and AI model monitoring.
 
 ### 8.2 Data Flow
 
-```
-Customer Input → Conversation Service → [NLP Pipeline] → Structured Data
-                                                              │
-                    ┌─────────────────────────────────────────┤
-                    ▼                                         ▼
-            Customer Profile DB                    Event Bus (Kafka)
-                    │                                         │
-                    ▼                                         ▼
-            Risk Profiling Model              Follow-Up Orchestrator
-                    │                                         │
-                    ▼                                         ▼
-          Recommendation Engine              Notification Service
-                    │                                         │
-                    ▼                                         ▼
-          Wealth Projection                  SMS / WhatsApp / Email
-                    │
-                    ▼
-          Customer Dashboard
+```mermaid
+flowchart TD
+    A["Customer Input"] --> B["Conversation Service"]
+    B --> C["NLP Pipeline"]
+    C --> D["Structured Data"]
+    D --> E["Customer Profile DB"]
+    D --> F["Event Bus (Kafka)"]
+    E --> G["Risk Profiling Model"]
+    F --> H["Follow-Up Orchestrator"]
+    G --> I["Recommendation Engine"]
+    H --> J["Notification Service"]
+    I --> K["Wealth Projection"]
+    J --> L["SMS / WhatsApp / Email"]
+    K --> M["Customer Dashboard"]
 ```
 
 ---
@@ -428,9 +412,16 @@ Customer Input → Conversation Service → [NLP Pipeline] → Structured Data
 
 ### 10.3 CI/CD Pipeline
 
-```
-Code Push → Lint/Format → Unit Tests → Integration Tests → Security Scan
-    → Container Build → Staging Deploy → E2E Tests → Production Deploy (Blue/Green)
+```mermaid
+flowchart LR
+    A["Code Push"] --> B["Lint/Format"]
+    B --> C["Unit Tests"]
+    C --> D["Integration Tests"]
+    D --> E["Security Scan"]
+    E --> F["Container Build"]
+    F --> G["Staging Deploy"]
+    G --> H["E2E Tests"]
+    H --> I["Production Deploy<br/>(Blue/Green)"]
 ```
 
 - **Infrastructure as Code**: Terraform for cloud resources

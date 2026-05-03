@@ -62,72 +62,44 @@
 
 ### 2.1 AWS Infrastructure Map
 
-```
-┌──────────────────────────────────────────────────────────────────────────┐
-│                            AWS Cloud (Mumbai Region - ap-south-1)        │
-│                                                                          │
-│  ┌── Edge ─────────────────────────────────────────────────────────────┐ │
-│  │  CloudFront CDN │ WAF │ Route 53 │ ACM (TLS)                       │ │
-│  └─────────────────────────────────────────────────────────────────────┘ │
-│                                                                          │
-│  ┌── Compute ──────────────────────────────────────────────────────────┐ │
-│  │  EKS Cluster (3 AZs)                                               │ │
-│  │  ┌─────────────────────────────────────────────────────────────┐   │ │
-│  │  │  Node Group: General Purpose                                │   │ │
-│  │  │  6× m6i.xlarge (4 vCPU, 16 GB RAM)                         │   │ │
-│  │  │  → All microservices except AI inference                    │   │ │
-│  │  └─────────────────────────────────────────────────────────────┘   │ │
-│  │  ┌─────────────────────────────────────────────────────────────┐   │ │
-│  │  │  Node Group: Spot Instances                                 │   │ │
-│  │  │  4× m6i.large (2 vCPU, 8 GB RAM) - Spot pricing            │   │ │
-│  │  │  → Analytics, batch processing, non-critical workloads      │   │ │
-│  │  └─────────────────────────────────────────────────────────────┘   │ │
-│  │  ┌─────────────────────────────────────────────────────────────┐   │ │
-│  │  │  ALB (Application Load Balancer) × 2                        │   │ │
-│  │  │  → External (customer-facing) + Internal (service mesh)     │   │ │
-│  │  └─────────────────────────────────────────────────────────────┘   │ │
-│  └─────────────────────────────────────────────────────────────────────┘ │
-│                                                                          │
-│  ┌── Data ─────────────────────────────────────────────────────────────┐ │
-│  │  RDS Aurora PostgreSQL (Multi-AZ)                                   │ │
-│  │  ┌────────────────────────────────────────────────────────────┐    │ │
-│  │  │  Writer: db.r6g.xlarge (4 vCPU, 32 GB)                    │    │ │
-│  │  │  Reader: db.r6g.large (2 vCPU, 16 GB) × 2                 │    │ │
-│  │  │  Storage: 500 GB (auto-scaling)                            │    │ │
-│  │  └────────────────────────────────────────────────────────────┘    │ │
-│  │                                                                     │ │
-│  │  ElastiCache Redis Cluster                                          │ │
-│  │  ┌────────────────────────────────────────────────────────────┐    │ │
-│  │  │  3× cache.r6g.large (2 vCPU, 13 GB) - Multi-AZ            │    │ │
-│  │  └────────────────────────────────────────────────────────────┘    │ │
-│  │                                                                     │ │
-│  │  Amazon MSK (Managed Kafka)                                         │ │
-│  │  ┌────────────────────────────────────────────────────────────┐    │ │
-│  │  │  3× kafka.m5.large (2 vCPU, 8 GB) - 3 AZs                 │    │ │
-│  │  │  Storage: 500 GB per broker                                │    │ │
-│  │  └────────────────────────────────────────────────────────────┘    │ │
-│  │                                                                     │ │
-│  │  OpenSearch (Elasticsearch)                                         │ │
-│  │  ┌────────────────────────────────────────────────────────────┐    │ │
-│  │  │  3× r6g.large.search (2 vCPU, 16 GB)                      │    │ │
-│  │  │  Storage: 500 GB                                           │    │ │
-│  │  └────────────────────────────────────────────────────────────┘    │ │
-│  │                                                                     │ │
-│  │  S3 (Object Storage)                                                │ │
-│  │  ┌────────────────────────────────────────────────────────────┐    │ │
-│  │  │  Documents, transcripts, reports, static assets            │    │ │
-│  │  │  Estimated: 100 GB Year 1, lifecycle policies to Glacier   │    │ │
-│  │  └────────────────────────────────────────────────────────────┘    │ │
-│  └─────────────────────────────────────────────────────────────────────┘ │
-│                                                                          │
-│  ┌── Observability ────────────────────────────────────────────────────┐ │
-│  │  CloudWatch │ X-Ray │ Grafana (AMG) │ Prometheus (AMP)              │ │
-│  └─────────────────────────────────────────────────────────────────────┘ │
-│                                                                          │
-│  ┌── Security ─────────────────────────────────────────────────────────┐ │
-│  │  Secrets Manager │ KMS │ GuardDuty │ IAM │ VPC (3 AZ)              │ │
-│  └─────────────────────────────────────────────────────────────────────┘ │
-└──────────────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph AWS["AWS Cloud (Mumbai Region - ap-south-1)"]
+        subgraph EDGE["Edge Layer"]
+            CF["CloudFront CDN"]
+            WAF["WAF"]
+            R53["Route 53"]
+            ACM["ACM (TLS)"]
+        end
+        subgraph COMPUTE["Compute Layer — EKS Cluster (3 AZs)"]
+            GP["Node Group: General Purpose<br/>6× m6i.xlarge (4 vCPU, 16 GB)<br/>All microservices except AI"]
+            SPOT["Node Group: Spot Instances<br/>4× m6i.large (2 vCPU, 8 GB)<br/>Analytics, batch, non-critical"]
+            ALB["ALB × 2<br/>External + Internal"]
+        end
+        subgraph DATA["Data Layer"]
+            RDS["RDS Aurora PostgreSQL (Multi-AZ)<br/>Writer: db.r6g.xlarge (4 vCPU, 32 GB)<br/>Reader: db.r6g.large × 2<br/>Storage: 500 GB auto-scaling"]
+            REDIS["ElastiCache Redis Cluster<br/>3× cache.r6g.large (2 vCPU, 13 GB)<br/>Multi-AZ"]
+            MSK["Amazon MSK (Kafka)<br/>3× kafka.m5.large (2 vCPU, 8 GB)<br/>Storage: 500 GB/broker"]
+            OS["OpenSearch<br/>3× r6g.large.search (2 vCPU, 16 GB)<br/>Storage: 500 GB"]
+            S3["S3 Object Storage<br/>Documents, transcripts, reports<br/>100 GB Year 1, Glacier lifecycle"]
+        end
+        subgraph OBS["Observability"]
+            CW["CloudWatch"]
+            XR["X-Ray"]
+            GRF["Grafana (AMG)"]
+            PROM["Prometheus (AMP)"]
+        end
+        subgraph SEC["Security"]
+            SM["Secrets Manager"]
+            KMS["KMS"]
+            GD["GuardDuty"]
+            IAM["IAM"]
+            VPC["VPC (3 AZ)"]
+        end
+    end
+
+    EDGE --> COMPUTE
+    COMPUTE --> DATA
 ```
 
 ---
