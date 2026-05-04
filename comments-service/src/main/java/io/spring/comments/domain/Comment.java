@@ -1,11 +1,10 @@
-package io.spring.core.comment;
+package io.spring.comments.domain;
 
 import java.util.UUID;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.joda.time.DateTime;
-import org.joda.time.format.ISODateTimeFormat;
 
 @Getter
 @NoArgsConstructor
@@ -23,13 +22,5 @@ public class Comment {
     this.userId = userId;
     this.articleId = articleId;
     this.createdAt = new DateTime();
-  }
-
-  public Comment(String id, String body, String userId, String articleId, String createdAt) {
-    this.id = id;
-    this.body = body;
-    this.userId = userId;
-    this.articleId = articleId;
-    this.createdAt = ISODateTimeFormat.dateTimeParser().parseDateTime(createdAt);
   }
 }
