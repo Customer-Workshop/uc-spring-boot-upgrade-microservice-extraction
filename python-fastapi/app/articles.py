@@ -29,7 +29,7 @@ def _format_datetime(dt: datetime) -> str:
 
 
 def _to_slug(title: str) -> str:
-    return re.sub(r"[\s&|\ufe30-\uffa0'\"?,.]+", "-", title.lower()).strip("-")
+    return re.sub(r"[\s&|\ufe30-\uffa0'\"?,.]+", "-", title.lower())
 
 
 def _build_article_response(
