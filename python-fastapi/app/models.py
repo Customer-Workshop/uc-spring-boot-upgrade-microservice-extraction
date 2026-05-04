@@ -79,4 +79,4 @@ class Article(Base):
 
     @staticmethod
     def to_slug(title: str) -> str:
-        return re.sub(r"[&\ufe30-\uffa0'\"\\s?,\\.]+|\\s+", "-", title.lower()).strip("-")
+        return re.sub(r"[\s&|\ufe30-\uffa0'\"?,.]+", "-", title.lower()).strip("-")
