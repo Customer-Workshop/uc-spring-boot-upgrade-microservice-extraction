@@ -1,0 +1,29 @@
+server:
+  port: 8086
+
+spring:
+  application:
+    name: recommendation-service
+  datasource:
+    url: jdbc:postgresql://localhost:5432/rm_recommendation
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  flyway:
+    enabled: true
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
+
+jwt:
+  secret: ${JWT_SECRET:rm-default-secret-key-for-development-only-change-in-production-1234567890}
+
+ai:
+  openai:
+    api-key: ${OPENAI_API_KEY:}
+    model: ${AI_MODEL:gpt-4o}
+    base-url: ${AI_BASE_URL:https://api.openai.com/v1}

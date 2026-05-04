@@ -1,0 +1,12 @@
+-- Initialize all databases for the RM platform
+CREATE DATABASE rm_auth;
+CREATE DATABASE rm_profile;
+CREATE DATABASE rm_conversation;
+CREATE DATABASE rm_risk;
+CREATE DATABASE rm_product;
+CREATE DATABASE rm_recommendation;
+CREATE DATABASE rm_projection;
+CREATE DATABASE rm_followup;
+CREATE DATABASE rm_notification;
+CREATE DATABASE rm_reminder;
+CREATE DATABASE rm_admin;

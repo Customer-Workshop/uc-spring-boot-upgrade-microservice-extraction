@@ -1,0 +1,23 @@
+server:
+  port: 8092
+
+spring:
+  application:
+    name: reminder-service
+  datasource:
+    url: jdbc:postgresql://localhost:5432/rm_reminder
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  flyway:
+    enabled: true
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
+
+jwt:
+  secret: ${JWT_SECRET:rm-default-secret-key-for-development-only-change-in-production-1234567890}
