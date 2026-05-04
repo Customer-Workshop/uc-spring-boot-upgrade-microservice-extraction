@@ -7,7 +7,7 @@ import org.apache.ibatis.annotations.Param;
 
 @Mapper
 public interface ArticleStatsReadService {
-  Integer getViewCount(@Param("articleId") String articleId);
+  int getViewCount(@Param("articleId") String articleId);
 
   int getFavoriteCount(@Param("articleId") String articleId);
 
