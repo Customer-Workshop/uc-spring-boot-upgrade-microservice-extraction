@@ -1,15 +1,9 @@
-import type { Metadata } from 'next'
-import './globals.css'
-
-export const metadata: Metadata = {
-  title: 'Banking Relationship Manager',
-  description: 'AI-powered financial advisory platform',
-}
+export const metadata = { title: 'RM - Banking Relationship Manager', description: 'AI-powered banking relationship management platform' };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="min-h-screen bg-gray-50">{children}</body>
+      <body style={{ margin: 0, padding: 0, background: '#f0f2f5' }}>{children}</body>
     </html>
-  )
+  );
 }

@@ -1,213 +1,117 @@
-'use client'
+'use client';
+import { useState, useRef, useEffect } from 'react';
+import { api, connectWebSocket } from '@/lib/api';
 
-import { useState, useRef, useEffect, useCallback } from 'react'
-import { api, createWebSocket, MessageResponse } from '@/lib/api'
-
-interface ChatWindowProps {
-  conversationId: string | null
-  onConversationStart: (id: string) => void
+interface Message {
+  messageId: string;
+  senderType: 'CUSTOMER' | 'AI' | 'HUMAN_RM';
+  content: string;
+  phase: string;
+  createdAt: string;
 }
 
-interface ChatMessage {
-  id: string
-  sender: 'customer' | 'ai'
-  content: string
-  phase?: string
-  timestamp: string
-}
+const PHASES = ['GREETING', 'PERSONAL', 'FINANCIAL', 'GOALS', 'RISK_ASSESSMENT', 'RECOMMENDATION', 'CHANNEL_PREF', 'FOLLOWUP_SCHEDULE', 'COMPLETED'];
 
-export default function ChatWindow({ conversationId, onConversationStart }: ChatWindowProps) {
-  const [messages, setMessages] = useState<ChatMessage[]>([])
-  const [input, setInput] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [phase, setPhase] = useState('GREETING')
-  const [status, setStatus] = useState<string>('')
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-  const wsRef = useRef<WebSocket | null>(null)
+export default function ChatWindow() {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState('');
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [currentPhase, setCurrentPhase] = useState('GREETING');
+  const [loading, setLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const wsRef = useRef<WebSocket | null>(null);
 
-  const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [])
-
-  useEffect(() => { scrollToBottom() }, [messages, scrollToBottom])
+  const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  useEffect(scrollToBottom, [messages]);
 
   const startConversation = async () => {
-    setLoading(true)
+    setLoading(true);
     try {
-      const conv = await api.startConversation()
-      onConversationStart(conv.conversationId)
-      setPhase(conv.currentPhase)
-      setStatus(conv.status)
-
-      // Load greeting message
-      const history = await api.getConversationHistory(conv.conversationId)
-      setMessages(history.messages.map(toChat))
-    } catch (err) {
-      console.error('Failed to start conversation:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
+      const response = await api.post<{ conversationId: string; currentPhase: string }>('/conversations', { channel: 'WEB' });
+      setConversationId(response.conversationId);
+      setCurrentPhase(response.currentPhase);
+      const detail = await api.get<{ messages: Message[] }>(`/conversations/${response.conversationId}`);
+      setMessages(detail.messages || []);
+      wsRef.current = connectWebSocket(response.conversationId, (data: any) => {
+        if (data.aiResponse) {
+          setMessages(prev => [...prev, data.aiResponse]);
+          setCurrentPhase(data.aiResponse.phase);
+        }
+      });
+    } catch (error) { console.error('Failed to start conversation:', error); }
+    setLoading(false);
+  };
 
   const sendMessage = async () => {
-    if (!input.trim() || !conversationId) return
-    const text = input.trim()
-    setInput('')
-    setLoading(true)
-
-    // Optimistic customer message
-    const customerMsg: ChatMessage = {
-      id: Date.now().toString(),
-      sender: 'customer',
-      content: text,
-      timestamp: new Date().toISOString(),
-    }
-    setMessages(prev => [...prev, customerMsg])
-
+    if (!input.trim() || !conversationId) return;
+    const userMsg: Message = { messageId: Date.now().toString(), senderType: 'CUSTOMER', content: input, phase: currentPhase, createdAt: new Date().toISOString() };
+    setMessages(prev => [...prev, userMsg]);
+    setInput('');
+    setLoading(true);
     try {
-      const result = await api.sendMessage(conversationId, text)
-      const aiChat = toChat(result.aiResponse)
-      setMessages(prev => [...prev, aiChat])
-      if (result.aiResponse.phase) setPhase(result.aiResponse.phase)
-    } catch (err) {
-      console.error('Failed to send message:', err)
-      setMessages(prev => [
-        ...prev,
-        { id: 'err', sender: 'ai', content: 'Sorry, something went wrong. Please try again.', timestamp: new Date().toISOString() }
-      ])
-    } finally {
-      setLoading(false)
-    }
-  }
+      if (wsRef.current?.readyState === WebSocket.OPEN) {
+        wsRef.current.send(input);
+      } else {
+        const response = await api.post<{ aiResponse: Message }>(`/conversations/${conversationId}/messages`, { content: input });
+        if (response.aiResponse) {
+          setMessages(prev => [...prev, response.aiResponse]);
+          setCurrentPhase(response.aiResponse.phase);
+        }
+      }
+    } catch (error) { console.error('Failed to send message:', error); }
+    setLoading(false);
+  };
 
-  const toChat = (msg: MessageResponse): ChatMessage => ({
-    id: msg.messageId,
-    sender: msg.senderType === 'CUSTOMER' ? 'customer' : 'ai',
-    content: msg.content,
-    phase: msg.phase ?? undefined,
-    timestamp: msg.createdAt,
-  })
-
-  const phaseLabels: Record<string, string> = {
-    GREETING: 'Welcome',
-    PERSONAL: 'Personal Details',
-    FINANCIAL: 'Financial Profile',
-    GOALS: 'Retirement Goals',
-    RISK_ASSESSMENT: 'Risk Assessment',
-    RECOMMENDATION: 'Product Recommendations',
-    CHANNEL_PREF: 'Communication Preference',
-    FOLLOWUP_SCHEDULE: 'Follow-Up Schedule',
-    COMPLETED: 'Complete',
-  }
-
-  const phases = Object.keys(phaseLabels)
-  const currentPhaseIdx = phases.indexOf(phase)
+  const phaseIndex = PHASES.indexOf(currentPhase);
+  const progress = ((phaseIndex + 1) / PHASES.length) * 100;
 
   return (
-    <div className="bg-white rounded-xl shadow-lg overflow-hidden max-w-4xl mx-auto">
-      {/* Phase Progress Bar */}
-      <div className="bg-bank-light px-4 py-3 border-b">
-        <div className="flex items-center gap-1 overflow-x-auto">
-          {phases.map((p, idx) => (
-            <div key={p} className="flex items-center">
-              <div
-                className={`px-2 py-1 rounded text-xs font-medium whitespace-nowrap ${
-                  idx < currentPhaseIdx
-                    ? 'bg-green-100 text-green-700'
-                    : idx === currentPhaseIdx
-                    ? 'bg-bank-accent text-white'
-                    : 'bg-gray-100 text-gray-400'
-                }`}
-              >
-                {phaseLabels[p]}
-              </div>
-              {idx < phases.length - 1 && (
-                <div className={`w-4 h-0.5 mx-0.5 ${idx < currentPhaseIdx ? 'bg-green-300' : 'bg-gray-200'}`} />
-              )}
-            </div>
-          ))}
+    <div style={{ maxWidth: 600, margin: '0 auto', fontFamily: 'system-ui, sans-serif' }}>
+      <div style={{ background: '#1a73e8', color: 'white', padding: '16px', borderRadius: '8px 8px 0 0' }}>
+        <h2 style={{ margin: 0 }}>Banking Relationship Manager</h2>
+        <div style={{ marginTop: 8, background: 'rgba(255,255,255,0.3)', borderRadius: 4, height: 6 }}>
+          <div style={{ background: 'white', height: '100%', borderRadius: 4, width: `${progress}%`, transition: 'width 0.3s' }} />
         </div>
+        <div style={{ fontSize: 12, marginTop: 4 }}>{currentPhase.replace('_', ' ')} ({phaseIndex + 1}/{PHASES.length})</div>
       </div>
 
-      {/* Messages */}
-      <div className="h-[500px] overflow-y-auto p-4 space-y-4">
-        {!conversationId && (
-          <div className="flex flex-col items-center justify-center h-full text-center">
-            <div className="w-16 h-16 bg-bank-light rounded-full flex items-center justify-center mb-4">
-              <span className="text-2xl">RM</span>
-            </div>
-            <h2 className="text-xl font-semibold text-gray-700 mb-2">
-              Welcome to Your Digital Relationship Manager
-            </h2>
-            <p className="text-gray-500 mb-4 max-w-md">
-              I'll help you explore financial products tailored to your goals.
-              Our conversation is private and secure.
-            </p>
-            <button
-              onClick={startConversation}
-              disabled={loading}
-              className="bg-bank-primary text-white px-6 py-3 rounded-lg hover:bg-bank-secondary transition-colors disabled:opacity-50"
-            >
+      <div style={{ height: 400, overflowY: 'auto', padding: 16, background: '#f5f5f5', border: '1px solid #ddd' }}>
+        {!conversationId ? (
+          <div style={{ textAlign: 'center', paddingTop: 120 }}>
+            <button onClick={startConversation} disabled={loading}
+              style={{ padding: '12px 24px', fontSize: 16, background: '#1a73e8', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer' }}>
               {loading ? 'Starting...' : 'Start Conversation'}
             </button>
           </div>
-        )}
-
-        {messages.map((msg) => (
-          <div key={msg.id} className={`flex ${msg.sender === 'customer' ? 'justify-end' : 'justify-start'}`}>
-            <div
-              className={`max-w-[75%] rounded-2xl px-4 py-3 ${
-                msg.sender === 'customer'
-                  ? 'bg-bank-primary text-white rounded-br-md'
-                  : 'bg-gray-100 text-gray-800 rounded-bl-md'
-              }`}
-            >
-              <p className="whitespace-pre-wrap">{msg.content}</p>
-              <p className={`text-xs mt-1 ${msg.sender === 'customer' ? 'text-blue-200' : 'text-gray-400'}`}>
-                {new Date(msg.timestamp).toLocaleTimeString()}
-              </p>
-            </div>
-          </div>
-        ))}
-
-        {loading && (
-          <div className="flex justify-start">
-            <div className="bg-gray-100 rounded-2xl px-4 py-3 rounded-bl-md">
-              <div className="flex gap-1">
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+        ) : (
+          messages.map((msg) => (
+            <div key={msg.messageId} style={{ marginBottom: 12, textAlign: msg.senderType === 'CUSTOMER' ? 'right' : 'left' }}>
+              <div style={{
+                display: 'inline-block', maxWidth: '80%', padding: '10px 14px', borderRadius: 12,
+                background: msg.senderType === 'CUSTOMER' ? '#1a73e8' : 'white',
+                color: msg.senderType === 'CUSTOMER' ? 'white' : '#333',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+              }}>
+                {msg.content}
               </div>
             </div>
-          </div>
+          ))
         )}
-
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input */}
       {conversationId && (
-        <div className="border-t p-4 bg-gray-50">
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
-              placeholder="Type your message..."
-              className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-bank-accent focus:border-transparent"
-              disabled={loading}
-            />
-            <button
-              onClick={sendMessage}
-              disabled={loading || !input.trim()}
-              className="bg-bank-primary text-white px-6 py-2 rounded-lg hover:bg-bank-secondary transition-colors disabled:opacity-50"
-            >
-              Send
-            </button>
-          </div>
+        <div style={{ display: 'flex', gap: 8, padding: 12, background: 'white', border: '1px solid #ddd', borderTop: 'none', borderRadius: '0 0 8px 8px' }}>
+          <input value={input} onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+            placeholder="Type your message..." disabled={loading || currentPhase === 'COMPLETED'}
+            style={{ flex: 1, padding: '10px 14px', border: '1px solid #ddd', borderRadius: 8, fontSize: 14 }} />
+          <button onClick={sendMessage} disabled={loading || !input.trim() || currentPhase === 'COMPLETED'}
+            style={{ padding: '10px 20px', background: '#1a73e8', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14 }}>
+            {loading ? '...' : 'Send'}
+          </button>
         </div>
       )}
     </div>
-  )
+  );
 }

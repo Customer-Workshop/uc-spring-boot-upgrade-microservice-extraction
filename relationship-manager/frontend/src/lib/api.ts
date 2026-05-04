@@ -1,78 +1,25 @@
-const API_BASE = '/api/v1'
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
 
-export interface ApiResponse<T> {
-  success: boolean
-  data?: T
-  error?: { code: string; message: string }
-}
+async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('rm_token') : null;
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
 
-export interface ConversationResponse {
-  conversationId: string
-  currentPhase: string
-  status: string
-  channel: string
-  createdAt: string
-  lastMessageAt: string
-}
-
-export interface MessageResponse {
-  messageId: string
-  conversationId: string
-  senderType: 'CUSTOMER' | 'AI' | 'HUMAN_RM'
-  content: string
-  contentType: string
-  phase?: string
-  entitiesExtracted?: Record<string, unknown>
-  createdAt: string
-}
-
-export interface DashboardMetrics {
-  totalConversations: number
-  totalRiskAssessments: number
-  totalRecommendations: number
-  totalNotifications: number
-  totalFollowUps: number
-  riskDistribution: Record<string, number>
-  channelDistribution: Record<string, number>
-  timestamp: string
-}
-
-async function fetchApi<T>(url: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE}${url}`, {
-    headers: { 'Content-Type': 'application/json' },
-    ...options,
-  })
-  const json: ApiResponse<T> = await res.json()
-  if (!json.success) throw new Error(json.error?.message ?? 'API error')
-  return json.data!
+  const response = await fetch(`${API_BASE}${path}`, { ...options, headers: { ...headers, ...options?.headers } });
+  if (!response.ok) throw new Error(`API error: ${response.status}`);
+  const data = await response.json();
+  return data.data ?? data;
 }
 
 export const api = {
-  startConversation: (channel = 'WEB') =>
-    fetchApi<ConversationResponse>('/conversations', {
-      method: 'POST',
-      body: JSON.stringify({ channel }),
-    }),
+  post: <T>(path: string, body: unknown) => request<T>(path, { method: 'POST', body: JSON.stringify(body) }),
+  get: <T>(path: string) => request<T>(path),
+};
 
-  sendMessage: (conversationId: string, content: string) =>
-    fetchApi<{ customerMessage: MessageResponse; aiResponse: MessageResponse }>(
-      `/conversations/${conversationId}/messages`,
-      { method: 'POST', body: JSON.stringify({ content }) }
-    ),
-
-  getConversationHistory: (conversationId: string) =>
-    fetchApi<{
-      conversationId: string
-      currentPhase: string
-      status: string
-      messages: MessageResponse[]
-      extractedData: Record<string, unknown>
-    }>(`/conversations/${conversationId}`),
-
-  getDashboard: () => fetchApi<DashboardMetrics>('/analytics/dashboard'),
-}
-
-export function createWebSocket(conversationId: string): WebSocket {
-  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-  return new WebSocket(`${protocol}//${window.location.host}/ws/chat/${conversationId}`)
+export function connectWebSocket(conversationId: string, onMessage: (data: unknown) => void) {
+  const wsUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/chat/${conversationId}`;
+  const ws = new WebSocket(wsUrl);
+  ws.onmessage = (event) => onMessage(JSON.parse(event.data));
+  ws.onerror = (error) => console.error('WebSocket error:', error);
+  return ws;
 }

@@ -1,88 +1,97 @@
-# Banking Relationship Manager — AI Version
+# Relationship Manager — AI-Integrated Banking Platform
 
-AI-powered banking relationship manager platform built with Spring Boot 3 microservices architecture.
+Java 17 + Spring Boot 3.2.3 + Maven implementation of an AI-powered banking relationship management system.
 
 ## Architecture
 
-13 microservices communicating via REST + Kafka events:
+13 microservices with event-driven communication via Kafka:
 
 | Service | Port | Description |
 |---------|------|-------------|
-| API Gateway | 8080 | Spring Cloud Gateway — routing, rate limiting, CORS |
-| Auth Service | 8081 | JWT authentication, registration, anonymous session conversion |
-| Customer Profile | 8082 | Customer data, financial profile, risk profile, communication prefs |
-| Conversation Service | 8083 | AI conversational engine (LangChain4j + GPT-4o), WebSocket chat |
-| Risk Profiling | 8084 | XGBoost-based risk scoring with SHAP explanations |
-| Product Catalog | 8085 | Product management, risk-category mappings |
-| Recommendation | 8086 | AI-powered product matching and LLM re-ranking |
+| API Gateway | 8080 | Spring Cloud Gateway, routing, rate limiting |
+| Auth Service | 8081 | JWT authentication, anonymous sessions |
+| Customer Profile | 8082 | Customer data, financial info, preferences |
+| Conversation | 8083 | AI chat engine (LangChain4j + GPT-4o), WebSocket, 8-phase state machine |
+| Risk Profiling | 8084 | Weighted scoring (15 factors), SHAP explanations via LLM |
+| Product Catalog | 8085 | Banking products CRUD |
+| Recommendation | 8086 | Rule-based matching + LLM re-ranking |
 | Wealth Projection | 8087 | Monte Carlo simulation (10K scenarios) |
-| Follow-Up Orchestrator | 8088 | Scheduled review management, AI agenda generation |
-| Notification Service | 8089 | Multi-channel routing (SMS/WhatsApp/Email/Push via Twilio/SendGrid) |
-| Analytics | 8090 | Real-time event processing, dashboard metrics |
-| Admin | 8091 | Configuration management, system health |
-| Reminder | 8092 | Cron-based reminder scheduling and delivery |
+| Follow-Up Orchestrator | 8088 | Scheduling, AI agenda generation |
+| Notification | 8089 | Multi-channel delivery (SMS/WhatsApp/Email/Push) |
+| Analytics | 8090 | Real-time metrics aggregation |
+| Admin | 8091 | System configuration |
+| Reminder | 8092 | Scheduled reminder processing |
+
+Frontend: Next.js 14 (port 3000)
 
 ## Tech Stack
 
-- **Language**: Kotlin 1.9 + Java 17
-- **Framework**: Spring Boot 3.2.3
-- **AI**: LangChain4j 0.28.0 + OpenAI GPT-4o
-- **Database**: PostgreSQL 16 (per-service DBs)
+- **Java 17** / Spring Boot 3.2.3 / Maven
+- **AI**: LangChain4j 0.28.0 (OpenAI GPT-4o, with template fallbacks)
+- **Database**: PostgreSQL 16 (per-service) + Flyway migrations
+- **Messaging**: Apache Kafka (Confluent 7.5.3)
 - **Cache**: Redis 7
-- **Messaging**: Apache Kafka
-- **Build**: Gradle 8.x (Kotlin DSL)
-- **Frontend**: Next.js 14 + React 18 + Tailwind CSS
+- **Frontend**: Next.js 14.1.0 / React 18 / TypeScript
+
+## Prerequisites
+
+- JDK 17+ (JDK 21 compatible)
+- Maven 3.9+
+- Docker & Docker Compose
+- Node.js 20+ (frontend)
 
 ## Quick Start
 
-### Prerequisites
-- JDK 17+
-- Docker & Docker Compose
-- Node.js 18+ (for frontend)
+### Docker Compose (recommended)
 
-### Infrastructure
 ```bash
-docker-compose up -d postgres redis zookeeper kafka
+# Start all services
+docker-compose up -d
+
+# Access:
+# - Frontend: http://localhost:3000
+# - API Gateway: http://localhost:8080
+# - Admin health: http://localhost:8091/api/v1/admin/health
 ```
 
-### Build & Run
+### Local Development
+
 ```bash
-./gradlew build
-./gradlew :auth-service:bootRun
-./gradlew :conversation-service:bootRun
-# ... repeat for each service
+# 1. Start infrastructure
+docker-compose up -d postgres redis kafka zookeeper
+
+# 2. Build all modules
+mvn clean install -DskipTests
+
+# 3. Run individual services
+cd auth-service && mvn spring-boot:run
+cd conversation-service && mvn spring-boot:run  # requires OPENAI_API_KEY
+
+# 4. Frontend
+cd frontend && npm install && npm run dev
 ```
 
-### Frontend
-```bash
-cd frontend
-npm install
-npm run dev
-```
+## Environment Variables
 
-## AI Integration Points
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `OPENAI_API_KEY` | OpenAI API key for AI features | (empty — falls back to templates) |
+| `AI_MODEL` | LLM model name | `gpt-4o` |
+| `DB_USERNAME` | PostgreSQL username | `postgres` |
+| `DB_PASSWORD` | PostgreSQL password | `postgres` |
+| `JWT_SECRET` | JWT signing secret | dev default |
+| `KAFKA_BOOTSTRAP` | Kafka bootstrap servers | `localhost:9092` |
 
-1. **Conversational AI** — LLM-driven multi-phase conversation with entity extraction
-2. **Risk Profiling** — XGBoost scoring + LLM-generated SHAP explanations
-3. **Product Recommendation** — Rule-based matching + LLM re-ranking with rationale
-4. **Wealth Projection** — Monte Carlo simulation with AI narrative generation
-5. **Follow-Up Intelligence** — AI-generated review agendas based on history
-6. **Summarization** — LLM conversation summaries for RM handoff
+## AI Features
 
-## Event-Driven Architecture
+All AI features gracefully degrade to rule-based fallbacks when LLM is unavailable:
 
-All services publish domain events to Kafka topics:
-- `rm.conversation.events` — Conversation started/completed
-- `rm.profile.events` — Customer profile updates
-- `rm.risk.events` — Risk assessments
-- `rm.recommendation.events` — Recommendation generation
-- `rm.followup.events` — Follow-up scheduling
-- `rm.reminder.events` — Reminder triggers
-- `rm.notification.events` — Notification delivery
-- `rm.product.events` — Product catalog changes
+- **Conversational AI**: GPT-4o powers the relationship manager dialog; falls back to template responses
+- **Entity Extraction**: LLM extracts structured data from natural language; regex fallback
+- **Risk Explanation**: SHAP values explained in plain English via LLM; template fallback
+- **Recommendation Ranking**: LLM re-ranks products with rationale; rule-based order fallback
+- **Follow-Up Agendas**: AI-generated review agendas; static template fallback
 
-## Conversation Flow
+## Design Documents
 
-8-phase state machine: GREETING → PERSONAL → FINANCIAL → GOALS → RISK_ASSESSMENT → RECOMMENDATION → CHANNEL_PREF → FOLLOWUP_SCHEDULE → COMPLETED
-
-Each phase has dedicated prompts, required entity extraction, and validation rules.
+See [docs/design/](../docs/design/) for architecture, HLD, LLD, and infrastructure cost estimation.

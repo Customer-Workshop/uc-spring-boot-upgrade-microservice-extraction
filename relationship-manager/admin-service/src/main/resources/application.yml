@@ -1,6 +1,5 @@
 server:
   port: 8091
-
 spring:
   application:
     name: admin-service
@@ -16,6 +15,7 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
   flyway:
     enabled: true
-
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
 jwt:
   secret: ${JWT_SECRET:rm-default-secret-key-for-development-only-change-in-production-1234567890}

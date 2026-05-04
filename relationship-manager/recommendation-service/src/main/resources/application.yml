@@ -1,6 +1,5 @@
 server:
   port: 8086
-
 spring:
   application:
     name: recommendation-service
@@ -18,10 +17,8 @@ spring:
     enabled: true
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
-
 jwt:
   secret: ${JWT_SECRET:rm-default-secret-key-for-development-only-change-in-production-1234567890}
-
 ai:
   openai:
     api-key: ${OPENAI_API_KEY:}
