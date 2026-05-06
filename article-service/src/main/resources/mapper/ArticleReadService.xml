@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="io.spring.articleservice.infrastructure.mybatis.readservice.ArticleReadService">
+    <sql id="selectArticleData">
+        select
+        A.id id,
+        A.slug slug,
+        A.title title,
+        A.description description,
+        A.body body,
+        A.created_at createdAt,
+        A.updated_at updatedAt
+        from articles A
+    </sql>
+
+    <select id="findById" resultType="io.spring.articleservice.application.data.ArticleData">
+        <include refid="selectArticleData"/>
+        where A.id = #{id}
+    </select>
+
+    <select id="findBySlug" resultType="io.spring.articleservice.application.data.ArticleData">
+        <include refid="selectArticleData"/>
+        where A.slug = #{slug}
+    </select>
+
+    <select id="queryArticles" resultType="string">
+        select DISTINCT(A.id) from articles A
+        <if test="tag != null">
+            left join article_tags AT on A.id = AT.article_id
+            left join tags T on AT.tag_id = T.id
+        </if>
+        <where>
+            <if test="tag != null">
+                T.name = #{tag}
+            </if>
+            <if test="author != null">
+                AND A.user_id = #{author}
+            </if>
+            <if test="favoritedBy != null">
+                AND A.id in (select article_id from article_favorites where user_id = #{favoritedBy})
+            </if>
+        </where>
+        order by A.created_at desc
+        limit #{limit} offset #{page}
+    </select>
+
+    <select id="countArticle" resultType="int">
+        select count(DISTINCT A.id) from articles A
+        <if test="tag != null">
+            left join article_tags AT on A.id = AT.article_id
+            left join tags T on AT.tag_id = T.id
+        </if>
+        <where>
+            <if test="tag != null">
+                T.name = #{tag}
+            </if>
+            <if test="author != null">
+                AND A.user_id = #{author}
+            </if>
+            <if test="favoritedBy != null">
+                AND A.id in (select article_id from article_favorites where user_id = #{favoritedBy})
+            </if>
+        </where>
+    </select>
+
+    <select id="findArticles" resultType="io.spring.articleservice.application.data.ArticleData">
+        <include refid="selectArticleData"/>
+        where A.id in
+        <foreach collection="articleIds" item="id" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+        order by A.created_at desc
+    </select>
+
+    <select id="findArticlesOfAuthors" resultType="io.spring.articleservice.application.data.ArticleData">
+        <include refid="selectArticleData"/>
+        where A.user_id in
+        <foreach collection="authors" item="author" open="(" close=")" separator=",">
+            #{author}
+        </foreach>
+        order by A.created_at desc
+        limit #{limit} offset #{page}
+    </select>
+
+    <select id="countFeedSize" resultType="int">
+        select count(1) from articles A
+        where A.user_id in
+        <foreach collection="authors" item="author" open="(" close=")" separator=",">
+            #{author}
+        </foreach>
+    </select>
+</mapper>

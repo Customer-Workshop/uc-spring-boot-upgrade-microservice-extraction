@@ -50,6 +50,8 @@ public class WebSecurityConfig {
                     .permitAll()
                     .requestMatchers("/actuator/**")
                     .permitAll()
+                    .requestMatchers("/internal/**")
+                    .permitAll()
                     .requestMatchers(HttpMethod.GET, "/articles/feed")
                     .authenticated()
                     .requestMatchers(HttpMethod.POST, "/users", "/users/login")
