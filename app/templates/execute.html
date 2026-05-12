@@ -22,12 +22,30 @@
                 {% endfor %}
             </div>
         </div>
-        <div class="flex gap-4 items-end">
+        <div class="flex gap-4 items-end flex-wrap">
             <div>
                 <label class="text-xs" style="color: var(--t3);">Mode</label>
                 <select id="exec-headless" class="input px-3 py-2 rounded">
                     <option value="true">Headless</option>
-                    <option value="false">Headed</option>
+                    <option value="false">Headed (Visible Browser)</option>
+                </select>
+            </div>
+            <div>
+                <label class="text-xs" style="color: var(--t3);">Execution</label>
+                <select id="exec-parallel" class="input px-3 py-2 rounded">
+                    <option value="true">Parallel</option>
+                    <option value="false">Sequential</option>
+                </select>
+            </div>
+            <div>
+                <label class="text-xs" style="color: var(--t3);">Threads</label>
+                <select id="exec-threads" class="input px-3 py-2 rounded">
+                    <option value="2">2</option>
+                    <option value="4" selected>4</option>
+                    <option value="6">6</option>
+                    <option value="8">8</option>
+                    <option value="12">12</option>
+                    <option value="16">16</option>
                 </select>
             </div>
             {% if environments %}
@@ -42,6 +60,19 @@
             </div>
             {% endif %}
             <button type="button" onclick="runTests()" class="btn-primary px-6 py-2 rounded">Run Selected</button>
+            <button type="button" onclick="cancelExecution()" class="btn-ghost px-4 py-2 rounded text-xs" style="color:var(--red);">Cancel All</button>
+        </div>
+
+        <!-- Parallel Status -->
+        <div id="parallel-status" class="mt-3 hidden">
+            <div class="text-xs p-2 rounded" style="background:var(--bg-s);border:1px solid var(--bd);">
+                <div class="flex items-center gap-2 mb-1">
+                    <span style="color:var(--cyan);">Parallel Execution</span>
+                    <span id="par-running" class="badge-running text-xs px-1.5 py-0.5 rounded">0 running</span>
+                    <span id="par-threads" style="color:var(--t3);">/ 4 threads</span>
+                </div>
+                <div id="par-tasks" class="space-y-1"></div>
+            </div>
         </div>
     </form>
 
@@ -154,23 +185,69 @@
 
 {% block scripts %}
 <script>
+let parallelPoll = null;
+
 function runTests() {
     const checks = document.querySelectorAll('input[name="tc_check"]:checked');
     if (!checks.length) { alert('Select at least one test case'); return; }
 
     const ids = Array.from(checks).map(c => c.value).join(',');
     const headless = document.getElementById('exec-headless').value;
+    const parallel = document.getElementById('exec-parallel').value;
+    const threads = document.getElementById('exec-threads').value;
+
     const fd = new FormData();
     fd.append('tc_ids', ids);
     fd.append('headless', headless);
+    fd.append('parallel', parallel);
+    fd.append('max_threads', threads);
 
     fetch('/execute/run', {method:'POST', body: fd}).then(r => r.json()).then(data => {
         if (data.status === 'running') {
             document.getElementById('exec-status').classList.remove('hidden');
+
+            if (data.parallel) {
+                // Show parallel status panel
+                document.getElementById('parallel-status').classList.remove('hidden');
+                document.getElementById('par-threads').textContent = `/ ${data.max_threads} threads`;
+                startParallelPolling();
+            }
+
+            // Start SSE for the first TC
             const tcId = data.tc_ids[0];
             startSSE(tcId);
         }
     });
+}
+
+function startParallelPolling() {
+    if (parallelPoll) clearInterval(parallelPoll);
+    parallelPoll = setInterval(async () => {
+        const r = await fetch('/execute/parallel-status');
+        if (!r.ok) return;
+        const d = await r.json();
+
+        document.getElementById('par-running').textContent = `${d.running_tasks} running`;
+
+        const tasksDiv = document.getElementById('par-tasks');
+        const items = [...d.tasks, ...d.recent_history.slice(-5)];
+        tasksDiv.innerHTML = items.map(t => {
+            const color = t.status === 'passed' ? 'var(--green)' : t.status === 'failed' ? 'var(--red)' : 'var(--amber)';
+            return `<div style="color:${color};">TC#${t.tc_id} — ${t.status} (${Math.round(t.duration_ms)}ms)</div>`;
+        }).join('');
+
+        if (d.running_tasks === 0 && items.length > 0) {
+            clearInterval(parallelPoll);
+            parallelPoll = null;
+            setTimeout(() => location.reload(), 2000);
+        }
+    }, 1500);
+}
+
+async function cancelExecution() {
+    await fetch('/execute/cancel', {method:'POST'});
+    if (parallelPoll) { clearInterval(parallelPoll); parallelPoll = null; }
+    location.reload();
 }
 
 function startSSE(tcId) {
@@ -188,7 +265,7 @@ function startSSE(tcId) {
         const d = JSON.parse(e.data);
         logDiv.innerHTML += `<div style="color:var(--green);font-weight:bold;">Completed: ${d.status}</div>`;
         es.close();
-        setTimeout(() => location.reload(), 1500);
+        if (!parallelPoll) setTimeout(() => location.reload(), 1500);
     });
 
     es.addEventListener('timeout', () => { es.close(); });

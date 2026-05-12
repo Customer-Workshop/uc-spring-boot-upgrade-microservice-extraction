@@ -17,17 +17,41 @@
     <span class="badge-{{ _cls }} px-3 py-1 rounded">{{ tc.status }}</span>
 </div>
 
-<!-- Recorder Card -->
+<!-- Recording Card -->
 <div class="card p-4 mb-6">
-    <h2 class="text-sm font-semibold mb-3" style="color: var(--t2);">Recording</h2>
+    <div class="flex justify-between items-center mb-3">
+        <h2 class="text-sm font-semibold" style="color: var(--t2);">Recording</h2>
+        <div id="rec-status" class="text-xs hidden" style="color: var(--green);">
+            <span class="inline-block w-2 h-2 rounded-full bg-green-400 animate-pulse mr-1"></span>
+            Recording in progress... <span id="rec-timer">0s</span>
+        </div>
+    </div>
     <div class="flex gap-3 items-end">
         <div class="flex-1">
             <label class="text-xs" style="color: var(--t3);">Base URL</label>
             <input type="text" id="rec-url" value="{{ tc.base_url or '' }}" placeholder="https://example.com" class="input w-full px-3 py-2 rounded">
         </div>
-        <button id="btn-start-rec" onclick="startRecording()" class="btn-primary px-4 py-2 rounded text-sm">Start Recording</button>
-        <button id="btn-stop-rec" onclick="stopRecording()" class="btn-ghost px-4 py-2 rounded text-sm hidden">Stop Recording</button>
+        <button id="btn-start-rec" onclick="startRecording()" class="btn-primary px-4 py-2 rounded text-sm">
+            ▶ Start Recording
+        </button>
+        <button id="btn-stop-rec" onclick="stopRecording()" class="btn-ghost px-4 py-2 rounded text-sm hidden" style="border-color: var(--red); color: var(--red);">
+            ■ Stop Recording
+        </button>
     </div>
+    <p class="text-xs mt-2" style="color: var(--t3);">
+        A new browser window will open. Interact with your application — all actions will be recorded as test steps.
+        POM structure is automatically generated from the recording.
+    </p>
+</div>
+
+<!-- POM Preview (shown after recording) -->
+<div id="pom-preview" class="card p-4 mb-6 hidden">
+    <div class="flex justify-between items-center mb-3">
+        <h2 class="text-sm font-semibold" style="color: var(--cyan);">Generated Page Object Model</h2>
+        <button onclick="togglePomView()" class="btn-ghost px-3 py-1 rounded text-xs">Toggle Code</button>
+    </div>
+    <div id="pom-summary" class="text-xs mb-2" style="color: var(--t2);"></div>
+    <pre id="pom-code" class="p-3 rounded text-xs overflow-auto hidden" style="background: var(--bg-s); border: 1px solid var(--bd); color: var(--green); max-height: 300px;"></pre>
 </div>
 
 <!-- Steps Editor -->
@@ -36,11 +60,26 @@
         <h2 class="text-sm font-semibold" style="color: var(--t2);">Test Steps</h2>
         <div class="flex gap-2">
             <button onclick="addStep()" class="btn-ghost px-3 py-1 rounded text-xs">+ Add Step</button>
+            <button onclick="addFromPage()" class="btn-ghost px-3 py-1 rounded text-xs" style="border-color: var(--cyan); color: var(--cyan);">+ From Page</button>
             <button onclick="saveSteps()" class="btn-primary px-3 py-1 rounded text-xs">Save Steps</button>
         </div>
     </div>
     <div id="steps-container" class="space-y-2">
         <!-- Steps populated by JS -->
+    </div>
+    <p class="text-xs mt-2" style="color: var(--t3);">
+        Selectors autocomplete from the Locator Repository. Use "From Page" to pick from existing page objects.
+    </p>
+</div>
+
+<!-- Page Selector Modal (for From Page) -->
+<div id="page-modal" class="modal-backdrop hidden">
+    <div class="modal-box" style="max-width: 600px;">
+        <h3 class="text-lg font-semibold mb-4">Select from Existing Pages</h3>
+        <div id="page-list" class="space-y-2 max-h-96 overflow-auto"></div>
+        <div class="flex justify-end gap-2 mt-4">
+            <button onclick="closePageModal()" class="btn-ghost px-4 py-2 rounded">Cancel</button>
+        </div>
     </div>
 </div>
 
@@ -70,6 +109,12 @@
 {{ test_data | tojson }}
 {% endautoescape %}
 </script>
+
+<script id="pages-data" type="application/json">
+{% autoescape false %}
+{{ pages | tojson }}
+{% endautoescape %}
+</script>
 {% endblock %}
 
 {% block scripts %}
@@ -77,19 +122,35 @@
 const TC_ID = {{ tc.id }};
 let stepsData = JSON.parse(document.getElementById('steps-data').textContent || '[]');
 let testData = JSON.parse(document.getElementById('testdata-data').textContent || '[]');
+let pagesData = JSON.parse(document.getElementById('pages-data').textContent || '[]');
+let pomData = null;
+let recInterval = null;
+let recStartTime = 0;
+
+const ACTIONS = ['navigate','click','dblclick','fill','type','press','select','hover','scroll',
+                 'check','uncheck','clear','focus','upload','drag_drop',
+                 'assert_text','assert_visible','assert_url','assert_value','assert_count',
+                 'assert_enabled','assert_disabled','wait','screenshot'];
 
 function renderSteps() {
     const container = document.getElementById('steps-container');
+    if (!stepsData.length) {
+        container.innerHTML = '<p class="text-xs py-4 text-center" style="color: var(--t3);">No steps yet. Start recording or add steps manually.</p>';
+        return;
+    }
     container.innerHTML = stepsData.map((s, i) => `
-        <div class="flex gap-2 items-center p-2 rounded" style="background: var(--bg-s); border: 1px solid var(--bd);">
-            <span class="text-xs w-6" style="color: var(--t3);">${i+1}</span>
-            <select onchange="stepsData[${i}].action=this.value" class="input px-2 py-1 rounded text-xs w-28">
-                ${['navigate','click','dblclick','fill','type','press','select','assert_text','assert_visible','assert_url','wait','screenshot'].map(a => `<option value="${a}" ${s.action===a?'selected':''}>${a}</option>`).join('')}
+        <div class="flex gap-2 items-center p-2 rounded" style="background: var(--bg-s); border: 1px solid var(--bd);" draggable="true" ondragstart="dragStart(event,${i})" ondragover="event.preventDefault()" ondrop="dropStep(event,${i})">
+            <span class="text-xs w-6 cursor-move" style="color: var(--t3);" title="Drag to reorder">⠿ ${i+1}</span>
+            <select onchange="stepsData[${i}].action=this.value" class="input px-2 py-1 rounded text-xs" style="width: 120px;">
+                ${ACTIONS.map(a => `<option value="${a}" ${s.action===a?'selected':''}>${a}</option>`).join('')}
             </select>
-            <input value="${escHtml(s.selector||'')}" onchange="stepsData[${i}].selector=this.value" placeholder="Selector" class="input flex-1 px-2 py-1 rounded text-xs">
-            <input value="${escHtml(s.value||'')}" onchange="stepsData[${i}].value=this.value" placeholder="Value" class="input flex-1 px-2 py-1 rounded text-xs">
-            <input value="${escHtml(s.description||'')}" onchange="stepsData[${i}].description=this.value" placeholder="Description" class="input flex-1 px-2 py-1 rounded text-xs">
-            <button onclick="removeStep(${i})" class="text-xs px-2" style="color: var(--red);">X</button>
+            <div class="flex-1 relative">
+                <input value="${escHtml(s.selector||'')}" oninput="onSelectorInput(this,${i})" onchange="stepsData[${i}].selector=this.value" placeholder="Selector" class="input w-full px-2 py-1 rounded text-xs selector-input" data-idx="${i}" autocomplete="off">
+                <div class="selector-suggestions hidden" id="sugg-${i}"></div>
+            </div>
+            <input value="${escHtml(s.value||'')}" onchange="stepsData[${i}].value=this.value" placeholder="Value" class="input px-2 py-1 rounded text-xs" style="width: 150px;">
+            <input value="${escHtml(s.description||'')}" onchange="stepsData[${i}].description=this.value" placeholder="Description" class="input px-2 py-1 rounded text-xs" style="width: 180px;">
+            <button onclick="removeStep(${i})" class="text-xs px-2" style="color: var(--red);" title="Delete step">✕</button>
         </div>
     `).join('');
 }
@@ -105,19 +166,102 @@ function removeStep(i) {
     renderSteps();
 }
 
+// Drag-and-drop reorder
+let dragIdx = null;
+function dragStart(e, idx) { dragIdx = idx; e.dataTransfer.effectAllowed = 'move'; }
+function dropStep(e, targetIdx) {
+    e.preventDefault();
+    if (dragIdx === null || dragIdx === targetIdx) return;
+    const item = stepsData.splice(dragIdx, 1)[0];
+    stepsData.splice(targetIdx, 0, item);
+    stepsData.forEach((s, idx) => s.order = idx);
+    dragIdx = null;
+    renderSteps();
+}
+
+// Selector autocomplete from locator repository
+function onSelectorInput(el, idx) {
+    stepsData[idx].selector = el.value;
+    const val = el.value.toLowerCase();
+    const suggDiv = document.getElementById(`sugg-${idx}`);
+    if (val.length < 2) { suggDiv.classList.add('hidden'); return; }
+
+    let matches = [];
+    pagesData.forEach(p => {
+        p.fields.forEach(f => {
+            if (f.selector && (f.name.toLowerCase().includes(val) || f.selector.toLowerCase().includes(val))) {
+                matches.push({label: `${p.page} → ${f.name}`, value: f.selector});
+            }
+        });
+    });
+
+    if (!matches.length) { suggDiv.classList.add('hidden'); return; }
+    suggDiv.classList.remove('hidden');
+    suggDiv.innerHTML = matches.slice(0, 8).map(m =>
+        `<div class="sugg-item" onclick="pickSuggestion(${idx},'${escHtml(m.value)}')">${escHtml(m.label)}<br><span style="color:var(--cyan);font-size:10px;">${escHtml(m.value)}</span></div>`
+    ).join('');
+}
+
+function pickSuggestion(idx, val) {
+    stepsData[idx].selector = val;
+    document.getElementById(`sugg-${idx}`).classList.add('hidden');
+    renderSteps();
+}
+
+// Add steps from existing page objects
+function addFromPage() {
+    const modal = document.getElementById('page-modal');
+    const list = document.getElementById('page-list');
+
+    if (!pagesData.length) {
+        list.innerHTML = '<p class="text-sm" style="color:var(--t2);">No pages in Locator Repository yet. Use Object Spy or record tests to populate it.</p>';
+    } else {
+        list.innerHTML = pagesData.map((p, pi) => `
+            <div class="p-3 rounded" style="background:var(--bg-s);border:1px solid var(--bd);">
+                <div class="text-sm font-semibold" style="color:var(--cyan);">${escHtml(p.page)} <span style="color:var(--t3);font-size:10px;">(${p.app})</span></div>
+                <div class="mt-2 space-y-1">
+                    ${p.fields.map(f => `
+                        <div class="flex items-center gap-2 text-xs">
+                            <button onclick="addPageField('${escHtml(f.selector)}','${escHtml(f.name)}','${escHtml(p.page)}')" class="btn-ghost px-2 py-0 rounded" style="font-size:10px;">+ Add</button>
+                            <span style="color:var(--t1);">${escHtml(f.name)}</span>
+                            <span style="color:var(--t3);">${escHtml(f.selector)}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `).join('');
+    }
+    modal.classList.remove('hidden');
+}
+
+function addPageField(selector, name, page) {
+    stepsData.push({order: stepsData.length, action: 'click', selector: selector, value: '', description: `${page}: ${name}`});
+    renderSteps();
+}
+
+function closePageModal() {
+    document.getElementById('page-modal').classList.add('hidden');
+}
+
 async function saveSteps() {
     stepsData.forEach((s, i) => s.order = i);
     const r = await fetch(`/web/save-steps/${TC_ID}`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(stepsData)});
-    if (r.ok) alert('Steps saved!');
+    if (r.ok) {
+        showToast('Steps saved successfully!');
+    }
 }
 
 function renderData() {
     const container = document.getElementById('data-container');
+    if (!testData.length) {
+        container.innerHTML = '<p class="text-xs py-2 text-center" style="color: var(--t3);">No test data rows. Add rows for data-driven testing.</p>';
+        return;
+    }
     container.innerHTML = testData.map((d, i) => `
         <div class="flex gap-2 items-center p-2 rounded" style="background: var(--bg-s); border: 1px solid var(--bd);">
             <span class="text-xs w-6" style="color: var(--t3);">${i+1}</span>
             <input value='${escHtml(d.data_json||"{}")}' onchange="testData[${i}].data_json=this.value" placeholder='{"key":"value"}' class="input flex-1 px-2 py-1 rounded text-xs font-mono">
-            <button onclick="removeDataRow(${i})" class="text-xs px-2" style="color: var(--red);">X</button>
+            <button onclick="removeDataRow(${i})" class="text-xs px-2" style="color: var(--red);">✕</button>
         </div>
     `).join('');
 }
@@ -136,18 +280,30 @@ function removeDataRow(i) {
 async function saveData() {
     testData.forEach((d, i) => d.row_index = i);
     const r = await fetch(`/web/save-data/${TC_ID}`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(testData)});
-    if (r.ok) alert('Data saved!');
+    if (r.ok) showToast('Data saved!');
 }
 
+// Recording controls
 async function startRecording() {
     const url = document.getElementById('rec-url').value;
     const fd = new FormData();
     fd.append('tc_id', TC_ID);
     fd.append('base_url', url);
     const r = await fetch('/web/start-recording', {method:'POST', body: fd});
-    if (r.ok) {
+    const data = await r.json();
+
+    if (r.ok && data.status === 'recording') {
         document.getElementById('btn-start-rec').classList.add('hidden');
         document.getElementById('btn-stop-rec').classList.remove('hidden');
+        document.getElementById('rec-status').classList.remove('hidden');
+        recStartTime = Date.now();
+        recInterval = setInterval(() => {
+            const elapsed = Math.floor((Date.now() - recStartTime) / 1000);
+            document.getElementById('rec-timer').textContent = elapsed + 's';
+        }, 1000);
+        showToast(data.message || 'Browser opened for recording!');
+    } else {
+        showToast(data.error || 'Failed to start recording', true);
     }
 }
 
@@ -158,15 +314,65 @@ async function stopRecording() {
         if (data.steps && data.steps.length) {
             stepsData = data.steps;
             renderSteps();
+            showToast(`Recording complete! ${data.steps.length} steps captured in ${data.duration_seconds}s`);
+        } else {
+            showToast('Recording stopped. No steps captured.', true);
         }
-        document.getElementById('btn-stop-rec').classList.add('hidden');
-        document.getElementById('btn-start-rec').classList.remove('hidden');
+
+        // Show POM if generated
+        if (data.pom && data.pom.total_pages > 0) {
+            pomData = data.pom;
+            showPom(data.pom);
+        }
+    }
+
+    document.getElementById('btn-stop-rec').classList.add('hidden');
+    document.getElementById('btn-start-rec').classList.remove('hidden');
+    document.getElementById('rec-status').classList.add('hidden');
+    if (recInterval) { clearInterval(recInterval); recInterval = null; }
+}
+
+function showPom(pom) {
+    document.getElementById('pom-preview').classList.remove('hidden');
+    document.getElementById('pom-summary').textContent =
+        `${pom.total_pages} page(s) detected, ${pom.total_elements} element(s) mapped`;
+
+    // Show first page code
+    const codeEl = document.getElementById('pom-code');
+    const firstPage = Object.keys(pom.pom_code || {})[0];
+    if (firstPage) {
+        codeEl.textContent = pom.pom_code[firstPage];
     }
 }
 
-function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function togglePomView() {
+    document.getElementById('pom-code').classList.toggle('hidden');
+}
+
+function showToast(msg, isError) {
+    const toast = document.createElement('div');
+    toast.style.cssText = `position:fixed;bottom:20px;right:20px;padding:12px 20px;border-radius:8px;color:#fff;font-size:13px;z-index:9999;background:${isError?'var(--red)':'var(--green)'};box-shadow:0 4px 12px rgba(0,0,0,.3);`;
+    toast.textContent = msg;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 4000);
+}
+
+function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 renderSteps();
 renderData();
 </script>
+<style>
+.selector-suggestions {
+    position: absolute; top: 100%; left: 0; right: 0; z-index: 50;
+    background: var(--bg-e); border: 1px solid var(--bd-2); border-radius: 6px;
+    max-height: 180px; overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,.4);
+}
+.sugg-item {
+    padding: 6px 10px; cursor: pointer; font-size: 11px; color: var(--t1);
+    border-bottom: 1px solid var(--bd);
+}
+.sugg-item:hover { background: rgba(139,92,246,.15); }
+.sugg-item:last-child { border-bottom: none; }
+</style>
 {% endblock %}

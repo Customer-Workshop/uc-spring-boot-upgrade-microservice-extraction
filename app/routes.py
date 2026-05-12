@@ -408,50 +408,119 @@ async def web_flow_page(request: Request, tc_id: int, db: Session = Depends(get_
     steps_data = [{"id": s.id, "order": s.order, "action": s.action, "selector": s.selector, "value": s.value, "description": s.description} for s in steps]
     data_rows = [{"row_index": d.row_index, "data_json": d.data_json} for d in test_data]
 
+    # Get locator suggestions from repository for the step editor
+    locator_fields = get_locator_fields_grouped(db)
+    # Get pages from locator repository
+    pages_list = []
+    for app_name, app_pages in locator_fields.items():
+        for page_name, fields in app_pages.items():
+            pages_list.append({
+                "app": app_name,
+                "page": page_name,
+                "fields": [{"name": f.field_name, "selector": f.css_selector or f.xpath or f.id_attr or f.test_id} for f in fields]
+            })
+
     return templates.TemplateResponse("web_flow.html", {
         "request": request,
         "tc": tc,
         "steps": steps_data,
         "test_data": data_rows,
         "user": get_current_user(request),
+        "pages": pages_list,
     })
 
 
 @router.post("/web/start-recording")
-async def start_recording(request: Request, tc_id: int = Form(...), base_url: str = Form("")):
+async def start_recording_route(request: Request, tc_id: int = Form(...), base_url: str = Form("")):
     from agent.state_machine import agent
-    from playwright_integration.recorder import launch_codegen
+    from playwright_integration.recorder import start_recording as recorder_start
+
+    user = get_current_user(request)
+    user_id = user.get("username", "default") if user else "default"
 
     try:
         agent.start_recording()
     except Exception as e:
         return JSONResponse({"error": f"Cannot start recording: {str(e)}"}, status_code=400)
 
-    output_path = f"recorded_tc_{tc_id}.py"
-    launch_codegen(base_url or "https://example.com", output_path)
+    result = recorder_start(tc_id, base_url or "https://example.com", user_id=user_id)
 
-    return JSONResponse({"status": "recording", "tc_id": tc_id})
+    if result.get("status") == "recording":
+        return JSONResponse({
+            "status": "recording",
+            "tc_id": tc_id,
+            "message": "A new browser window has been opened for recording. "
+                       "Interact with the application, then click Stop Recording when done.",
+            "browser_visible": True,
+        })
+    else:
+        return JSONResponse({"error": result.get("message", "Failed to start")}, status_code=500)
 
 
 @router.post("/web/stop-recording")
-async def stop_recording(request: Request):
+async def stop_recording_route(request: Request):
     from agent.state_machine import agent
-    from playwright_integration.recorder import parse_codegen_script, stop_codegen
+    from playwright_integration.recorder import stop_recording as recorder_stop
+
+    user = get_current_user(request)
+    user_id = user.get("username", "default") if user else "default"
 
     try:
         agent.stop_recording()
     except Exception:
         pass
 
-    script_path = stop_codegen()
+    result = recorder_stop(user_id=user_id)
 
     try:
         agent.parsing_done()
     except Exception:
         pass
 
-    steps = parse_codegen_script(script_path) if script_path else []
-    return JSONResponse({"status": "done", "steps": steps})
+    return JSONResponse({
+        "status": "done",
+        "steps": result.get("steps", []),
+        "pom": result.get("pom", {}),
+        "duration_seconds": result.get("duration_seconds", 0),
+    })
+
+
+@router.get("/web/recording-status")
+async def recording_status_route(request: Request):
+    """Check recording status for the current user."""
+    from playwright_integration.recorder import get_recording_status
+
+    user = get_current_user(request)
+    user_id = user.get("username", "default") if user else "default"
+    return JSONResponse(get_recording_status(user_id))
+
+
+@router.get("/web/locator-suggestions")
+async def locator_suggestions(request: Request, db: Session = Depends(get_db)):
+    """Get existing locators grouped by page for step editor suggestions."""
+    fields = get_locator_fields_grouped(db)
+
+    # Also get all unique selectors from existing test steps
+    all_tcs = get_all_test_cases(db)
+    selector_freq: dict[str, int] = {}
+    page_selectors: dict[str, list[str]] = {}
+
+    for tc in all_tcs:
+        steps = get_steps(db, tc.id)
+        current_page = tc.base_url or "Unknown"
+        for step in steps:
+            if step.selector:
+                selector_freq[step.selector] = selector_freq.get(step.selector, 0) + 1
+                if current_page not in page_selectors:
+                    page_selectors[current_page] = []
+                if step.selector not in page_selectors[current_page]:
+                    page_selectors[current_page].append(step.selector)
+
+    return JSONResponse({
+        "locator_fields": fields,
+        "frequent_selectors": sorted(selector_freq.items(), key=lambda x: -x[1])[:50],
+        "page_selectors": page_selectors,
+    })
 
 
 @router.post("/web/save-steps/{tc_id}")
@@ -693,11 +762,17 @@ async def execute_page(request: Request, db: Session = Depends(get_db)):
 
 
 @router.post("/execute/run")
-async def execute_run(request: Request, tc_ids: str = Form(...), headless: str = Form("true")):
+async def execute_run(request: Request, tc_ids: str = Form(...), headless: str = Form("true"),
+                      parallel: str = Form("true"), max_threads: str = Form("4")):
     from agent.state_machine import agent
-    from agent.symbolic_runner import run_test_case
+    from agent.parallel_executor import execution_engine
+
+    user = get_current_user(request)
+    user_id = user.get("username", "default") if user else "default"
 
     is_headless = headless.lower() in ("true", "1", "on")
+    is_parallel = parallel.lower() in ("true", "1", "on")
+    threads = max(1, min(int(max_threads) if max_threads.isdigit() else 4, 16))
     ids = [int(x.strip()) for x in tc_ids.split(",") if x.strip().isdigit()]
 
     if not ids:
@@ -709,19 +784,87 @@ async def execute_run(request: Request, tc_ids: str = Form(...), headless: str =
         agent.reset()
         agent.start_execution()
 
-    def _run_all():
-        for tc_id in ids:
-            run_test_case(tc_id, headless=is_headless)
-        try:
-            agent.execution_done()
-            agent.report_done()
-        except Exception:
-            agent.reset()
+    if is_parallel and len(ids) > 1:
+        # Use parallel execution engine with per-user thread pool
+        result = execution_engine.submit_execution(
+            user_id=user_id,
+            tc_ids=ids,
+            headless=is_headless,
+            max_threads=threads,
+        )
 
-    thread = threading.Thread(target=_run_all, daemon=True)
-    thread.start()
+        # Reset agent state in background after all tasks complete
+        def _wait_and_reset():
+            import time
+            for _ in range(600):  # Wait up to 10 minutes
+                status = execution_engine.get_user_status(user_id)
+                if status["running_tasks"] == 0:
+                    break
+                time.sleep(1)
+            try:
+                agent.execution_done()
+                agent.report_done()
+            except Exception:
+                agent.reset()
 
-    return JSONResponse({"status": "running", "tc_ids": ids})
+        threading.Thread(target=_wait_and_reset, daemon=True).start()
+
+        return JSONResponse({
+            "status": "running",
+            "tc_ids": ids,
+            "parallel": True,
+            "max_threads": threads,
+            "batch_run_id": result["batch_run_id"],
+        })
+    else:
+        # Sequential execution (single TC or parallel disabled)
+        from agent.symbolic_runner import run_test_case
+
+        def _run_all():
+            for tc_id in ids:
+                run_test_case(tc_id, headless=is_headless)
+            try:
+                agent.execution_done()
+                agent.report_done()
+            except Exception:
+                agent.reset()
+
+        thread = threading.Thread(target=_run_all, daemon=True)
+        thread.start()
+
+        return JSONResponse({"status": "running", "tc_ids": ids, "parallel": False})
+
+
+@router.get("/execute/parallel-status")
+async def parallel_status(request: Request):
+    """Get parallel execution status for the current user."""
+    from agent.parallel_executor import execution_engine
+
+    user = get_current_user(request)
+    user_id = user.get("username", "default") if user else "default"
+    return JSONResponse(execution_engine.get_user_status(user_id))
+
+
+@router.post("/execute/cancel")
+async def cancel_execution(request: Request):
+    """Cancel all running tasks for the current user."""
+    from agent.parallel_executor import execution_engine
+
+    user = get_current_user(request)
+    user_id = user.get("username", "default") if user else "default"
+    cancelled = execution_engine.cancel_user_tasks(user_id)
+    return JSONResponse({"cancelled": cancelled, "user_id": user_id})
+
+
+@router.post("/execute/update-threads")
+async def update_threads(request: Request, max_threads: int = Form(...)):
+    """Update parallel thread count for the current user."""
+    from agent.parallel_executor import execution_engine
+
+    user = get_current_user(request)
+    user_id = user.get("username", "default") if user else "default"
+    result = execution_engine.update_user_threads(user_id, max_threads)
+    return JSONResponse(result)
 
 
 @router.get("/execute/status/{tc_id}")
