@@ -149,6 +149,7 @@ tasks.register('cucumberTest', Test) {
 tasks.named('clean') {
     doFirst {
         delete './dev.db'
+        delete './cucumber-test.db'
     }
 }
 
