@@ -1,40 +1,100 @@
 package io.spring.core.article;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.Arrays;
+import java.util.Collections;
+import org.joda.time.DateTime;
 import org.junit.jupiter.api.Test;
 
 public class ArticleTest {
 
   @Test
-  public void should_get_right_slug() {
-    Article article = new Article("a new   title", "desc", "body", Arrays.asList("java"), "123");
-    assertThat(article.getSlug(), is("a-new-title"));
+  void should_create_article_with_all_fields() {
+    DateTime now = new DateTime();
+    Article article =
+        new Article(
+            "My Title",
+            "My Description",
+            "My Body",
+            Arrays.asList("java", "spring"),
+            "user-id",
+            now);
+
+    assertNotNull(article.getId());
+    assertEquals("my-title", article.getSlug());
+    assertEquals("My Title", article.getTitle());
+    assertEquals("My Description", article.getDescription());
+    assertEquals("My Body", article.getBody());
+    assertEquals("user-id", article.getUserId());
+    assertEquals(2, article.getTags().size());
   }
 
   @Test
-  public void should_get_right_slug_with_number_in_title() {
-    Article article = new Article("a new title 2", "desc", "body", Arrays.asList("java"), "123");
-    assertThat(article.getSlug(), is("a-new-title-2"));
+  void should_generate_slug_from_title() {
+    Article article =
+        new Article(
+            "Hello World Article", "desc", "body", Collections.emptyList(), "uid", new DateTime());
+
+    assertEquals("hello-world-article", article.getSlug());
   }
 
   @Test
-  public void should_get_lower_case_slug() {
-    Article article = new Article("A NEW TITLE", "desc", "body", Arrays.asList("java"), "123");
-    assertThat(article.getSlug(), is("a-new-title"));
+  void should_create_tags_from_list() {
+    Article article =
+        new Article(
+            "Title", "desc", "body", Arrays.asList("tag1", "tag2", "tag3"), "uid", new DateTime());
+
+    assertEquals(3, article.getTags().size());
   }
 
   @Test
-  public void should_handle_other_language() {
-    Article article = new Article("中文：标题", "desc", "body", Arrays.asList("java"), "123");
-    assertThat(article.getSlug(), is("中文-标题"));
+  void should_update_title_and_slug() {
+    Article article =
+        new Article("Old Title", "desc", "body", Collections.emptyList(), "uid", new DateTime());
+    article.update("New Title", "", "");
+
+    assertEquals("new-title", article.getSlug());
+    assertEquals("New Title", article.getTitle());
   }
 
   @Test
-  public void should_handle_commas() {
-    Article article = new Article("what?the.hell,w", "desc", "body", Arrays.asList("java"), "123");
-    assertThat(article.getSlug(), is("what-the-hell-w"));
+  void should_update_description() {
+    Article article =
+        new Article("Title", "old desc", "body", Collections.emptyList(), "uid", new DateTime());
+    article.update("", "new desc", "");
+
+    assertEquals("new desc", article.getDescription());
+  }
+
+  @Test
+  void should_update_body() {
+    Article article =
+        new Article("Title", "desc", "old body", Collections.emptyList(), "uid", new DateTime());
+    article.update("", "", "new body");
+
+    assertEquals("new body", article.getBody());
+  }
+
+  @Test
+  void should_not_update_fields_with_empty_strings() {
+    Article article =
+        new Article("Title", "desc", "body", Collections.emptyList(), "uid", new DateTime());
+    String originalSlug = article.getSlug();
+    article.update("", "", "");
+
+    assertEquals(originalSlug, article.getSlug());
+    assertEquals("Title", article.getTitle());
+    assertEquals("desc", article.getDescription());
+    assertEquals("body", article.getBody());
+  }
+
+  @Test
+  void should_have_created_and_updated_at() {
+    DateTime now = new DateTime();
+    Article article = new Article("Title", "desc", "body", Collections.emptyList(), "uid", now);
+
+    assertNotNull(article.getCreatedAt());
+    assertNotNull(article.getUpdatedAt());
   }
 }
