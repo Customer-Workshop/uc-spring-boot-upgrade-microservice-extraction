@@ -1,0 +1,199 @@
+package io.spring.graphql;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
+
+import com.netflix.graphql.dgs.DgsDataFetchingEnvironment;
+import graphql.execution.DataFetcherResult;
+import io.spring.application.CommentQueryService;
+import io.spring.application.CursorPager;
+import io.spring.application.CursorPager.Direction;
+import io.spring.application.data.ArticleData;
+import io.spring.application.data.CommentData;
+import io.spring.application.data.ProfileData;
+import io.spring.core.user.User;
+import io.spring.graphql.types.Article;
+import io.spring.graphql.types.Comment;
+import io.spring.graphql.types.CommentsConnection;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import org.joda.time.DateTime;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+
+@ExtendWith(MockitoExtension.class)
+public class CommentDatafetcherTest {
+
+  @Mock private CommentQueryService commentQueryService;
+  @Mock private DgsDataFetchingEnvironment dfe;
+
+  private CommentDatafetcher commentDatafetcher;
+  private User user;
+
+  @BeforeEach
+  void setUp() {
+    commentDatafetcher = new CommentDatafetcher(commentQueryService);
+    user = new User("test@test.com", "testuser", "password", "bio", "image");
+  }
+
+  @AfterEach
+  void tearDown() {
+    SecurityContextHolder.clearContext();
+  }
+
+  private void setAnonymous() {
+    SecurityContextHolder.getContext()
+        .setAuthentication(
+            new AnonymousAuthenticationToken(
+                "key",
+                "anonymous",
+                Collections.singletonList(new SimpleGrantedAuthority("ROLE_ANONYMOUS"))));
+  }
+
+  private void setAuthenticated(User u) {
+    SecurityContextHolder.getContext()
+        .setAuthentication(
+            new UsernamePasswordAuthenticationToken(
+                u, null, Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"))));
+  }
+
+  @Test
+  void should_get_comment_from_payload() {
+    ProfileData profile = new ProfileData(user.getId(), "testuser", "", "", false);
+    CommentData commentData =
+        new CommentData("cid", "body", "aid", new DateTime(), new DateTime(), profile);
+    doReturn(commentData).when(dfe).getLocalContext();
+
+    DataFetcherResult<Comment> result = commentDatafetcher.getComment(dfe);
+
+    assertNotNull(result);
+    assertEquals("cid", result.getData().getId());
+    assertEquals("body", result.getData().getBody());
+  }
+
+  @Test
+  void should_get_article_comments_with_first() {
+    setAnonymous();
+    Article article = Article.newBuilder().slug("test-slug").build();
+    doReturn(article).when(dfe).getSource();
+
+    ProfileData profile = new ProfileData(user.getId(), "testuser", "", "", false);
+    ArticleData articleData =
+        new ArticleData(
+            "aid",
+            "test-slug",
+            "title",
+            "desc",
+            "body",
+            false,
+            0,
+            new DateTime(),
+            new DateTime(),
+            Collections.emptyList(),
+            profile);
+    Map<String, ArticleData> map = new HashMap<>();
+    map.put("test-slug", articleData);
+    doReturn(map).when(dfe).getLocalContext();
+
+    CommentData commentData =
+        new CommentData("cid", "comment body", "aid", new DateTime(), new DateTime(), profile);
+    CursorPager<CommentData> pager =
+        new CursorPager<>(Arrays.asList(commentData), Direction.NEXT, false);
+    when(commentQueryService.findByArticleIdWithCursor(eq("aid"), any(), any())).thenReturn(pager);
+
+    DataFetcherResult<CommentsConnection> result =
+        commentDatafetcher.articleComments(10, null, null, null, dfe);
+
+    assertNotNull(result);
+    assertFalse(result.getData().getEdges().isEmpty());
+  }
+
+  @Test
+  void should_get_article_comments_with_last() {
+    setAnonymous();
+    Article article = Article.newBuilder().slug("test-slug").build();
+    doReturn(article).when(dfe).getSource();
+
+    ProfileData profile = new ProfileData(user.getId(), "testuser", "", "", false);
+    ArticleData articleData =
+        new ArticleData(
+            "aid",
+            "test-slug",
+            "title",
+            "desc",
+            "body",
+            false,
+            0,
+            new DateTime(),
+            new DateTime(),
+            Collections.emptyList(),
+            profile);
+    Map<String, ArticleData> map = new HashMap<>();
+    map.put("test-slug", articleData);
+    doReturn(map).when(dfe).getLocalContext();
+
+    CursorPager<CommentData> pager =
+        new CursorPager<>(Collections.emptyList(), Direction.PREV, false);
+    when(commentQueryService.findByArticleIdWithCursor(eq("aid"), any(), any())).thenReturn(pager);
+
+    DataFetcherResult<CommentsConnection> result =
+        commentDatafetcher.articleComments(null, null, 5, null, dfe);
+
+    assertNotNull(result);
+    assertTrue(result.getData().getEdges().isEmpty());
+  }
+
+  @Test
+  void should_throw_when_both_first_and_last_null_for_comments() {
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> commentDatafetcher.articleComments(null, null, null, null, dfe));
+  }
+
+  @Test
+  void should_get_article_comments_when_authenticated() {
+    setAuthenticated(user);
+    Article article = Article.newBuilder().slug("test-slug").build();
+    doReturn(article).when(dfe).getSource();
+
+    ProfileData profile = new ProfileData(user.getId(), "testuser", "", "", false);
+    ArticleData articleData =
+        new ArticleData(
+            "aid",
+            "test-slug",
+            "title",
+            "desc",
+            "body",
+            false,
+            0,
+            new DateTime(),
+            new DateTime(),
+            Collections.emptyList(),
+            profile);
+    Map<String, ArticleData> map = new HashMap<>();
+    map.put("test-slug", articleData);
+    doReturn(map).when(dfe).getLocalContext();
+
+    CursorPager<CommentData> pager =
+        new CursorPager<>(Collections.emptyList(), Direction.NEXT, false);
+    when(commentQueryService.findByArticleIdWithCursor(eq("aid"), eq(user), any()))
+        .thenReturn(pager);
+
+    DataFetcherResult<CommentsConnection> result =
+        commentDatafetcher.articleComments(10, null, null, null, dfe);
+
+    assertNotNull(result);
+  }
+}
