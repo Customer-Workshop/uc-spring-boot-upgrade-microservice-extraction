@@ -1,0 +1,20 @@
+[project]
+name = "playwright-test-automation-platform"
+version = "1.0.0"
+description = "Non-LLM Test Automation Platform with Playwright, FastAPI, and Auto-Healing"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+keywords = ["playwright", "test-automation", "fastapi", "auto-healing", "object-spy"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+[tool.coverage.run]
+source = ["agent", "api_integration", "playwright_integration"]
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 75

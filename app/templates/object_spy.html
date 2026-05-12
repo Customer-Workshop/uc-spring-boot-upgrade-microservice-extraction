@@ -1,0 +1,260 @@
+{% extends "base.html" %}
+{% block title %}Object Spy - Playwright Agent{% endblock %}
+
+{% block content %}
+<div class="flex justify-between items-center mb-6">
+    <h1 class="text-xl font-bold">Object Spy</h1>
+    <span class="text-xs" style="color: var(--t3);">Interactive Element Inspector</span>
+</div>
+
+<!-- URL + Selector Input -->
+<div class="card p-4 mb-6">
+    <h2 class="text-sm font-semibold mb-3" style="color: var(--t2);">Inspect Element</h2>
+    <div class="space-y-3">
+        <div>
+            <label class="text-xs" style="color: var(--t3);">Target URL</label>
+            <input type="text" id="spy-url" class="input w-full px-3 py-2 rounded" placeholder="https://example.com">
+        </div>
+        <div class="flex gap-3">
+            <div class="flex-1">
+                <label class="text-xs" style="color: var(--t3);">Selector (CSS, XPath, or Playwright selector)</label>
+                <input type="text" id="spy-selector" class="input w-full px-3 py-2 rounded font-mono text-xs" placeholder="#login-button or [data-testid='submit']">
+            </div>
+            <div class="flex items-end gap-2">
+                <button onclick="inspectElement()" class="btn-primary px-4 py-2 rounded text-sm">Inspect</button>
+                <button onclick="scanPage()" class="btn-ghost px-4 py-2 rounded text-sm">Scan Page</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Results -->
+<div id="spy-results" class="hidden">
+    <!-- Single Element Result -->
+    <div id="single-result" class="card p-4 mb-6 hidden">
+        <div class="flex justify-between items-center mb-3">
+            <h2 class="text-sm font-semibold" style="color: var(--t2);">Element Details</h2>
+            <div class="flex gap-2">
+                <span id="stability-badge" class="text-xs px-2 py-1 rounded"></span>
+            </div>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <h3 class="text-xs font-medium mb-2" style="color: var(--cyan);">Properties</h3>
+                <div id="el-properties" class="space-y-1 text-xs"></div>
+            </div>
+            <div>
+                <h3 class="text-xs font-medium mb-2" style="color: var(--cyan);">Available Selectors</h3>
+                <div id="el-selectors" class="space-y-1 text-xs"></div>
+            </div>
+        </div>
+        <div class="mt-4">
+            <h3 class="text-xs font-medium mb-2" style="color: var(--cyan);">All Attributes</h3>
+            <pre id="el-attributes" class="p-2 rounded text-xs font-mono overflow-auto" style="background: var(--bg-s); border: 1px solid var(--bd); max-height: 200px;"></pre>
+        </div>
+    </div>
+
+    <!-- Bulk Scan Results -->
+    <div id="bulk-result" class="card p-4 mb-6 hidden">
+        <div class="flex justify-between items-center mb-3">
+            <h2 class="text-sm font-semibold" style="color: var(--t2);">Page Scan Results</h2>
+            <div class="flex gap-2">
+                <span id="scan-count" class="text-xs px-2 py-1 rounded" style="background: rgba(34,211,238,0.15); color: var(--cyan);"></span>
+                <button onclick="suggestSteps()" class="btn-ghost px-3 py-1 rounded text-xs">Suggest Steps</button>
+                <button onclick="exportPOM()" class="btn-ghost px-3 py-1 rounded text-xs">Export POM</button>
+            </div>
+        </div>
+        <div id="scan-elements" class="space-y-2 max-h-96 overflow-y-auto"></div>
+    </div>
+
+    <!-- Suggested Steps -->
+    <div id="steps-result" class="card p-4 mb-6 hidden">
+        <h2 class="text-sm font-semibold mb-3" style="color: var(--t2);">Suggested Test Steps</h2>
+        <table class="w-full text-xs">
+            <thead>
+                <tr>
+                    <th class="table-hd">Action</th>
+                    <th class="table-hd">Selector</th>
+                    <th class="table-hd">Value</th>
+                    <th class="table-hd">Description</th>
+                </tr>
+            </thead>
+            <tbody id="steps-body"></tbody>
+        </table>
+    </div>
+
+    <!-- POM Export -->
+    <div id="pom-result" class="card p-4 mb-6 hidden">
+        <div class="flex justify-between items-center mb-3">
+            <h2 class="text-sm font-semibold" style="color: var(--t2);">Page Object Model (Python)</h2>
+            <button onclick="copyPOM()" class="btn-ghost px-3 py-1 rounded text-xs">Copy</button>
+        </div>
+        <pre id="pom-code" class="p-3 rounded text-xs font-mono overflow-auto" style="background: var(--bg-s); border: 1px solid var(--bd); max-height: 400px;"></pre>
+    </div>
+</div>
+
+<!-- Auto-Healing Report -->
+<div class="card p-4">
+    <div class="flex justify-between items-center mb-3">
+        <h2 class="text-sm font-semibold" style="color: var(--t2);">Auto-Healing Log</h2>
+        <button onclick="loadHealingReport()" class="btn-ghost px-3 py-1 rounded text-xs">Refresh</button>
+    </div>
+    <div id="healing-log" class="space-y-1 text-xs">
+        <div style="color: var(--t3);">No healing events yet. Events appear when selectors fail and are auto-healed during execution.</div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function inspectElement() {
+    const url = document.getElementById('spy-url').value;
+    const selector = document.getElementById('spy-selector').value;
+    if (!url || !selector) { alert('Enter URL and selector'); return; }
+
+    document.getElementById('spy-results').classList.remove('hidden');
+    document.getElementById('single-result').classList.remove('hidden');
+    document.getElementById('bulk-result').classList.add('hidden');
+
+    try {
+        const r = await fetch('/spy/inspect', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({url, selector})
+        });
+        const data = await r.json();
+        if (data.error) { alert(data.error); return; }
+        renderElement(data);
+    } catch(e) { alert('Error: ' + e.message); }
+}
+
+async function scanPage() {
+    const url = document.getElementById('spy-url').value;
+    if (!url) { alert('Enter URL'); return; }
+
+    document.getElementById('spy-results').classList.remove('hidden');
+    document.getElementById('single-result').classList.add('hidden');
+    document.getElementById('bulk-result').classList.remove('hidden');
+
+    try {
+        const r = await fetch('/spy/page-scan', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({url, scope: 'body'})
+        });
+        const data = await r.json();
+        if (data.error) { alert(data.error); return; }
+        document.getElementById('scan-count').textContent = `${data.count} elements`;
+        renderScanResults(data.elements);
+    } catch(e) { alert('Error: ' + e.message); }
+}
+
+function renderElement(el) {
+    const props = document.getElementById('el-properties');
+    props.innerHTML = `
+        <div><span style="color:var(--t3)">Tag:</span> <span style="color:var(--t1)">&lt;${el.tag_name}&gt;</span></div>
+        <div><span style="color:var(--t3)">Text:</span> <span>${el.text_content || '-'}</span></div>
+        <div><span style="color:var(--t3)">Visible:</span> <span style="color:${el.is_visible?'var(--green)':'var(--red)'};">${el.is_visible}</span></div>
+        <div><span style="color:var(--t3)">Enabled:</span> <span>${el.is_enabled}</span></div>
+        <div><span style="color:var(--t3)">Editable:</span> <span>${el.is_editable}</span></div>
+        <div><span style="color:var(--t3)">Position:</span> <span>${el.bounding_box.x||0}, ${el.bounding_box.y||0} (${el.bounding_box.width||0}x${el.bounding_box.height||0})</span></div>
+        <div><span style="color:var(--t3)">XPath:</span> <span class="font-mono">${el.xpath}</span></div>
+        <div><span style="color:var(--t3)">Children:</span> <span>${el.children_count}</span></div>
+    `;
+
+    const sels = document.getElementById('el-selectors');
+    sels.innerHTML = el.selectors.map(s => {
+        const color = s.stability >= 0.8 ? 'var(--green)' : s.stability >= 0.5 ? 'var(--amber)' : 'var(--red)';
+        const rec = s.selector === el.recommended_selector ? ' ★' : '';
+        return `<div class="flex justify-between items-center p-1 rounded" style="background:var(--bg-s);border:1px solid var(--bd);">
+            <span class="font-mono">${s.selector}</span>
+            <span style="color:${color}">${Math.round(s.stability*100)}%${rec}</span>
+        </div>`;
+    }).join('');
+
+    const badge = document.getElementById('stability-badge');
+    const score = el.stability_score;
+    badge.textContent = `Stability: ${Math.round(score*100)}%`;
+    badge.style.background = score >= 0.8 ? 'rgba(74,222,128,0.15)' : score >= 0.5 ? 'rgba(251,191,36,0.15)' : 'rgba(248,113,113,0.15)';
+    badge.style.color = score >= 0.8 ? 'var(--green)' : score >= 0.5 ? 'var(--amber)' : 'var(--red)';
+
+    document.getElementById('el-attributes').textContent = JSON.stringify(el.attributes, null, 2);
+}
+
+function renderScanResults(elements) {
+    const container = document.getElementById('scan-elements');
+    container.innerHTML = elements.map((el, i) => {
+        const score = el.stability_score;
+        const color = score >= 0.8 ? 'var(--green)' : score >= 0.5 ? 'var(--amber)' : 'var(--red)';
+        return `<div class="flex justify-between items-center p-2 rounded text-xs" style="background:var(--bg-s);border:1px solid var(--bd);">
+            <div class="flex gap-2 items-center">
+                <span style="color:var(--cyan)">&lt;${el.tag_name}&gt;</span>
+                <span class="font-mono" style="color:var(--t2)">${el.recommended_selector || el.xpath}</span>
+                <span style="color:var(--t3)">${el.text_content ? el.text_content.substring(0,30) : ''}</span>
+            </div>
+            <span style="color:${color}">${Math.round(score*100)}%</span>
+        </div>`;
+    }).join('');
+}
+
+async function suggestSteps() {
+    const url = document.getElementById('spy-url').value;
+    try {
+        const r = await fetch('/spy/suggest-steps', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({url})
+        });
+        const data = await r.json();
+        document.getElementById('steps-result').classList.remove('hidden');
+        document.getElementById('steps-body').innerHTML = data.steps.map(s =>
+            `<tr><td class="table-cell"><span class="badge-action px-1.5 py-0.5 rounded">${s.action}</span></td>
+             <td class="table-cell font-mono">${s.selector}</td>
+             <td class="table-cell">${s.value}</td>
+             <td class="table-cell" style="color:var(--t2)">${s.description}</td></tr>`
+        ).join('');
+    } catch(e) { alert('Error: ' + e.message); }
+}
+
+async function exportPOM() {
+    const url = document.getElementById('spy-url').value;
+    try {
+        const r = await fetch('/spy/export-pom', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({url})
+        });
+        const data = await r.json();
+        document.getElementById('pom-result').classList.remove('hidden');
+        document.getElementById('pom-code').textContent = data.code;
+    } catch(e) { alert('Error: ' + e.message); }
+}
+
+function copyPOM() {
+    navigator.clipboard.writeText(document.getElementById('pom-code').textContent);
+}
+
+async function loadHealingReport() {
+    try {
+        const r = await fetch('/healing/report');
+        const data = await r.json();
+        const log = document.getElementById('healing-log');
+        if (!data.events.length) {
+            log.innerHTML = '<div style="color:var(--t3)">No healing events yet.</div>';
+            return;
+        }
+        log.innerHTML = data.events.map(e =>
+            `<div class="p-2 rounded" style="background:var(--bg-s);border:1px solid var(--bd);">
+                <span style="color:var(--amber)">Healed:</span>
+                <span class="font-mono" style="color:var(--red)">${e.original}</span>
+                <span style="color:var(--t3)">→</span>
+                <span class="font-mono" style="color:var(--green)">${e.healed}</span>
+                <span style="color:var(--t3)">(${e.strategy}, ${Math.round(e.confidence*100)}%)</span>
+            </div>`
+        ).join('');
+    } catch(e) {}
+}
+
+loadHealingReport();
+</script>
+{% endblock %}

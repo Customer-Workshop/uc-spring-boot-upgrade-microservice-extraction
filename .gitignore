@@ -1,40 +1,37 @@
-.gradle
-/build/
-!gradle/wrapper/gradle-wrapper.jar
-*.db
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual Environment
+.venv/
+venv/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
 .DS_Store
 
-### STS ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
+# Test & Coverage
+.coverage
+htmlcov/
+.pytest_cache/
 
-### IntelliJ IDEA ###
-.idea
-*.iws
-*.iml
-*.ipr
+# Database
+*.db
 
-### NetBeans ###
-nbproject/private/
-build/
-nbbuild/
-dist/
-nbdist/
-.nb-gradle/
+# Reports (runtime generated)
+reports/screenshots/*.png
 
-### Frontend (Node.js) ###
-frontend/node_modules/
-frontend/.next/
-frontend/out/
-frontend/.env*.local
-frontend/.git/
-
-# Playwright automation platform
-playwright_scripts/.venv/
-playwright_scripts/.coverage
-playwright_scripts/__pycache__/
-playwright_scripts/**/__pycache__/
+# Environment
+.env
+.env.local

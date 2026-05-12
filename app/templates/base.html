@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Playwright Test Automation{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/css/custom.css">
+    <style>
+        :root {
+            --bg-s: #0f0f1a;
+            --bg-e: #1a1a2e;
+            --bd: rgba(255,255,255,.08);
+            --bd-2: rgba(255,255,255,.14);
+            --t1: #f1f5f9;
+            --t2: #94a3b8;
+            --t3: #475569;
+            --accent: #8b5cf6;
+            --accent-l: #a78bfa;
+            --cyan: #22d3ee;
+            --green: #4ade80;
+            --amber: #fbbf24;
+            --red: #f87171;
+        }
+        body { background: var(--bg-s); color: var(--t1); font-family: 'Inter', system-ui, sans-serif; }
+    </style>
+</head>
+<body class="min-h-screen">
+    <!-- Navigation -->
+    <nav class="border-b" style="border-color: var(--bd); background: var(--bg-e);">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-6">
+                <a href="/automation" class="text-lg font-bold" style="color: var(--accent-l);">Playwright Agent</a>
+                <div class="flex gap-4 text-sm">
+                    <a href="/automation" class="nav-link" style="color: var(--t2);">Automation</a>
+                    <a href="/execute" class="nav-link" style="color: var(--t2);">Execute</a>
+                    <a href="/report" class="nav-link" style="color: var(--t2);">Reports</a>
+                    <a href="/spy" class="nav-link" style="color: var(--t2);">Object Spy</a>
+                    <a href="/locators" class="nav-link" style="color: var(--t2);">Locators</a>
+                </div>
+            </div>
+            <div class="flex items-center gap-4 text-sm">
+                <span id="agent-state" class="badge-pending text-xs px-2 py-1 rounded">IDLE</span>
+                {% if user %}
+                <span style="color: var(--t2);">{{ user.username }}</span>
+                <a href="/logout" style="color: var(--red);" class="text-xs">Logout</a>
+                {% else %}
+                <a href="/login" style="color: var(--accent-l);" class="text-xs">Login</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 py-6">
+        {% block content %}{% endblock %}
+    </main>
+
+    <script src="/static/js/main.js"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

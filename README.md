@@ -1,123 +1,114 @@
-# ![RealWorld Example App using Kotlin and Spring](example-logo.png)
+# Playwright Non-LLM Test Automation Platform
 
-[![Actions](https://github.com/gothinkster/spring-boot-realworld-example-app/workflows/Java%20CI/badge.svg)](https://github.com/gothinkster/spring-boot-realworld-example-app/actions)
+A full-stack, browser-based test automation platform built with **Python/FastAPI/SQLite** that enables QA engineers to manage, record, execute, and report on both **Web (Playwright)** and **API (Swagger/OpenAPI)** test cases — all through a dark-themed web UI, with **zero LLM dependency at runtime**.
 
-> ### Spring boot + MyBatis codebase containing real world examples (CRUD, auth, advanced patterns, etc) that adheres to the [RealWorld](https://github.com/gothinkster/realworld-example-apps) spec and API.
+## Key Features
 
-This codebase was created to demonstrate a fully fledged full-stack application built with Spring boot + Mybatis including CRUD operations, authentication, routing, pagination, and more.
+- **Web Test Automation** — Playwright-based recording, step editing, and data-driven execution
+- **API Test Automation** — Swagger/OpenAPI 2.0 + 3.x parsing with automatic variant generation
+- **Auto-Healing Execution** — Smart locator fallback when selectors break (data-testid → aria → CSS → XPath → text)
+- **Object Spy** — Interactive element inspector for capturing page element properties
+- **Real-Time SSE Streaming** — Live execution log streaming via Server-Sent Events
+- **Scheduled Execution** — Cron-based test scheduling via APScheduler
+- **Environment Management** — Multi-environment support with base URL override
+- **Dark-Themed UI** — Modern responsive interface with custom design system
 
-For more information on how to this works with other frontends/backends, head over to the [RealWorld](https://github.com/gothinkster/realworld) repo.
+## Tech Stack
 
-# *NEW* GraphQL Support  
+| Layer | Technology |
+|---|---|
+| Backend | Python 3.11+, FastAPI, Uvicorn |
+| ORM / DB | SQLAlchemy 2.x + SQLite (PostgreSQL supported via `DATABASE_URL`) |
+| Templating | Jinja2 |
+| Web Automation | Playwright (sync API) |
+| API Testing | `requests` library |
+| State Machine | `transitions` library |
+| Swagger Parsing | `pyyaml` + `requests` |
+| Frontend | Vanilla JS + Tailwind CSS (CDN) + custom CSS variables |
+| Scheduling | APScheduler |
 
-Following some DDD principles. REST or GraphQL is just a kind of adapter. And the domain layer will be consistent all the time. So this repository implement GraphQL and REST at the same time.
+## Quick Start
 
-The GraphQL schema is https://github.com/gothinkster/spring-boot-realworld-example-app/blob/master/src/main/resources/schema/schema.graphqls and the visualization looks like below.
-
-![](graphql-schema.png)
-
-And this implementation is using [dgs-framework](https://github.com/Netflix/dgs-framework) which is a quite new java graphql server framework.
-# How it works
-
-The application uses Spring Boot (Web, Mybatis).
-
-* Use the idea of Domain Driven Design to separate the business term and infrastructure term.
-* Use MyBatis to implement the [Data Mapper](https://martinfowler.com/eaaCatalog/dataMapper.html) pattern for persistence.
-* Use [CQRS](https://martinfowler.com/bliki/CQRS.html) pattern to separate the read model and write model.
-
-And the code is organized as this:
-
-1. `api` is the web layer implemented by Spring MVC
-2. `core` is the business model including entities and services
-3. `application` is the high-level services for querying the data transfer objects
-4. `infrastructure`  contains all the implementation classes as the technique details
-
-# Security
-
-Integration with Spring Security and add other filter for jwt token process.
-
-The secret key is stored in `application.properties`.
-
-# Database
-
-It uses a ~~H2 in-memory database~~ sqlite database (for easy local test without losing test data after every restart), can be changed easily in the `application.properties` for any other database.
-
-## Sample Data & Login Credentials
-
-The application includes seed data with sample users, articles, tags, comments, and social interactions. You can log in with any of these accounts:
-
-| Username | Email | Password |
-|----------|-------|----------|
-| johndoe | john@example.com | password123 |
-| janedoe | jane@example.com | password123 |
-| bobsmith | bob@example.com | password123 |
-
-**Seed data includes:**
-- 3 users with profiles
-- 5 articles on Spring Boot, REST APIs, Microservices, Docker, and Testing
-- 7 tags (java, spring-boot, web-development, tutorial, best-practices, microservices, api-design)
-- 5 comments on articles
-- 6 article favorites
-- 4 follow relationships between users
-
-# Getting started
-
-## Backend (Spring Boot)
-
-You'll need Java 11 installed.
-
-    ./gradlew bootRun
-
-**Note**: `bootRun` automatically cleans and recreates the database with seed data on each run to avoid Flyway migration conflicts during development.
-
-To test that it works, open a browser tab at http://localhost:8080/tags .  
-Alternatively, you can run
-
-    curl http://localhost:8080/tags
-
-## Frontend (Next.js)
-
-You'll need Node.js installed. **Recommended: Node v14-16** (specified in `frontend/.nvmrc`).
-
-If using `nvm`, switch to the correct version:
 ```bash
-cd frontend
-nvm use
+# Install dependencies
+python -m venv .venv
+source .venv/bin/activate  # Linux/Mac
+# .\.venv\Scripts\Activate.ps1  # Windows
+
+pip install -r requirements.txt
+playwright install chromium
+
+# Start server (port 8005)
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8005 --reload
 ```
 
-Then install and run:
-```bash
-npm install
-npm run dev
+Open: http://localhost:8005
+
+## Project Structure
+
+```
+├── app/
+│   ├── main.py              # FastAPI app entry point
+│   ├── routes.py            # All routes (40+ endpoints)
+│   ├── scheduler.py         # APScheduler integration
+│   ├── static/              # CSS & JS assets
+│   └── templates/           # Jinja2 HTML templates
+├── agent/
+│   ├── state_machine.py     # FSM lifecycle management
+│   ├── rule_engine.py       # Intent classification
+│   ├── swagger_parser.py    # Swagger/OpenAPI parsing
+│   ├── symbolic_runner.py   # Test execution dispatcher
+│   ├── auto_healer.py       # Self-healing locator engine
+│   └── object_spy.py        # Element inspector
+├── api_integration/
+│   └── executor.py          # API endpoint execution
+├── db/
+│   ├── models.py            # SQLAlchemy models (12 tables)
+│   └── db_utils.py          # CRUD helpers
+├── playwright_integration/
+│   ├── recorder.py          # Playwright codegen integration
+│   └── executor.py          # Step execution engine
+├── tests/                   # Pytest test suite
+├── requirements.txt
+└── pytest.ini
 ```
 
-The frontend will run on http://localhost:3000 and connect to the backend on port 8080.
+## Auto-Healing
 
-**Note**: The `npm run dev` script includes `NODE_OPTIONS=--openssl-legacy-provider` for compatibility with newer Node versions, but Node 14-16 is still recommended for best compatibility.
+When a selector fails during execution, the auto-healer tries alternative strategies:
 
-# Try it out with [Docker](https://www.docker.com/)
+1. **data-testid** — Most stable, immune to styling changes
+2. **aria-label / role** — Accessibility-based selectors
+3. **ID / name attributes** — Classic DOM selectors
+4. **CSS selector variants** — Parent-child relationships
+5. **XPath** — Full path-based fallback
+6. **Text content** — Visual text matching
 
-You'll need Docker installed.
-	
-    ./gradlew bootBuildImage --imageName spring-boot-realworld-example-app
-    docker run -p 8081:8080 spring-boot-realworld-example-app
+Healing events are logged and suggestions are provided to update the original locator.
 
-# Try it out with a RealWorld frontend
+## Object Spy
 
-The entry point address of the backend API is at http://localhost:8080, **not** http://localhost:8080/api as some of the frontend documentation suggests.
+The Object Spy captures all element properties from any page:
 
-# Run test
+- All available selectors (CSS, XPath, data-testid, aria, etc.)
+- Element attributes, dimensions, visibility state
+- Recommended "best selector" based on stability scoring
+- Bulk capture mode for entire page sections
 
-The repository contains a lot of test cases to cover both api test and repository test.
+## Running Tests
 
-    ./gradlew test
+```bash
+pytest tests/ -v --cov=agent --cov=api_integration --cov-report=term-missing
+```
 
-# Code format
+## Environment Variables
 
-Use spotless for code format.
+| Variable | Default | Description |
+|---|---|---|
+| `DATABASE_URL` | `sqlite:///playwright_agent.db` | Database connection string |
+| `SECRET_KEY` | (generated) | Session encryption key |
+| `PORT` | `8005` | Server port |
 
-    ./gradlew spotlessJavaApply
+## License
 
-# Help
-
-Please fork and PR to improve the project.
+MIT
