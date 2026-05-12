@@ -5,6 +5,7 @@ plugins {
     id "com.netflix.dgs.codegen" version "5.0.6"
     id "com.diffplug.spotless" version "6.2.1"
     id 'jacoco'
+    id 'org.owasp.dependencycheck' version '7.4.4'
 }
 
 version = '0.0.1-SNAPSHOT'
@@ -26,7 +27,7 @@ jacoco {
 }
 
 jacocoTestReport {
-    dependsOn test
+    executionData.setFrom(fileTree(buildDir).include('jacoco/*.exec'))
     reports {
         xml.required = true
         html.required = true
@@ -96,6 +97,22 @@ tasks.named('test') {
 	finalizedBy jacocoTestReport
 }
 
+tasks.register('unitTest', Test) {
+	description = 'Run unit tests'
+	group = 'verification'
+	useJUnitPlatform()
+	include 'io/spring/core/**'
+}
+
+tasks.register('integrationTest', Test) {
+	description = 'Run integration tests'
+	group = 'verification'
+	useJUnitPlatform()
+	include 'io/spring/api/**', 'io/spring/infrastructure/**', 'io/spring/application/**'
+	include 'io/spring/RealworldApplicationTests*'
+	exclude 'io/spring/selenium/**'
+}
+
 // Separate task for Selenium E2E tests using TestNG
 tasks.register('seleniumTest', Test) {
 	description = 'Run Selenium E2E tests'
@@ -115,6 +132,11 @@ tasks.register('seleniumTest', Test) {
 	
 	// Don't fail the build on test failures (for CI reporting)
 	ignoreFailures = false
+}
+
+dependencyCheck {
+    failBuildOnCVSS = 7.0
+    formats = ['HTML', 'JSON']
 }
 
 tasks.named('clean') {
