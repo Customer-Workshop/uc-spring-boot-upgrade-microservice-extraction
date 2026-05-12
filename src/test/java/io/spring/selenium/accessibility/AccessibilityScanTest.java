@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
@@ -19,12 +19,11 @@ import org.testng.annotations.Test;
 public class AccessibilityScanTest extends BaseTest {
 
   private AxeCoreScanner axeScanner;
-  private List<AccessibilityScanResult> allResults;
+  private List<AccessibilityScanResult> allResults = new ArrayList<>();
 
-  @BeforeClass
+  @BeforeMethod
   public void setupAccessibilityScanner() {
     axeScanner = new AxeCoreScanner(driver);
-    allResults = new ArrayList<>();
   }
 
   @AfterClass
