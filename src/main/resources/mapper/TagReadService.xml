@@ -4,4 +4,8 @@
     <select id="all" resultType="string">
         select name from tags
     </select>
+
+    <select id="allTags" resultType="io.spring.core.article.Tag">
+        select id, name from tags
+    </select>
 </mapper>
