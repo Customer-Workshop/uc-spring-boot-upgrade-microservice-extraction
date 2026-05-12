@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% block title %}Export Framework - Playwright Agent{% endblock %}
+
+{% block content %}
+<div class="flex justify-between items-center mb-6">
+    <h1 class="text-xl font-bold">Export Framework</h1>
+    <span class="text-xs" style="color: var(--t3);">Download as standalone Playwright Python project</span>
+</div>
+
+<!-- Export Configuration -->
+<div class="card p-4 mb-6">
+    <h2 class="text-sm font-semibold mb-3" style="color: var(--t2);">Export Configuration</h2>
+    <div class="grid grid-cols-2 gap-4">
+        <div>
+            <label class="text-xs block mb-1" style="color: var(--t3);">Project Name</label>
+            <input type="text" id="exp-name" class="input w-full px-3 py-2 rounded text-sm" value="playwright_tests">
+        </div>
+        <div>
+            <label class="text-xs block mb-1" style="color: var(--t3);">Base URL (optional)</label>
+            <input type="text" id="exp-url" class="input w-full px-3 py-2 rounded text-sm" placeholder="https://your-app.com">
+        </div>
+    </div>
+    <div class="flex gap-4 mt-3">
+        <label class="flex items-center gap-2 text-xs cursor-pointer">
+            <input type="checkbox" id="exp-pom" checked class="rounded"> Include Page Objects
+        </label>
+        <label class="flex items-center gap-2 text-xs cursor-pointer">
+            <input type="checkbox" id="exp-api" checked class="rounded"> Include API Tests
+        </label>
+        <label class="flex items-center gap-2 text-xs cursor-pointer">
+            <input type="checkbox" id="exp-data" checked class="rounded"> Include Test Data
+        </label>
+    </div>
+</div>
+
+<!-- Suite Selection -->
+<div class="card p-4 mb-6">
+    <div class="flex justify-between items-center mb-3">
+        <h2 class="text-sm font-semibold" style="color: var(--t2);">Select Suites to Export</h2>
+        <label class="flex items-center gap-2 text-xs cursor-pointer">
+            <input type="checkbox" id="exp-all" checked onchange="toggleAll(this)"> Select All
+        </label>
+    </div>
+    {% if suites %}
+    <div class="space-y-2">
+        {% for suite in suites %}
+        <label class="flex items-center gap-3 p-2 rounded cursor-pointer suite-check" style="background: var(--bg-s); border: 1px solid var(--bd);">
+            <input type="checkbox" class="suite-cb rounded" value="{{ suite.id }}" checked>
+            <span class="text-sm">{{ suite.name }}</span>
+            <span class="text-xs px-1.5 py-0.5 rounded {% if suite.flow_type == 'web' %}tag-web{% else %}tag-api{% endif %}">{{ suite.flow_type }}</span>
+            <span class="text-xs" style="color: var(--t3);">{{ suite.tc_count }} test cases</span>
+        </label>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-xs p-3 rounded" style="background: var(--bg-s); color: var(--t3);">
+        No test suites found. Create suites and test cases first in the Automation page.
+    </div>
+    {% endif %}
+</div>
+
+<!-- Actions -->
+<div class="flex gap-3 mb-6">
+    <button onclick="previewExport()" class="btn-primary px-4 py-2 rounded text-sm">Preview Export</button>
+    <button onclick="downloadExport()" class="btn-ghost px-4 py-2 rounded text-sm">Download ZIP</button>
+</div>
+
+<!-- Preview Results -->
+<div id="export-result" class="hidden">
+    <div class="card p-4 mb-6">
+        <div class="flex justify-between items-center mb-3">
+            <h2 class="text-sm font-semibold" style="color: var(--t2);">Export Preview</h2>
+            <div class="flex gap-2">
+                <span id="exp-stats" class="text-xs px-2 py-1 rounded" style="background: rgba(74,222,128,0.15); color: var(--green);"></span>
+            </div>
+        </div>
+        <div id="exp-files" class="space-y-2"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleAll(el) {
+    document.querySelectorAll('.suite-cb').forEach(cb => cb.checked = el.checked);
+}
+
+function getSelectedSuites() {
+    return Array.from(document.querySelectorAll('.suite-cb:checked')).map(cb => parseInt(cb.value));
+}
+
+function getConfig() {
+    return {
+        suite_ids: getSelectedSuites(),
+        project_name: document.getElementById('exp-name').value || 'playwright_tests',
+        include_page_objects: document.getElementById('exp-pom').checked,
+        include_api_tests: document.getElementById('exp-api').checked,
+    };
+}
+
+async function previewExport() {
+    const config = getConfig();
+    try {
+        const r = await fetch('/export/generate', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(config)
+        });
+        const data = await r.json();
+        if (data.error) { alert(data.error); return; }
+        renderExportResult(data);
+    } catch(e) { alert('Error: ' + e.message); }
+}
+
+async function downloadExport() {
+    const config = getConfig();
+    try {
+        const r = await fetch('/export/download', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(config)
+        });
+        if (r.ok) {
+            const blob = await r.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${config.project_name}.zip`;
+            a.click();
+            URL.revokeObjectURL(url);
+        } else {
+            const data = await r.json();
+            alert(data.error || 'Download failed');
+        }
+    } catch(e) { alert('Error: ' + e.message); }
+}
+
+function renderExportResult(data) {
+    document.getElementById('export-result').classList.remove('hidden');
+    document.getElementById('exp-stats').textContent = `${data.file_count} files, ${data.total_tests} tests`;
+
+    const filesDiv = document.getElementById('exp-files');
+    filesDiv.innerHTML = data.files.map(f => {
+        const icon = f.endsWith('.py') ? '🐍' : f.endsWith('.txt') ? '📄' : f.endsWith('.ini') ? '⚙️' : f.endsWith('.md') ? '📖' : '📁';
+        return `<div class="flex items-center gap-2 px-3 py-2 rounded text-xs" style="background: var(--bg-s); border: 1px solid var(--bd);">
+            <span>${icon}</span>
+            <span class="font-mono" style="color: var(--green);">${f}</span>
+        </div>`;
+    }).join('');
+}
+</script>
+{% endblock %}

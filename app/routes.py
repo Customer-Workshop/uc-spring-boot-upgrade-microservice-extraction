@@ -1278,6 +1278,189 @@ async def selector_score(request: Request):
     return JSONResponse({"selector": selector, "stability_score": score})
 
 
+# --- Framework Migration Routes ---
+
+@router.get("/migrate")
+async def migrate_page(request: Request):
+    """Framework migration page — upload & convert to Playwright."""
+    require_auth(request)
+    return templates.TemplateResponse("migrate.html", {
+        "request": request,
+        "user": get_current_user(request),
+    })
+
+
+@router.post("/migrate/upload")
+async def migrate_upload(request: Request, framework_file: UploadFile = File(...)):
+    """Upload a framework zip/file and migrate to Playwright Python."""
+    require_auth(request)
+    from agent.framework_migrator import framework_migrator, extract_files_from_zip
+
+    content = await framework_file.read()
+    filename = framework_file.filename or "upload"
+
+    # Handle zip files
+    if filename.endswith(".zip"):
+        files = extract_files_from_zip(content)
+    else:
+        # Single file upload
+        try:
+            text_content = content.decode("utf-8", errors="replace")
+        except Exception:
+            return JSONResponse({"error": "Could not read file"}, status_code=400)
+        files = {filename: text_content}
+
+    if not files:
+        return JSONResponse({"error": "No valid files found in upload"}, status_code=400)
+
+    result = framework_migrator.migrate(files)
+    return JSONResponse(result.to_dict())
+
+
+@router.post("/migrate/detect")
+async def migrate_detect(request: Request):
+    """Detect framework type from uploaded code snippet."""
+    require_auth(request)
+    body = await request.json()
+    code = body.get("code", "")
+    filename = body.get("filename", "test.java")
+
+    from agent.framework_migrator import framework_migrator
+    framework, language = framework_migrator.detect_framework({filename: code})
+    return JSONResponse({"framework": framework, "language": language})
+
+
+# --- Framework Export Routes ---
+
+@router.get("/export")
+async def export_page(request: Request):
+    """Framework export page — export tests as standalone Playwright project."""
+    require_auth(request)
+    from db.db_utils import get_all_suites, get_all_test_cases
+    db = SessionLocal()
+    try:
+        suites = get_all_suites(db)
+        suite_list = []
+        for s in suites:
+            tc_count = len([tc for tc in get_all_test_cases(db) if tc.suite_id == s.id])
+            suite_list.append({"id": s.id, "name": s.name, "flow_type": s.flow_type, "tc_count": tc_count})
+    finally:
+        db.close()
+    return templates.TemplateResponse("export.html", {
+        "request": request,
+        "user": get_current_user(request),
+        "suites": suite_list,
+    })
+
+
+@router.post("/export/generate")
+async def export_generate(request: Request):
+    """Generate a standalone Playwright Python framework from selected suites."""
+    require_auth(request)
+    body = await request.json()
+    suite_ids = body.get("suite_ids", [])
+    project_name = body.get("project_name", "playwright_tests")
+    include_page_objects = body.get("include_page_objects", True)
+    include_api_tests = body.get("include_api_tests", True)
+
+    from agent.framework_exporter import ExportConfig, framework_exporter
+    from db.db_utils import get_all_test_cases, get_all_suites
+    from db.models import ApiEndpoint, TestStep, TestData as TData
+
+    db = SessionLocal()
+    try:
+        all_suites = get_all_suites(db)
+        selected = [s for s in all_suites if s.id in suite_ids] if suite_ids else all_suites
+
+        suites_data = []
+        for suite in selected:
+            tcs = [tc for tc in get_all_test_cases(db) if tc.suite_id == suite.id]
+            tc_data = []
+            for tc in tcs:
+                steps = db.query(TestStep).filter_by(test_case_id=tc.id).order_by(TestStep.order).all()
+                data_rows = db.query(TData).filter_by(test_case_id=tc.id).all()
+                endpoints = db.query(ApiEndpoint).filter_by(test_case_id=tc.id).all()
+
+                tc_data.append({
+                    "name": tc.name,
+                    "flow_type": tc.flow_type,
+                    "base_url": tc.base_url or "",
+                    "steps": [{"action": s.action, "selector": s.selector or "", "value": s.value or "", "description": s.description or ""} for s in steps],
+                    "data": [{"data_json": json.loads(d.data_json) if isinstance(d.data_json, str) else d.data_json} for d in data_rows],
+                    "endpoints": [{"method": e.method, "path": e.path, "summary": e.summary or "", "expected_status": e.expected_status, "request_headers": json.loads(e.request_headers) if isinstance(e.request_headers, str) else e.request_headers, "request_body": json.loads(e.request_body) if isinstance(e.request_body, str) else e.request_body} for e in endpoints],
+                })
+            suites_data.append({
+                "name": suite.name,
+                "flow_type": suite.flow_type,
+                "test_cases": tc_data,
+            })
+    finally:
+        db.close()
+
+    config = ExportConfig(
+        project_name=project_name,
+        include_page_objects=include_page_objects,
+        include_api_tests=include_api_tests,
+    )
+    result = framework_exporter.export(suites_data, config)
+    return JSONResponse(result.to_dict())
+
+
+@router.post("/export/download")
+async def export_download(request: Request):
+    """Download the exported framework as a zip file."""
+    require_auth(request)
+    body = await request.json()
+    suite_ids = body.get("suite_ids", [])
+    project_name = body.get("project_name", "playwright_tests")
+
+    from agent.framework_exporter import ExportConfig, framework_exporter
+    from db.db_utils import get_all_test_cases, get_all_suites
+    from db.models import ApiEndpoint, TestStep, TestData as TData
+    from fastapi.responses import Response
+
+    db = SessionLocal()
+    try:
+        all_suites = get_all_suites(db)
+        selected = [s for s in all_suites if s.id in suite_ids] if suite_ids else all_suites
+
+        suites_data = []
+        for suite in selected:
+            tcs = [tc for tc in get_all_test_cases(db) if tc.suite_id == suite.id]
+            tc_data = []
+            for tc in tcs:
+                steps = db.query(TestStep).filter_by(test_case_id=tc.id).order_by(TestStep.order).all()
+                data_rows = db.query(TData).filter_by(test_case_id=tc.id).all()
+                endpoints = db.query(ApiEndpoint).filter_by(test_case_id=tc.id).all()
+
+                tc_data.append({
+                    "name": tc.name,
+                    "flow_type": tc.flow_type,
+                    "base_url": tc.base_url or "",
+                    "steps": [{"action": s.action, "selector": s.selector or "", "value": s.value or "", "description": s.description or ""} for s in steps],
+                    "data": [{"data_json": json.loads(d.data_json) if isinstance(d.data_json, str) else d.data_json} for d in data_rows],
+                    "endpoints": [{"method": e.method, "path": e.path, "summary": e.summary or "", "expected_status": e.expected_status, "request_headers": json.loads(e.request_headers) if isinstance(e.request_headers, str) else e.request_headers, "request_body": json.loads(e.request_body) if isinstance(e.request_body, str) else e.request_body} for e in endpoints],
+                })
+            suites_data.append({
+                "name": suite.name,
+                "flow_type": suite.flow_type,
+                "test_cases": tc_data,
+            })
+    finally:
+        db.close()
+
+    config = ExportConfig(project_name=project_name)
+    result = framework_exporter.export(suites_data, config)
+
+    if result.zip_bytes:
+        return Response(
+            content=result.zip_bytes,
+            media_type="application/zip",
+            headers={"Content-Disposition": f'attachment; filename="{project_name}.zip"'},
+        )
+    return JSONResponse({"error": "Export failed"}, status_code=500)
+
+
 # --- Helper Functions ---
 
 def _compute_run_status(logs) -> str:

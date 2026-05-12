@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+{% block title %}Framework Migration - Playwright Agent{% endblock %}
+
+{% block content %}
+<div class="flex justify-between items-center mb-6">
+    <h1 class="text-xl font-bold">Framework Migration</h1>
+    <span class="text-xs" style="color: var(--t3);">Convert any test framework to Playwright Python</span>
+</div>
+
+<!-- Upload Section -->
+<div class="card p-4 mb-6">
+    <h2 class="text-sm font-semibold mb-3" style="color: var(--t2);">Upload Framework</h2>
+    <p class="text-xs mb-4" style="color: var(--t3);">
+        Upload a zip file or individual test files from Selenium (Java/Python/C#), Cypress, TestNG, JUnit, Protractor, or Robot Framework.
+    </p>
+    <div class="grid grid-cols-2 gap-4">
+        <div>
+            <label class="text-xs font-medium block mb-2" style="color: var(--t3);">Upload File (zip or single test file)</label>
+            <input type="file" id="fw-file" accept=".zip,.java,.py,.js,.ts,.robot,.txt" class="input w-full px-3 py-2 rounded text-xs">
+        </div>
+        <div class="flex items-end">
+            <button onclick="migrateFramework()" class="btn-primary px-4 py-2 rounded text-sm">Migrate to Playwright</button>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <label class="text-xs font-medium block mb-2" style="color: var(--t3);">Or paste code directly:</label>
+        <textarea id="fw-code" rows="6" class="input w-full px-3 py-2 rounded text-xs font-mono" placeholder="Paste your Selenium/Cypress/TestNG test code here..."></textarea>
+        <div class="flex gap-2 mt-2">
+            <select id="fw-lang" class="input px-3 py-1 rounded text-xs">
+                <option value=".java">Java (Selenium/TestNG/JUnit)</option>
+                <option value=".py">Python (Selenium)</option>
+                <option value=".js">JavaScript (Cypress/Protractor)</option>
+                <option value=".ts">TypeScript (Cypress)</option>
+                <option value=".robot">Robot Framework</option>
+            </select>
+            <button onclick="migrateCode()" class="btn-ghost px-4 py-1 rounded text-xs">Migrate Code</button>
+            <button onclick="detectFramework()" class="btn-ghost px-4 py-1 rounded text-xs">Detect Framework</button>
+        </div>
+    </div>
+</div>
+
+<!-- Supported Frameworks -->
+<div class="card p-4 mb-6">
+    <h2 class="text-sm font-semibold mb-3" style="color: var(--t2);">Supported Source Frameworks</h2>
+    <div class="grid grid-cols-3 gap-3">
+        <div class="p-3 rounded" style="background: var(--bg-s); border: 1px solid var(--bd);">
+            <div class="text-xs font-medium" style="color: var(--cyan);">Selenium (Java)</div>
+            <div class="text-xs mt-1" style="color: var(--t3);">WebDriver, By.*, findElement, sendKeys</div>
+        </div>
+        <div class="p-3 rounded" style="background: var(--bg-s); border: 1px solid var(--bd);">
+            <div class="text-xs font-medium" style="color: var(--cyan);">Selenium (Python)</div>
+            <div class="text-xs mt-1" style="color: var(--t3);">find_element, By.CSS_SELECTOR, send_keys</div>
+        </div>
+        <div class="p-3 rounded" style="background: var(--bg-s); border: 1px solid var(--bd);">
+            <div class="text-xs font-medium" style="color: var(--cyan);">Cypress</div>
+            <div class="text-xs mt-1" style="color: var(--t3);">cy.get, cy.visit, cy.contains, should</div>
+        </div>
+        <div class="p-3 rounded" style="background: var(--bg-s); border: 1px solid var(--bd);">
+            <div class="text-xs font-medium" style="color: var(--cyan);">TestNG / JUnit</div>
+            <div class="text-xs mt-1" style="color: var(--t3);">@Test annotations, Assert, setUp/tearDown</div>
+        </div>
+        <div class="p-3 rounded" style="background: var(--bg-s); border: 1px solid var(--bd);">
+            <div class="text-xs font-medium" style="color: var(--cyan);">Protractor</div>
+            <div class="text-xs mt-1" style="color: var(--t3);">browser.get, element(by.*), protractor.conf</div>
+        </div>
+        <div class="p-3 rounded" style="background: var(--bg-s); border: 1px solid var(--bd);">
+            <div class="text-xs font-medium" style="color: var(--cyan);">Robot Framework</div>
+            <div class="text-xs mt-1" style="color: var(--t3);">*** Test Cases ***, Keywords, SeleniumLibrary</div>
+        </div>
+    </div>
+</div>
+
+<!-- Migration Results -->
+<div id="migration-result" class="hidden">
+    <div class="card p-4 mb-6">
+        <div class="flex justify-between items-center mb-3">
+            <h2 class="text-sm font-semibold" style="color: var(--t2);">Migration Result</h2>
+            <div class="flex gap-2">
+                <span id="mig-framework" class="text-xs px-2 py-1 rounded" style="background: rgba(139,92,246,0.15); color: var(--accent-l);"></span>
+                <span id="mig-stats" class="text-xs px-2 py-1 rounded" style="background: rgba(34,211,238,0.15); color: var(--cyan);"></span>
+            </div>
+        </div>
+
+        <!-- Warnings -->
+        <div id="mig-warnings" class="hidden mb-3"></div>
+
+        <!-- Migrated Files -->
+        <div id="mig-files" class="space-y-3"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function migrateFramework() {
+    const fileInput = document.getElementById('fw-file');
+    if (!fileInput.files.length) { alert('Select a file'); return; }
+
+    const formData = new FormData();
+    formData.append('framework_file', fileInput.files[0]);
+
+    try {
+        const r = await fetch('/migrate/upload', {method: 'POST', body: formData});
+        const data = await r.json();
+        if (data.error) { alert(data.error); return; }
+        renderMigrationResult(data);
+    } catch(e) { alert('Error: ' + e.message); }
+}
+
+async function migrateCode() {
+    const code = document.getElementById('fw-code').value;
+    if (!code.trim()) { alert('Paste some code'); return; }
+    const ext = document.getElementById('fw-lang').value;
+    const filename = `uploaded_test${ext}`;
+
+    // Create a blob and upload as file
+    const blob = new Blob([code], {type: 'text/plain'});
+    const formData = new FormData();
+    formData.append('framework_file', blob, filename);
+
+    try {
+        const r = await fetch('/migrate/upload', {method: 'POST', body: formData});
+        const data = await r.json();
+        if (data.error) { alert(data.error); return; }
+        renderMigrationResult(data);
+    } catch(e) { alert('Error: ' + e.message); }
+}
+
+async function detectFramework() {
+    const code = document.getElementById('fw-code').value;
+    const ext = document.getElementById('fw-lang').value;
+    try {
+        const r = await fetch('/migrate/detect', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({code, filename: `test${ext}`})
+        });
+        const data = await r.json();
+        alert(`Detected: ${data.framework} (${data.language})`);
+    } catch(e) { alert('Error: ' + e.message); }
+}
+
+function renderMigrationResult(data) {
+    document.getElementById('migration-result').classList.remove('hidden');
+    document.getElementById('mig-framework').textContent = `${data.source_framework} (${data.source_language})`;
+    document.getElementById('mig-stats').textContent = `${data.files_processed} files → ${data.tests_migrated} tests`;
+
+    // Warnings
+    const wDiv = document.getElementById('mig-warnings');
+    if (data.warnings && data.warnings.length) {
+        wDiv.classList.remove('hidden');
+        wDiv.innerHTML = data.warnings.map(w =>
+            `<div class="text-xs p-2 rounded mb-1" style="background:rgba(251,191,36,0.1);color:var(--amber);">${w}</div>`
+        ).join('');
+    } else {
+        wDiv.classList.add('hidden');
+    }
+
+    // Files
+    const filesDiv = document.getElementById('mig-files');
+    filesDiv.innerHTML = data.migrated_files.map(f => `
+        <div class="rounded" style="border: 1px solid var(--bd);">
+            <div class="flex justify-between items-center px-3 py-2" style="background: var(--bg-s);">
+                <span class="text-xs font-mono" style="color: var(--green);">${f.path}</span>
+                <span class="text-xs" style="color: var(--t3);">${f.tests_count} tests</span>
+            </div>
+            <pre class="p-3 text-xs font-mono overflow-auto" style="max-height: 300px; color: var(--t2);">${escapeHtml(f.code)}</pre>
+        </div>
+    `).join('');
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+</script>
+{% endblock %}
