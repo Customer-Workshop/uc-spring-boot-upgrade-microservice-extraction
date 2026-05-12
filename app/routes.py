@@ -1122,6 +1122,7 @@ async def create_env_route(request: Request, name: str = Form(...),
 async def spy_page(request: Request):
     """Object Spy page - interactive element inspector."""
     require_auth(request)
+    templates = get_templates()
     from db.db_utils import get_all_test_cases
     db = SessionLocal()
     try:
@@ -1284,6 +1285,7 @@ async def selector_score(request: Request):
 async def migrate_page(request: Request):
     """Framework migration page — upload & convert to Playwright."""
     require_auth(request)
+    templates = get_templates()
     return templates.TemplateResponse("migrate.html", {
         "request": request,
         "user": get_current_user(request),
@@ -1336,6 +1338,7 @@ async def migrate_detect(request: Request):
 async def export_page(request: Request):
     """Framework export page — export tests as standalone Playwright project."""
     require_auth(request)
+    templates = get_templates()
     from db.db_utils import get_all_suites, get_all_test_cases
     db = SessionLocal()
     try:
