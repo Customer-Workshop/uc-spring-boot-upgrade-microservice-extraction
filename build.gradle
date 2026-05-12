@@ -32,10 +32,26 @@ jacocoTestReport {
         html.required = true
         csv.required = false
     }
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: [
+                'io/spring/graphql/types/**',
+                'io/spring/graphql/DgsConstants*'
+            ])
+        }))
+    }
     finalizedBy jacocoTestCoverageVerification
 }
 
 jacocoTestCoverageVerification {
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: [
+                'io/spring/graphql/types/**',
+                'io/spring/graphql/DgsConstants*'
+            ])
+        }))
+    }
     violationRules {
         rule {
             limit {
