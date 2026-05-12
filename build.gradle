@@ -5,6 +5,7 @@ plugins {
     id "com.netflix.dgs.codegen" version "5.0.6"
     id "com.diffplug.spotless" version "6.2.1"
     id 'jacoco'
+    id 'org.owasp.dependencycheck' version '7.4.4'
 }
 
 version = '0.0.1-SNAPSHOT'
@@ -26,7 +27,7 @@ jacoco {
 }
 
 jacocoTestReport {
-    dependsOn test
+    executionData fileTree(dir: "${buildDir}/jacoco", include: '*.exec')
     reports {
         xml.required = true
         html.required = true
@@ -36,6 +37,7 @@ jacocoTestReport {
 }
 
 jacocoTestCoverageVerification {
+    executionData fileTree(dir: "${buildDir}/jacoco", include: '*.exec')
     violationRules {
         rule {
             limit {
@@ -43,6 +45,11 @@ jacocoTestCoverageVerification {
             }
         }
     }
+}
+
+dependencyCheck {
+    failBuildOnCVSS = 7.0f
+    formats = ['HTML', 'JSON']
 }
 
 repositories {
@@ -94,6 +101,29 @@ tasks.named('test') {
 	// Exclude Selenium tests from JUnit test task
 	exclude 'io/spring/selenium/**'
 	finalizedBy jacocoTestReport
+}
+
+tasks.register('unitTest', Test) {
+	description = 'Run unit tests (no Spring context)'
+	group = 'verification'
+	useJUnitPlatform()
+	include 'io/spring/core/**'
+	include 'io/spring/infrastructure/service/**'
+	exclude 'io/spring/selenium/**'
+}
+
+tasks.register('integrationTest', Test) {
+	description = 'Run integration tests (Spring context)'
+	group = 'verification'
+	useJUnitPlatform()
+	include 'io/spring/api/**'
+	include 'io/spring/application/**'
+	include 'io/spring/infrastructure/article/**'
+	include 'io/spring/infrastructure/comment/**'
+	include 'io/spring/infrastructure/favorite/**'
+	include 'io/spring/infrastructure/user/**'
+	include 'io/spring/RealworldApplicationTests*'
+	exclude 'io/spring/selenium/**'
 }
 
 // Separate task for Selenium E2E tests using TestNG
