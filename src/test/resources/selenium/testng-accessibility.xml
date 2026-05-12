@@ -1,0 +1,19 @@
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="Accessibility Test Suite" parallel="false">
+    
+    <listeners>
+        <listener class-name="io.spring.selenium.listeners.TestListener"/>
+    </listeners>
+    
+    <test name="Website Accessibility Scans">
+        <groups>
+            <run>
+                <include name="accessibility"/>
+            </run>
+        </groups>
+        <classes>
+            <class name="io.spring.selenium.accessibility.AccessibilityScanTest"/>
+        </classes>
+    </test>
+    
+</suite>
