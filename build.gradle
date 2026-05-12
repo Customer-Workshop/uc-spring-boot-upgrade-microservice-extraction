@@ -27,6 +27,11 @@ jacoco {
 
 jacocoTestReport {
     dependsOn test
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: ['io/spring/graphql/types/**', 'io/spring/graphql/DgsConstants*'])
+        }))
+    }
     reports {
         xml.required = true
         html.required = true
@@ -36,6 +41,11 @@ jacocoTestReport {
 }
 
 jacocoTestCoverageVerification {
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: ['io/spring/graphql/types/**', 'io/spring/graphql/DgsConstants*'])
+        }))
+    }
     violationRules {
         rule {
             limit {
