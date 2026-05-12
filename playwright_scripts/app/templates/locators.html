@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% block title %}Locators - Playwright Agent{% endblock %}
+
+{% block content %}
+<div class="flex justify-between items-center mb-6">
+    <h1 class="text-xl font-bold">Locator Repository</h1>
+    <button onclick="showModal('add-field-modal')" class="btn-primary px-4 py-2 rounded text-sm">+ Add Field</button>
+</div>
+
+<!-- Accordion: App > Page > Fields -->
+<div class="space-y-4">
+    {% for app_name, pages in grouped.items() %}
+    <div class="card">
+        <button onclick="toggleAccordion(this)" class="w-full p-4 text-left flex justify-between items-center">
+            <span class="font-semibold">{{ app_name }}</span>
+            <svg class="w-4 h-4 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+        </button>
+        <div class="accordion-content px-4 pb-4 hidden">
+            {% for page_name, fields in pages.items() %}
+            <div class="mb-3">
+                <h3 class="text-sm font-medium mb-2" style="color: var(--cyan);">{{ page_name }}</h3>
+                <div class="space-y-1">
+                    {% for field in fields %}
+                    <div class="flex justify-between items-center p-2 rounded text-xs" style="background: var(--bg-s); border: 1px solid var(--bd);">
+                        <div class="flex gap-3 items-center">
+                            <span class="font-medium" style="color: var(--t1);">{{ field.field_name }}</span>
+                            {% if field.css_selector %}<span class="font-mono" style="color: var(--t2);">css: {{ field.css_selector }}</span>{% endif %}
+                            {% if field.xpath %}<span class="font-mono" style="color: var(--t2);">xpath: {{ field.xpath }}</span>{% endif %}
+                            {% if field.test_id %}<span style="color: var(--green);">data-testid: {{ field.test_id }}</span>{% endif %}
+                        </div>
+                        <div class="flex gap-1">
+                            <button onclick="editField({{ field.id }})" class="btn-xs px-2 py-1">Edit</button>
+                            <button onclick="deleteField({{ field.id }})" class="btn-xs px-2 py-1" style="color: var(--red);">Del</button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% if not grouped %}
+<div class="text-center py-12" style="color: var(--t3);">
+    <p class="text-lg">No locators yet</p>
+    <p class="text-sm mt-2">Add fields manually or use /locators/sync/{tc_id} to auto-extract from test steps</p>
+</div>
+{% endif %}
+
+<!-- Add/Edit Field Modal -->
+<div id="add-field-modal" class="modal-backdrop hidden">
+    <div class="modal-box">
+        <h3 class="text-lg font-semibold mb-4" id="field-modal-title">Add Locator Field</h3>
+        <form id="field-form" class="space-y-3">
+            <input type="hidden" id="field-id" value="">
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="text-xs" style="color: var(--t3);">App Name</label>
+                    <input type="text" id="f-app" class="input w-full px-3 py-2 rounded" placeholder="MyApp">
+                </div>
+                <div>
+                    <label class="text-xs" style="color: var(--t3);">Page Name</label>
+                    <input type="text" id="f-page" class="input w-full px-3 py-2 rounded" placeholder="LoginPage">
+                </div>
+            </div>
+            <div>
+                <label class="text-xs" style="color: var(--t3);">Field Name</label>
+                <input type="text" id="f-name" class="input w-full px-3 py-2 rounded" placeholder="Username Input" required>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="text-xs" style="color: var(--t3);">CSS Selector</label>
+                    <input type="text" id="f-css" class="input w-full px-3 py-2 rounded font-mono text-xs" placeholder="#username">
+                </div>
+                <div>
+                    <label class="text-xs" style="color: var(--t3);">XPath</label>
+                    <input type="text" id="f-xpath" class="input w-full px-3 py-2 rounded font-mono text-xs" placeholder="//input[@id='user']">
+                </div>
+            </div>
+            <div class="grid grid-cols-3 gap-3">
+                <div>
+                    <label class="text-xs" style="color: var(--t3);">ID</label>
+                    <input type="text" id="f-id" class="input w-full px-3 py-2 rounded text-xs">
+                </div>
+                <div>
+                    <label class="text-xs" style="color: var(--t3);">Name</label>
+                    <input type="text" id="f-nameattr" class="input w-full px-3 py-2 rounded text-xs">
+                </div>
+                <div>
+                    <label class="text-xs" style="color: var(--t3);">Test ID</label>
+                    <input type="text" id="f-testid" class="input w-full px-3 py-2 rounded text-xs">
+                </div>
+            </div>
+            <div class="grid grid-cols-3 gap-3">
+                <div>
+                    <label class="text-xs" style="color: var(--t3);">Role</label>
+                    <input type="text" id="f-role" class="input w-full px-3 py-2 rounded text-xs">
+                </div>
+                <div>
+                    <label class="text-xs" style="color: var(--t3);">Placeholder</label>
+                    <input type="text" id="f-placeholder" class="input w-full px-3 py-2 rounded text-xs">
+                </div>
+                <div>
+                    <label class="text-xs" style="color: var(--t3);">Text Content</label>
+                    <input type="text" id="f-text" class="input w-full px-3 py-2 rounded text-xs">
+                </div>
+            </div>
+            <div class="flex gap-2 justify-end">
+                <button type="button" onclick="hideModal('add-field-modal')" class="btn-ghost px-4 py-2 rounded">Cancel</button>
+                <button type="button" onclick="saveField()" class="btn-primary px-4 py-2 rounded">Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleAccordion(btn) {
+    const content = btn.nextElementSibling;
+    content.classList.toggle('hidden');
+    btn.querySelector('svg').classList.toggle('rotate-180');
+}
+
+async function saveField() {
+    const id = document.getElementById('field-id').value;
+    const payload = {
+        app_name: document.getElementById('f-app').value,
+        page_name: document.getElementById('f-page').value,
+        field_name: document.getElementById('f-name').value,
+        css_selector: document.getElementById('f-css').value,
+        xpath: document.getElementById('f-xpath').value,
+        id_attr: document.getElementById('f-id').value,
+        name_attr: document.getElementById('f-nameattr').value,
+        test_id: document.getElementById('f-testid').value,
+        role_attr: document.getElementById('f-role').value,
+        placeholder: document.getElementById('f-placeholder').value,
+        text_content: document.getElementById('f-text').value,
+    };
+    if (id) payload.id = parseInt(id);
+
+    const r = await fetch('/locators/field/save', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
+    if (r.ok) location.reload();
+}
+
+async function editField(id) {
+    const r = await fetch(`/locators/field/${id}`);
+    if (!r.ok) return;
+    const f = await r.json();
+    document.getElementById('field-id').value = f.id;
+    document.getElementById('f-app').value = f.app_name || '';
+    document.getElementById('f-page').value = f.page_name || '';
+    document.getElementById('f-name').value = f.field_name || '';
+    document.getElementById('f-css').value = f.css_selector || '';
+    document.getElementById('f-xpath').value = f.xpath || '';
+    document.getElementById('f-id').value = f.id_attr || '';
+    document.getElementById('f-nameattr').value = f.name_attr || '';
+    document.getElementById('f-testid').value = f.test_id || '';
+    document.getElementById('f-role').value = f.role_attr || '';
+    document.getElementById('f-placeholder').value = f.placeholder || '';
+    document.getElementById('f-text').value = f.text_content || '';
+    document.getElementById('field-modal-title').textContent = 'Edit Locator Field';
+    showModal('add-field-modal');
+}
+
+async function deleteField(id) {
+    if (!confirm('Delete this field?')) return;
+    await fetch(`/locators/field/delete/${id}`, {method:'POST'});
+    location.reload();
+}
+</script>
+{% endblock %}

@@ -1,0 +1,280 @@
+{% extends "base.html" %}
+{% block title %}Automation Hub - Playwright Agent{% endblock %}
+
+{% block content %}
+<!-- Stats Bar -->
+<div class="grid grid-cols-6 gap-3 mb-6">
+    <div class="card p-3 text-center">
+        <div class="text-2xl font-bold" style="color: var(--t1);">{{ stats.total }}</div>
+        <div class="text-xs" style="color: var(--t2);">Total</div>
+    </div>
+    <div class="card p-3 text-center">
+        <div class="text-2xl font-bold" style="color: var(--green);">{{ stats.passed }}</div>
+        <div class="text-xs" style="color: var(--t2);">Passed</div>
+    </div>
+    <div class="card p-3 text-center">
+        <div class="text-2xl font-bold" style="color: var(--red);">{{ stats.failed }}</div>
+        <div class="text-xs" style="color: var(--t2);">Failed</div>
+    </div>
+    <div class="card p-3 text-center">
+        <div class="text-2xl font-bold" style="color: var(--t3);">{{ stats.pending }}</div>
+        <div class="text-xs" style="color: var(--t2);">Pending</div>
+    </div>
+    <div class="card p-3 text-center">
+        <div class="text-2xl font-bold" style="color: var(--cyan);">{{ stats.web }}</div>
+        <div class="text-xs" style="color: var(--t2);">Web</div>
+    </div>
+    <div class="card p-3 text-center">
+        <div class="text-2xl font-bold" style="color: var(--accent);">{{ stats.api }}</div>
+        <div class="text-xs" style="color: var(--t2);">API</div>
+    </div>
+</div>
+
+<!-- Action buttons -->
+<div class="flex gap-3 mb-6">
+    <button onclick="showModal('new-project-modal')" class="btn-primary px-4 py-2 rounded text-sm">+ New Project</button>
+    <button onclick="showModal('new-suite-modal')" class="btn-primary px-4 py-2 rounded text-sm">+ New Suite</button>
+    <button onclick="showModal('new-tc-modal')" class="btn-primary px-4 py-2 rounded text-sm">+ New Test Case</button>
+    <button onclick="showModal('import-modal')" class="btn-ghost px-4 py-2 rounded text-sm">Import Suite</button>
+</div>
+
+<!-- Projects -->
+<div class="space-y-4">
+    {% for project in projects %}
+    <div class="card p-4">
+        <div class="flex justify-between items-center mb-3">
+            <h2 class="text-lg font-semibold" style="color: var(--t1);">{{ project.name }}</h2>
+            <div class="flex gap-2">
+                <form method="POST" action="/project/{{ project.id }}/delete" onsubmit="return confirm('Delete project?')">
+                    <button class="btn-xs text-xs px-2 py-1 rounded" style="color: var(--red);">Delete</button>
+                </form>
+            </div>
+        </div>
+        {% if project.description %}<p class="text-sm mb-3" style="color: var(--t2);">{{ project.description }}</p>{% endif %}
+
+        <!-- Suites in this project -->
+        <div class="space-y-2">
+            {% for suite in suites if suite.project_id == project.id %}
+            <div class="p-3 rounded" style="background: var(--bg-s); border: 1px solid var(--bd);">
+                <div class="flex justify-between items-center mb-2">
+                    <div class="flex items-center gap-2">
+                        <span class="tag-{{ suite.flow_type }} text-xs px-2 py-0.5 rounded">{{ suite.flow_type }}</span>
+                        <span class="font-medium text-sm">{{ suite.name }}</span>
+                    </div>
+                    <div class="flex gap-2">
+                        <a href="/suite/{{ suite.id }}/export" class="btn-xs text-xs px-2 py-1 rounded" style="color: var(--cyan);">Export</a>
+                        <form method="POST" action="/suite/{{ suite.id }}/delete" onsubmit="return confirm('Delete suite?')">
+                            <button class="btn-xs text-xs px-2 py-1 rounded" style="color: var(--red);">Delete</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Test Cases table -->
+                {% set suite_tcs = [] %}
+                {% for tc in test_cases if tc.suite_id == suite.id %}
+                <div class="flex items-center justify-between py-1.5 px-2 rounded text-sm hover:bg-white/5">
+                    <div class="flex items-center gap-3">
+                        <span style="color: var(--t3);">{{ loop.index }}</span>
+                        <span>{{ tc.name }}</span>
+                        <span class="tag-{{ tc.flow_type }} text-xs px-1.5 py-0.5 rounded">{{ tc.flow_type }}</span>
+                        {% set _cls = tc.status|lower if tc.status in ['PASS','FAIL'] else 'pending' %}
+                        <span class="badge-{{ _cls }} text-xs px-1.5 py-0.5 rounded">{{ tc.status }}</span>
+                    </div>
+                    <div class="flex gap-1">
+                        <a href="/{% if tc.flow_type == 'api' %}api{% else %}web{% endif %}/flow/{{ tc.id }}" class="btn-xs text-xs px-2 py-1" title="Flow">Flow</a>
+                        <a href="/report/{{ tc.id }}" class="btn-xs text-xs px-2 py-1" title="Report">Report</a>
+                        <button onclick="showMoveModal({{ tc.id }})" class="btn-xs text-xs px-2 py-1" title="Move">Move</button>
+                        <button onclick="showCopyModal({{ tc.id }})" class="btn-xs text-xs px-2 py-1" title="Copy">Copy</button>
+                        <form method="POST" action="/testcase/{{ tc.id }}/delete" style="display:inline" onsubmit="return confirm('Delete?')">
+                            <button class="btn-xs text-xs px-2 py-1" style="color: var(--red);">Del</button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+
+    <!-- Unassigned Suites -->
+    {% set unassigned = [] %}
+    {% for suite in suites if not suite.project_id %}
+    {% if loop.first %}
+    <div class="card p-4">
+        <h2 class="text-lg font-semibold mb-3" style="color: var(--t2);">Unassigned</h2>
+        <div class="space-y-2">
+    {% endif %}
+            <div class="p-3 rounded" style="background: var(--bg-s); border: 1px solid var(--bd);">
+                <div class="flex justify-between items-center mb-2">
+                    <div class="flex items-center gap-2">
+                        <span class="tag-{{ suite.flow_type }} text-xs px-2 py-0.5 rounded">{{ suite.flow_type }}</span>
+                        <span class="font-medium text-sm">{{ suite.name }}</span>
+                    </div>
+                    <form method="POST" action="/suite/{{ suite.id }}/delete" onsubmit="return confirm('Delete suite?')">
+                        <button class="btn-xs text-xs px-2 py-1 rounded" style="color: var(--red);">Delete</button>
+                    </form>
+                </div>
+                {% for tc in test_cases if tc.suite_id == suite.id %}
+                <div class="flex items-center justify-between py-1.5 px-2 rounded text-sm hover:bg-white/5">
+                    <div class="flex items-center gap-3">
+                        <span style="color: var(--t3);">{{ loop.index }}</span>
+                        <span>{{ tc.name }}</span>
+                        <span class="tag-{{ tc.flow_type }} text-xs px-1.5 py-0.5 rounded">{{ tc.flow_type }}</span>
+                        {% set _cls = tc.status|lower if tc.status in ['PASS','FAIL'] else 'pending' %}
+                        <span class="badge-{{ _cls }} text-xs px-1.5 py-0.5 rounded">{{ tc.status }}</span>
+                    </div>
+                    <div class="flex gap-1">
+                        <a href="/{% if tc.flow_type == 'api' %}api{% else %}web{% endif %}/flow/{{ tc.id }}" class="btn-xs text-xs px-2 py-1">Flow</a>
+                        <a href="/report/{{ tc.id }}" class="btn-xs text-xs px-2 py-1">Report</a>
+                        <form method="POST" action="/testcase/{{ tc.id }}/delete" style="display:inline" onsubmit="return confirm('Delete?')">
+                            <button class="btn-xs text-xs px-2 py-1" style="color: var(--red);">Del</button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+    {% if loop.last %}
+        </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+</div>
+
+<!-- Modals -->
+<div id="new-project-modal" class="modal-backdrop hidden">
+    <div class="modal-box">
+        <h3 class="text-lg font-semibold mb-4">New Project</h3>
+        <form method="POST" action="/project/create" class="space-y-3">
+            <input type="text" name="name" placeholder="Project name" required class="input w-full px-3 py-2 rounded">
+            <textarea name="description" placeholder="Description (optional)" class="input w-full px-3 py-2 rounded" rows="2"></textarea>
+            <div class="flex gap-2 justify-end">
+                <button type="button" onclick="hideModal('new-project-modal')" class="btn-ghost px-4 py-2 rounded">Cancel</button>
+                <button type="submit" class="btn-primary px-4 py-2 rounded">Create</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="new-suite-modal" class="modal-backdrop hidden">
+    <div class="modal-box">
+        <h3 class="text-lg font-semibold mb-4">New Suite</h3>
+        <form method="POST" action="/suite/create" class="space-y-3">
+            <input type="text" name="name" placeholder="Suite name" required class="input w-full px-3 py-2 rounded">
+            <select name="flow_type" class="input w-full px-3 py-2 rounded">
+                <option value="web">Web</option>
+                <option value="api">API</option>
+            </select>
+            <select name="project_id" class="input w-full px-3 py-2 rounded">
+                <option value="">No project (Unassigned)</option>
+                {% for p in projects %}
+                <option value="{{ p.id }}">{{ p.name }}</option>
+                {% endfor %}
+            </select>
+            <textarea name="description" placeholder="Description" class="input w-full px-3 py-2 rounded" rows="2"></textarea>
+            <div class="flex gap-2 justify-end">
+                <button type="button" onclick="hideModal('new-suite-modal')" class="btn-ghost px-4 py-2 rounded">Cancel</button>
+                <button type="submit" class="btn-primary px-4 py-2 rounded">Create</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="new-tc-modal" class="modal-backdrop hidden">
+    <div class="modal-box">
+        <h3 class="text-lg font-semibold mb-4">New Test Case</h3>
+        <form method="POST" action="/testcase/create" class="space-y-3">
+            <select name="suite_id" required class="input w-full px-3 py-2 rounded">
+                {% for s in suites %}
+                <option value="{{ s.id }}">{{ s.name }} ({{ s.flow_type }})</option>
+                {% endfor %}
+            </select>
+            <input type="text" name="name" placeholder="Test case name" required class="input w-full px-3 py-2 rounded">
+            <select name="flow_type" class="input w-full px-3 py-2 rounded">
+                <option value="web">Web</option>
+                <option value="api">API</option>
+            </select>
+            <input type="text" name="base_url" placeholder="Base URL (optional)" class="input w-full px-3 py-2 rounded">
+            <div class="flex gap-2 justify-end">
+                <button type="button" onclick="hideModal('new-tc-modal')" class="btn-ghost px-4 py-2 rounded">Cancel</button>
+                <button type="submit" class="btn-primary px-4 py-2 rounded">Create</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="import-modal" class="modal-backdrop hidden">
+    <div class="modal-box">
+        <h3 class="text-lg font-semibold mb-4">Import Suite</h3>
+        <form method="POST" action="/suite/import" enctype="multipart/form-data" class="space-y-3">
+            <input type="file" name="file" accept=".json" required class="input w-full px-3 py-2 rounded">
+            <select name="project_id" class="input w-full px-3 py-2 rounded">
+                <option value="">No project</option>
+                {% for p in projects %}
+                <option value="{{ p.id }}">{{ p.name }}</option>
+                {% endfor %}
+            </select>
+            <div class="flex gap-2 justify-end">
+                <button type="button" onclick="hideModal('import-modal')" class="btn-ghost px-4 py-2 rounded">Cancel</button>
+                <button type="submit" class="btn-primary px-4 py-2 rounded">Import</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="move-tc-modal" class="modal-backdrop hidden">
+    <div class="modal-box">
+        <h3 class="text-lg font-semibold mb-4">Move Test Case</h3>
+        <form id="move-form" method="POST" action="" class="space-y-3">
+            <select name="target_suite_id" required class="input w-full px-3 py-2 rounded">
+                {% for s in suites %}
+                <option value="{{ s.id }}">{{ s.name }}</option>
+                {% endfor %}
+            </select>
+            <div class="flex gap-2 justify-end">
+                <button type="button" onclick="hideModal('move-tc-modal')" class="btn-ghost px-4 py-2 rounded">Cancel</button>
+                <button type="submit" class="btn-primary px-4 py-2 rounded">Move</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="copy-tc-modal" class="modal-backdrop hidden">
+    <div class="modal-box">
+        <h3 class="text-lg font-semibold mb-4">Copy Test Case</h3>
+        <form id="copy-form" method="POST" action="" class="space-y-3">
+            <select name="target_suite_id" required class="input w-full px-3 py-2 rounded">
+                {% for s in suites %}
+                <option value="{{ s.id }}">{{ s.name }}</option>
+                {% endfor %}
+            </select>
+            <input type="text" name="new_name" placeholder="New name (optional)" class="input w-full px-3 py-2 rounded">
+            <div class="flex gap-2 justify-end">
+                <button type="button" onclick="hideModal('copy-tc-modal')" class="btn-ghost px-4 py-2 rounded">Cancel</button>
+                <button type="submit" class="btn-primary px-4 py-2 rounded">Copy</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script id="suites-data" type="application/json">
+{% autoescape false %}
+{{ suites_data | tojson }}
+{% endautoescape %}
+</script>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function showModal(id) { document.getElementById(id).classList.remove('hidden'); }
+function hideModal(id) { document.getElementById(id).classList.add('hidden'); }
+function showMoveModal(tcId) {
+    document.getElementById('move-form').action = '/testcase/' + tcId + '/move';
+    showModal('move-tc-modal');
+}
+function showCopyModal(tcId) {
+    document.getElementById('copy-form').action = '/testcase/' + tcId + '/copy';
+    showModal('copy-tc-modal');
+}
+</script>
+{% endblock %}

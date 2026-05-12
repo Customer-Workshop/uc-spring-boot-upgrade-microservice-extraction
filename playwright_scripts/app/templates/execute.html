@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+{% block title %}Execute - Playwright Agent{% endblock %}
+
+{% block content %}
+<h1 class="text-xl font-bold mb-6">Execute Tests</h1>
+
+<!-- Execution Form -->
+<div class="card p-4 mb-6">
+    <h2 class="text-sm font-semibold mb-3" style="color: var(--t2);">Run Test Cases</h2>
+    <form id="exec-form" class="space-y-3">
+        <div>
+            <label class="text-xs" style="color: var(--t3);">Select Test Cases</label>
+            <div class="grid grid-cols-2 gap-2 mt-1 max-h-48 overflow-y-auto p-2 rounded" style="background: var(--bg-s); border: 1px solid var(--bd);">
+                {% for tc in test_cases %}
+                <label class="flex items-center gap-2 text-sm cursor-pointer hover:bg-white/5 p-1 rounded">
+                    <input type="checkbox" name="tc_check" value="{{ tc.id }}">
+                    <span class="tag-{{ tc.flow_type }} text-xs px-1 py-0.5 rounded">{{ tc.flow_type }}</span>
+                    <span>{{ tc.name }}</span>
+                    {% set _cls = tc.status|lower if tc.status in ['PASS','FAIL'] else 'pending' %}
+                    <span class="badge-{{ _cls }} text-xs px-1 py-0.5 rounded">{{ tc.status }}</span>
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="flex gap-4 items-end">
+            <div>
+                <label class="text-xs" style="color: var(--t3);">Mode</label>
+                <select id="exec-headless" class="input px-3 py-2 rounded">
+                    <option value="true">Headless</option>
+                    <option value="false">Headed</option>
+                </select>
+            </div>
+            {% if environments %}
+            <div>
+                <label class="text-xs" style="color: var(--t3);">Environment</label>
+                <select id="exec-env" class="input px-3 py-2 rounded">
+                    <option value="">Default (TC base_url)</option>
+                    {% for env in environments %}
+                    <option value="{{ env.id }}">{{ env.name }} ({{ env.base_url }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            <button type="button" onclick="runTests()" class="btn-primary px-6 py-2 rounded">Run Selected</button>
+        </div>
+    </form>
+
+    <!-- Live Status -->
+    <div id="exec-status" class="mt-4 hidden">
+        <div class="flex items-center gap-2 mb-2">
+            <div class="animate-spin w-4 h-4 border-2 border-t-transparent rounded-full" style="border-color: var(--accent); border-top-color: transparent;"></div>
+            <span class="text-sm" style="color: var(--amber);">Running...</span>
+        </div>
+        <div id="exec-log" class="p-3 rounded text-xs font-mono max-h-64 overflow-y-auto" style="background: var(--bg-s); border: 1px solid var(--bd);"></div>
+    </div>
+</div>
+
+<!-- Scheduled Jobs -->
+<div class="card p-4 mb-6">
+    <div class="flex justify-between items-center mb-3">
+        <h2 class="text-sm font-semibold" style="color: var(--t2);">Scheduled Execution</h2>
+        <button onclick="showModal('schedule-modal')" class="btn-ghost px-3 py-1 rounded text-xs">+ Add Schedule</button>
+    </div>
+    <table class="w-full text-sm">
+        <thead>
+            <tr>
+                <th class="table-hd">Test Case</th>
+                <th class="table-hd">Cron</th>
+                <th class="table-hd">Enabled</th>
+                <th class="table-hd">Last Run</th>
+                <th class="table-hd">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for job in scheduled_jobs %}
+            <tr>
+                <td class="table-cell">{{ job.test_case.name if job.test_case else 'Unknown' }}</td>
+                <td class="table-cell font-mono text-xs">{{ job.cron_expr }}</td>
+                <td class="table-cell">
+                    <span class="{{ 'badge-pass' if job.enabled else 'badge-pending' }} text-xs px-1.5 py-0.5 rounded">{{ 'On' if job.enabled else 'Off' }}</span>
+                </td>
+                <td class="table-cell text-xs">{{ job.last_run.strftime('%Y-%m-%d %H:%M') if job.last_run else 'Never' }}</td>
+                <td class="table-cell">
+                    <div class="flex gap-1">
+                        <button onclick="toggleSchedule({{ job.id }})" class="btn-xs text-xs px-2 py-1">Toggle</button>
+                        <form method="POST" action="/schedule/{{ job.id }}/delete" style="display:inline">
+                            <button class="btn-xs text-xs px-2 py-1" style="color: var(--red);">Delete</button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Environment Management -->
+<div class="card p-4">
+    <div class="flex justify-between items-center mb-3">
+        <h2 class="text-sm font-semibold" style="color: var(--t2);">Environments</h2>
+        <button onclick="showModal('env-modal')" class="btn-ghost px-3 py-1 rounded text-xs">+ Add Environment</button>
+    </div>
+    <div class="space-y-2">
+        {% for env in environments %}
+        <div class="flex justify-between items-center p-2 rounded" style="background: var(--bg-s); border: 1px solid var(--bd);">
+            <div>
+                <span class="font-medium text-sm">{{ env.name }}</span>
+                <span class="text-xs ml-2" style="color: var(--t2);">{{ env.base_url }}</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Schedule Modal -->
+<div id="schedule-modal" class="modal-backdrop hidden">
+    <div class="modal-box">
+        <h3 class="text-lg font-semibold mb-4">New Scheduled Job</h3>
+        <form method="POST" action="/schedule/create" class="space-y-3">
+            <select name="tc_id" required class="input w-full px-3 py-2 rounded">
+                {% for tc in test_cases %}
+                <option value="{{ tc.id }}">{{ tc.name }}</option>
+                {% endfor %}
+            </select>
+            <div>
+                <label class="text-xs" style="color: var(--t3);">Cron Expression (min hour day month dow)</label>
+                <input type="text" name="cron_expr" placeholder="*/30 * * * *" required class="input w-full px-3 py-2 rounded font-mono">
+            </div>
+            <input type="text" name="notify_on_failure" placeholder="Notification URL/email (optional)" class="input w-full px-3 py-2 rounded">
+            <div class="flex gap-2 justify-end">
+                <button type="button" onclick="hideModal('schedule-modal')" class="btn-ghost px-4 py-2 rounded">Cancel</button>
+                <button type="submit" class="btn-primary px-4 py-2 rounded">Create</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Environment Modal -->
+<div id="env-modal" class="modal-backdrop hidden">
+    <div class="modal-box">
+        <h3 class="text-lg font-semibold mb-4">New Environment</h3>
+        <form method="POST" action="/environment/create" class="space-y-3">
+            <input type="text" name="name" placeholder="Environment name (e.g., dev, staging)" required class="input w-full px-3 py-2 rounded">
+            <input type="text" name="base_url" placeholder="Base URL" required class="input w-full px-3 py-2 rounded">
+            <textarea name="auth_headers" placeholder='{"Authorization": "Bearer xxx"}' class="input w-full px-3 py-2 rounded font-mono text-xs" rows="3">{}</textarea>
+            <div class="flex gap-2 justify-end">
+                <button type="button" onclick="hideModal('env-modal')" class="btn-ghost px-4 py-2 rounded">Cancel</button>
+                <button type="submit" class="btn-primary px-4 py-2 rounded">Create</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function runTests() {
+    const checks = document.querySelectorAll('input[name="tc_check"]:checked');
+    if (!checks.length) { alert('Select at least one test case'); return; }
+
+    const ids = Array.from(checks).map(c => c.value).join(',');
+    const headless = document.getElementById('exec-headless').value;
+    const fd = new FormData();
+    fd.append('tc_ids', ids);
+    fd.append('headless', headless);
+
+    fetch('/execute/run', {method:'POST', body: fd}).then(r => r.json()).then(data => {
+        if (data.status === 'running') {
+            document.getElementById('exec-status').classList.remove('hidden');
+            const tcId = data.tc_ids[0];
+            startSSE(tcId);
+        }
+    });
+}
+
+function startSSE(tcId) {
+    const logDiv = document.getElementById('exec-log');
+    const es = new EventSource(`/execute/stream/${tcId}`);
+
+    es.addEventListener('log', (e) => {
+        const d = JSON.parse(e.data);
+        const cls = d.level === 'ERROR' ? 'color:var(--red)' : d.level === 'WARN' ? 'color:var(--amber)' : 'color:var(--t2)';
+        logDiv.innerHTML += `<div style="${cls}">[${d.timestamp}] ${d.level} | ${d.agent_state || ''} | ${d.message}</div>`;
+        logDiv.scrollTop = logDiv.scrollHeight;
+    });
+
+    es.addEventListener('done', (e) => {
+        const d = JSON.parse(e.data);
+        logDiv.innerHTML += `<div style="color:var(--green);font-weight:bold;">Completed: ${d.status}</div>`;
+        es.close();
+        setTimeout(() => location.reload(), 1500);
+    });
+
+    es.addEventListener('timeout', () => { es.close(); });
+    es.onerror = () => { es.close(); };
+}
+
+async function toggleSchedule(jobId) {
+    await fetch(`/schedule/${jobId}/toggle`, {method:'POST'});
+    location.reload();
+}
+</script>
+{% endblock %}

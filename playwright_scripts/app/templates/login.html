@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Playwright Test Automation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root { --bg-s: #0f0f1a; --bg-e: #1a1a2e; --accent: #8b5cf6; --t1: #f1f5f9; --t2: #94a3b8; --bd: rgba(255,255,255,.08); --red: #f87171; }
+        body { background: var(--bg-s); color: var(--t1); }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center">
+    <div class="w-full max-w-md p-8 rounded-xl" style="background: var(--bg-e); border: 1px solid var(--bd);">
+        <h1 class="text-2xl font-bold mb-6 text-center" style="color: var(--accent);">Playwright Agent</h1>
+        <p class="text-center mb-6" style="color: var(--t2);">Sign in to continue</p>
+
+        {% if error %}
+        <div class="mb-4 p-3 rounded text-sm" style="background: rgba(248,113,113,.1); color: var(--red); border: 1px solid var(--red);">
+            {{ error }}
+        </div>
+        {% endif %}
+
+        <form method="POST" action="/login" class="space-y-4">
+            <div>
+                <label class="block text-sm mb-1" style="color: var(--t2);">Username</label>
+                <input type="text" name="username" required class="input w-full px-3 py-2 rounded" style="background: var(--bg-s); border: 1px solid var(--bd); color: var(--t1);">
+            </div>
+            <div>
+                <label class="block text-sm mb-1" style="color: var(--t2);">Password</label>
+                <input type="password" name="password" required class="input w-full px-3 py-2 rounded" style="background: var(--bg-s); border: 1px solid var(--bd); color: var(--t1);">
+            </div>
+            <button type="submit" class="w-full py-2 rounded font-medium" style="background: var(--accent); color: white;">Sign In</button>
+        </form>
+
+        <div class="mt-6 pt-4" style="border-top: 1px solid var(--bd);">
+            <p class="text-center text-sm mb-3" style="color: var(--t2);">Or create an account</p>
+            <form method="POST" action="/register" class="space-y-3">
+                <input type="text" name="username" placeholder="New username" required class="input w-full px-3 py-2 rounded text-sm" style="background: var(--bg-s); border: 1px solid var(--bd); color: var(--t1);">
+                <input type="password" name="password" placeholder="Password" required class="input w-full px-3 py-2 rounded text-sm" style="background: var(--bg-s); border: 1px solid var(--bd); color: var(--t1);">
+                <select name="role" class="input w-full px-3 py-2 rounded text-sm" style="background: var(--bg-s); border: 1px solid var(--bd); color: var(--t1);">
+                    <option value="editor">Editor</option>
+                    <option value="viewer">Viewer</option>
+                    <option value="admin">Admin</option>
+                </select>
+                <button type="submit" class="w-full py-2 rounded font-medium text-sm" style="background: transparent; border: 1px solid var(--accent); color: var(--accent);">Register</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

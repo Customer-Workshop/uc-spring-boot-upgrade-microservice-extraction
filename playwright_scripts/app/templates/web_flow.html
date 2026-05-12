@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+{% block title %}Web Flow - {{ tc.name }}{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <a href="/automation" style="color: var(--t2);" class="text-sm">Home</a>
+    <span style="color: var(--t3);"> / </span>
+    <span class="text-sm" style="color: var(--t1);">{{ tc.name }}</span>
+</div>
+
+<div class="flex justify-between items-center mb-6">
+    <div>
+        <h1 class="text-xl font-bold">{{ tc.name }}</h1>
+        <p class="text-sm" style="color: var(--t2);">Web Test Case | Base URL: {{ tc.base_url or 'Not set' }}</p>
+    </div>
+    {% set _cls = tc.status|lower if tc.status in ['PASS','FAIL'] else 'pending' %}
+    <span class="badge-{{ _cls }} px-3 py-1 rounded">{{ tc.status }}</span>
+</div>
+
+<!-- Recorder Card -->
+<div class="card p-4 mb-6">
+    <h2 class="text-sm font-semibold mb-3" style="color: var(--t2);">Recording</h2>
+    <div class="flex gap-3 items-end">
+        <div class="flex-1">
+            <label class="text-xs" style="color: var(--t3);">Base URL</label>
+            <input type="text" id="rec-url" value="{{ tc.base_url or '' }}" placeholder="https://example.com" class="input w-full px-3 py-2 rounded">
+        </div>
+        <button id="btn-start-rec" onclick="startRecording()" class="btn-primary px-4 py-2 rounded text-sm">Start Recording</button>
+        <button id="btn-stop-rec" onclick="stopRecording()" class="btn-ghost px-4 py-2 rounded text-sm hidden">Stop Recording</button>
+    </div>
+</div>
+
+<!-- Steps Editor -->
+<div class="card p-4 mb-6">
+    <div class="flex justify-between items-center mb-3">
+        <h2 class="text-sm font-semibold" style="color: var(--t2);">Test Steps</h2>
+        <div class="flex gap-2">
+            <button onclick="addStep()" class="btn-ghost px-3 py-1 rounded text-xs">+ Add Step</button>
+            <button onclick="saveSteps()" class="btn-primary px-3 py-1 rounded text-xs">Save Steps</button>
+        </div>
+    </div>
+    <div id="steps-container" class="space-y-2">
+        <!-- Steps populated by JS -->
+    </div>
+</div>
+
+<!-- Test Data Grid -->
+<div class="card p-4">
+    <div class="flex justify-between items-center mb-3">
+        <h2 class="text-sm font-semibold" style="color: var(--t2);">Test Data (Data-Driven)</h2>
+        <div class="flex gap-2">
+            <button onclick="addDataRow()" class="btn-ghost px-3 py-1 rounded text-xs">+ Add Row</button>
+            <button onclick="saveData()" class="btn-primary px-3 py-1 rounded text-xs">Save Data</button>
+        </div>
+    </div>
+    <div id="data-container" class="space-y-2">
+        <!-- Data rows populated by JS -->
+    </div>
+    <p class="text-xs mt-2" style="color: var(--t3);">Use {"key": "value"} format. Reference in steps with &#123;&#123;key&#125;&#125;</p>
+</div>
+
+<script id="steps-data" type="application/json">
+{% autoescape false %}
+{{ steps | tojson }}
+{% endautoescape %}
+</script>
+
+<script id="testdata-data" type="application/json">
+{% autoescape false %}
+{{ test_data | tojson }}
+{% endautoescape %}
+</script>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const TC_ID = {{ tc.id }};
+let stepsData = JSON.parse(document.getElementById('steps-data').textContent || '[]');
+let testData = JSON.parse(document.getElementById('testdata-data').textContent || '[]');
+
+function renderSteps() {
+    const container = document.getElementById('steps-container');
+    container.innerHTML = stepsData.map((s, i) => `
+        <div class="flex gap-2 items-center p-2 rounded" style="background: var(--bg-s); border: 1px solid var(--bd);">
+            <span class="text-xs w-6" style="color: var(--t3);">${i+1}</span>
+            <select onchange="stepsData[${i}].action=this.value" class="input px-2 py-1 rounded text-xs w-28">
+                ${['navigate','click','dblclick','fill','type','press','select','assert_text','assert_visible','assert_url','wait','screenshot'].map(a => `<option value="${a}" ${s.action===a?'selected':''}>${a}</option>`).join('')}
+            </select>
+            <input value="${escHtml(s.selector||'')}" onchange="stepsData[${i}].selector=this.value" placeholder="Selector" class="input flex-1 px-2 py-1 rounded text-xs">
+            <input value="${escHtml(s.value||'')}" onchange="stepsData[${i}].value=this.value" placeholder="Value" class="input flex-1 px-2 py-1 rounded text-xs">
+            <input value="${escHtml(s.description||'')}" onchange="stepsData[${i}].description=this.value" placeholder="Description" class="input flex-1 px-2 py-1 rounded text-xs">
+            <button onclick="removeStep(${i})" class="text-xs px-2" style="color: var(--red);">X</button>
+        </div>
+    `).join('');
+}
+
+function addStep() {
+    stepsData.push({order: stepsData.length, action: 'click', selector: '', value: '', description: ''});
+    renderSteps();
+}
+
+function removeStep(i) {
+    stepsData.splice(i, 1);
+    stepsData.forEach((s, idx) => s.order = idx);
+    renderSteps();
+}
+
+async function saveSteps() {
+    stepsData.forEach((s, i) => s.order = i);
+    const r = await fetch(`/web/save-steps/${TC_ID}`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(stepsData)});
+    if (r.ok) alert('Steps saved!');
+}
+
+function renderData() {
+    const container = document.getElementById('data-container');
+    container.innerHTML = testData.map((d, i) => `
+        <div class="flex gap-2 items-center p-2 rounded" style="background: var(--bg-s); border: 1px solid var(--bd);">
+            <span class="text-xs w-6" style="color: var(--t3);">${i+1}</span>
+            <input value='${escHtml(d.data_json||"{}")}' onchange="testData[${i}].data_json=this.value" placeholder='{"key":"value"}' class="input flex-1 px-2 py-1 rounded text-xs font-mono">
+            <button onclick="removeDataRow(${i})" class="text-xs px-2" style="color: var(--red);">X</button>
+        </div>
+    `).join('');
+}
+
+function addDataRow() {
+    testData.push({row_index: testData.length, data_json: '{}'});
+    renderData();
+}
+
+function removeDataRow(i) {
+    testData.splice(i, 1);
+    testData.forEach((d, idx) => d.row_index = idx);
+    renderData();
+}
+
+async function saveData() {
+    testData.forEach((d, i) => d.row_index = i);
+    const r = await fetch(`/web/save-data/${TC_ID}`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(testData)});
+    if (r.ok) alert('Data saved!');
+}
+
+async function startRecording() {
+    const url = document.getElementById('rec-url').value;
+    const fd = new FormData();
+    fd.append('tc_id', TC_ID);
+    fd.append('base_url', url);
+    const r = await fetch('/web/start-recording', {method:'POST', body: fd});
+    if (r.ok) {
+        document.getElementById('btn-start-rec').classList.add('hidden');
+        document.getElementById('btn-stop-rec').classList.remove('hidden');
+    }
+}
+
+async function stopRecording() {
+    const r = await fetch('/web/stop-recording', {method:'POST'});
+    if (r.ok) {
+        const data = await r.json();
+        if (data.steps && data.steps.length) {
+            stepsData = data.steps;
+            renderSteps();
+        }
+        document.getElementById('btn-stop-rec').classList.add('hidden');
+        document.getElementById('btn-start-rec').classList.remove('hidden');
+    }
+}
+
+function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+renderSteps();
+renderData();
+</script>
+{% endblock %}

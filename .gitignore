@@ -32,3 +32,9 @@ frontend/.next/
 frontend/out/
 frontend/.env*.local
 frontend/.git/
+
+# Playwright automation platform
+playwright_scripts/.venv/
+playwright_scripts/.coverage
+playwright_scripts/__pycache__/
+playwright_scripts/**/__pycache__/

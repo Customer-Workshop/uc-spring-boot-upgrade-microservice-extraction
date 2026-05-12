@@ -1,0 +1,462 @@
+{% extends "base.html" %}
+{% block title %}API Flow - {{ tc.name }}{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <a href="/automation" style="color: var(--t2);" class="text-sm">Home</a>
+    <span style="color: var(--t3);"> / </span>
+    <span class="text-sm" style="color: var(--t1);">{{ tc.name }}</span>
+</div>
+
+<div class="flex justify-between items-center mb-6">
+    <div>
+        <h1 class="text-xl font-bold">{{ tc.name }}</h1>
+        <p class="text-sm" style="color: var(--t2);">API Test Case | Base URL: {{ tc.base_url or 'Not set' }}</p>
+    </div>
+    {% set _cls = tc.status|lower if tc.status in ['PASS','FAIL'] else 'pending' %}
+    <span class="badge-{{ _cls }} px-3 py-1 rounded" id="tc-status-badge">{{ tc.status }}</span>
+</div>
+
+<!-- Swagger Import Card -->
+<div class="card p-4 mb-6">
+    <h2 class="text-sm font-semibold mb-3" style="color: var(--t2);">Swagger / OpenAPI Import</h2>
+    <form id="swagger-form" class="flex gap-3 items-end">
+        <div class="flex-1">
+            <label class="text-xs" style="color: var(--t3);">Swagger URL</label>
+            <input type="text" id="swagger-url" placeholder="https://petstore.swagger.io/v2/swagger.json" class="input w-full px-3 py-2 rounded">
+        </div>
+        <div>
+            <label class="text-xs" style="color: var(--t3);">Or upload file</label>
+            <input type="file" id="swagger-file" accept=".json,.yaml,.yml" class="input px-3 py-2 rounded text-xs">
+        </div>
+        <button type="button" onclick="parseSwagger()" class="btn-primary px-4 py-2 rounded text-sm">Parse</button>
+    </form>
+    <div id="parse-result" class="mt-3 hidden"></div>
+</div>
+
+<!-- Endpoints Table -->
+<div class="card p-4">
+    <h2 class="text-sm font-semibold mb-3" style="color: var(--t2);">Endpoints</h2>
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead>
+                <tr>
+                    <th class="table-hd">Method</th>
+                    <th class="table-hd">Path</th>
+                    <th class="table-hd">Summary</th>
+                    <th class="table-hd">Expected</th>
+                    <th class="table-hd">Actual</th>
+                    <th class="table-hd">Status</th>
+                    <th class="table-hd">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="ep-table-body">
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- 6-Tab Details Modal -->
+<div id="ep-modal" class="modal-backdrop hidden">
+    <div class="modal-box" style="width: min(900px, 96vw); height: min(680px, 94vh); display: flex; flex-direction: column;">
+        <!-- Modal Header -->
+        <div class="flex justify-between items-center mb-4">
+            <div class="flex items-center gap-3">
+                <span id="modal-method" class="badge-method px-2 py-1 rounded text-xs font-bold">GET</span>
+                <span id="modal-path" class="text-sm font-mono" style="color: var(--t1);"></span>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="retestEndpoint()" class="btn-primary px-3 py-1 rounded text-xs">Retest</button>
+                <button onclick="hideModal('ep-modal')" class="btn-ghost px-3 py-1 rounded text-xs">Close</button>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="flex gap-1 mb-4 border-b" style="border-color: var(--bd);">
+            <button onclick="switchTab('endpoint')" class="tab-btn active" data-tab="endpoint">Endpoint</button>
+            <button onclick="switchTab('tc-details')" class="tab-btn" data-tab="tc-details">TC Details</button>
+            <button onclick="switchTab('request')" class="tab-btn" data-tab="request">Request</button>
+            <button onclick="switchTab('response')" class="tab-btn" data-tab="response">Response</button>
+            <button onclick="switchTab('validation')" class="tab-btn" data-tab="validation">Validation</button>
+            <button onclick="switchTab('logs')" class="tab-btn" data-tab="logs">Logs</button>
+        </div>
+
+        <!-- Tab Content -->
+        <div class="flex-1 overflow-y-auto">
+            <!-- Endpoint Tab -->
+            <div id="tab-endpoint" class="tab-content">
+                <div class="space-y-3">
+                    <div>
+                        <label class="text-xs" style="color: var(--t3);">Method</label>
+                        <select id="ep-method" class="input w-full px-3 py-2 rounded">
+                            <option value="GET">GET</option><option value="POST">POST</option>
+                            <option value="PUT">PUT</option><option value="PATCH">PATCH</option>
+                            <option value="DELETE">DELETE</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-xs" style="color: var(--t3);">Path</label>
+                        <input id="ep-path" class="input w-full px-3 py-2 rounded">
+                    </div>
+                    <div>
+                        <label class="text-xs" style="color: var(--t3);">Summary</label>
+                        <input id="ep-summary" class="input w-full px-3 py-2 rounded">
+                    </div>
+                    <div>
+                        <label class="text-xs" style="color: var(--t3);">Expected Status</label>
+                        <input id="ep-expected" type="number" class="input w-full px-3 py-2 rounded">
+                    </div>
+                </div>
+            </div>
+
+            <!-- TC Details Tab -->
+            <div id="tab-tc-details" class="tab-content hidden">
+                <div class="space-y-3">
+                    <div>
+                        <label class="text-xs" style="color: var(--t3);">Test Case Name</label>
+                        <input id="ep-tc-name" class="input w-full px-3 py-2 rounded" value="{{ tc.name }}">
+                    </div>
+                    <div>
+                        <label class="text-xs" style="color: var(--t3);">Base URL</label>
+                        <input id="ep-tc-baseurl" class="input w-full px-3 py-2 rounded" value="{{ tc.base_url or '' }}">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Request Tab with JSON/Field dual-view -->
+            <div id="tab-request" class="tab-content hidden">
+                <div class="flex gap-2 mb-3">
+                    <button onclick="reqView('json')" id="btn-req-json" class="btn-sm px-3 py-1 rounded text-xs btn-primary">JSON</button>
+                    <button onclick="reqView('fields')" id="btn-req-fields" class="btn-sm px-3 py-1 rounded text-xs btn-ghost">Fields</button>
+                </div>
+                <!-- JSON View -->
+                <div id="req-json-view" class="space-y-3">
+                    <div>
+                        <label class="text-xs" style="color: var(--t3);">Headers</label>
+                        <textarea id="req-headers-json" class="input w-full px-3 py-2 rounded font-mono text-xs" rows="3">{}</textarea>
+                    </div>
+                    <div>
+                        <label class="text-xs" style="color: var(--t3);">Params</label>
+                        <textarea id="req-params-json" class="input w-full px-3 py-2 rounded font-mono text-xs" rows="3">{}</textarea>
+                    </div>
+                    <div>
+                        <label class="text-xs" style="color: var(--t3);">Body</label>
+                        <textarea id="req-body-json" class="input w-full px-3 py-2 rounded font-mono text-xs" rows="5">{}</textarea>
+                    </div>
+                </div>
+                <!-- Fields View -->
+                <div id="req-fields-view" class="space-y-3 hidden">
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="text-xs" style="color: var(--t3);">Headers</label>
+                            <button onclick="addFieldRow('headers')" class="text-xs" style="color: var(--accent);">+ Add</button>
+                        </div>
+                        <div id="fields-headers" class="space-y-1"></div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="text-xs" style="color: var(--t3);">Params</label>
+                            <button onclick="addFieldRow('params')" class="text-xs" style="color: var(--accent);">+ Add</button>
+                        </div>
+                        <div id="fields-params" class="space-y-1"></div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="text-xs" style="color: var(--t3);">Body</label>
+                            <button onclick="addFieldRow('body')" class="text-xs" style="color: var(--accent);">+ Add</button>
+                        </div>
+                        <div id="fields-body" class="space-y-1"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Response Tab -->
+            <div id="tab-response" class="tab-content hidden">
+                <div class="space-y-3">
+                    <div>
+                        <label class="text-xs" style="color: var(--t3);">Status Code</label>
+                        <div id="resp-status" class="text-lg font-bold" style="color: var(--t1);">-</div>
+                    </div>
+                    <div>
+                        <label class="text-xs" style="color: var(--t3);">Response Body</label>
+                        <pre id="resp-body" class="p-3 rounded text-xs font-mono overflow-auto" style="background: var(--bg-s); border: 1px solid var(--bd); color: var(--t2); max-height: 400px;"></pre>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Validation Tab -->
+            <div id="tab-validation" class="tab-content hidden">
+                <div id="validation-result" class="p-4 rounded text-center"></div>
+            </div>
+
+            <!-- Logs Tab -->
+            <div id="tab-logs" class="tab-content hidden">
+                <div class="flex gap-2 mb-3">
+                    <button onclick="filterLogs('all')" class="btn-xs px-2 py-1 rounded text-xs btn-primary">All</button>
+                    <button onclick="filterLogs('relevant')" class="btn-xs px-2 py-1 rounded text-xs btn-ghost">Relevant</button>
+                    <button onclick="filterLogs('errors')" class="btn-xs px-2 py-1 rounded text-xs btn-ghost">Errors</button>
+                </div>
+                <div id="logs-container" class="space-y-1 text-xs font-mono"></div>
+            </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="mt-4 pt-3 flex justify-end" style="border-top: 1px solid var(--bd);">
+            <button onclick="saveEpDetails()" class="btn-primary px-4 py-2 rounded text-sm">Save Changes</button>
+            <span id="save-flash" class="ml-3 text-xs hidden" style="color: var(--green);">Saved</span>
+        </div>
+    </div>
+</div>
+
+<script id="endpoints-data" type="application/json">
+{% autoescape false %}
+{{ endpoints | tojson }}
+{% endautoescape %}
+</script>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const TC_ID = {{ tc.id }};
+{% set _cls = tc.status|lower if tc.status in ['PASS','FAIL'] else 'pending' %}
+const TC_STATUS_BADGE = '{{ _cls }}';
+let endpointsData = JSON.parse(document.getElementById('endpoints-data').textContent || '[]');
+let currentEpId = null;
+let currentEpIdx = null;
+let logsData = [];
+
+function renderEndpoints() {
+    const tbody = document.getElementById('ep-table-body');
+    tbody.innerHTML = endpointsData.map((ep, i) => {
+        const passClass = ep.passed === true ? 'badge-pass' : ep.passed === false ? 'badge-fail' : 'badge-pending';
+        const passText = ep.passed === true ? 'PASS' : ep.passed === false ? 'FAIL' : '-';
+        return `<tr class="hover:bg-white/5 cursor-pointer" onclick="openEpModal(${i})">
+            <td class="table-cell"><span class="badge-method-${ep.method.toLowerCase()} px-1.5 py-0.5 rounded text-xs">${ep.method}</span></td>
+            <td class="table-cell font-mono text-xs">${ep.path}</td>
+            <td class="table-cell text-xs">${ep.summary||''}</td>
+            <td class="table-cell text-center">${ep.expected_status}</td>
+            <td class="table-cell text-center">${ep.actual_status||'-'}</td>
+            <td class="table-cell"><span class="${passClass} text-xs px-1.5 py-0.5 rounded">${passText}</span></td>
+            <td class="table-cell"><button class="btn-xs text-xs px-2 py-1" onclick="event.stopPropagation();openEpModal(${i})">Details</button></td>
+        </tr>`;
+    }).join('');
+}
+
+function openEpModal(idx) {
+    const ep = endpointsData[idx];
+    currentEpId = ep.id;
+    currentEpIdx = idx;
+
+    document.getElementById('modal-method').textContent = ep.method;
+    document.getElementById('modal-path').textContent = ep.path;
+    document.getElementById('ep-method').value = ep.method;
+    document.getElementById('ep-path').value = ep.path;
+    document.getElementById('ep-summary').value = ep.summary || '';
+    document.getElementById('ep-expected').value = ep.expected_status;
+
+    document.getElementById('req-headers-json').value = formatJson(ep.request_headers);
+    document.getElementById('req-params-json').value = formatJson(ep.request_params);
+    document.getElementById('req-body-json').value = formatJson(ep.request_body);
+
+    document.getElementById('resp-status').textContent = ep.actual_status || '-';
+    document.getElementById('resp-body').textContent = ep.response_body || 'No response yet';
+
+    // Validation
+    const valDiv = document.getElementById('validation-result');
+    if (ep.passed === true) {
+        valDiv.innerHTML = `<div class="badge-pass p-4 rounded text-lg">PASS</div><p class="mt-2 text-sm" style="color:var(--t2);">Expected: ${ep.expected_status} | Actual: ${ep.actual_status}</p>`;
+    } else if (ep.passed === false) {
+        valDiv.innerHTML = `<div class="badge-fail p-4 rounded text-lg">FAIL</div><p class="mt-2 text-sm" style="color:var(--t2);">Expected: ${ep.expected_status} | Actual: ${ep.actual_status}</p>`;
+    } else {
+        valDiv.innerHTML = `<div class="badge-pending p-4 rounded">Not tested</div>`;
+    }
+
+    switchTab('endpoint');
+    showModal('ep-modal');
+    fetchLogs();
+}
+
+function switchTab(tab) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.remove('hidden');
+    document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+}
+
+function reqView(mode) {
+    if (mode === 'json') {
+        // Sync fields to JSON first if switching from fields
+        document.getElementById('req-json-view').classList.remove('hidden');
+        document.getElementById('req-fields-view').classList.add('hidden');
+        document.getElementById('btn-req-json').classList.add('btn-primary');
+        document.getElementById('btn-req-json').classList.remove('btn-ghost');
+        document.getElementById('btn-req-fields').classList.add('btn-ghost');
+        document.getElementById('btn-req-fields').classList.remove('btn-primary');
+    } else {
+        // Parse JSON to fields
+        populateFieldsFromJson('headers', document.getElementById('req-headers-json').value);
+        populateFieldsFromJson('params', document.getElementById('req-params-json').value);
+        populateFieldsFromJson('body', document.getElementById('req-body-json').value);
+        document.getElementById('req-json-view').classList.add('hidden');
+        document.getElementById('req-fields-view').classList.remove('hidden');
+        document.getElementById('btn-req-fields').classList.add('btn-primary');
+        document.getElementById('btn-req-fields').classList.remove('btn-ghost');
+        document.getElementById('btn-req-json').classList.add('btn-ghost');
+        document.getElementById('btn-req-json').classList.remove('btn-primary');
+    }
+}
+
+function populateFieldsFromJson(section, jsonStr) {
+    const container = document.getElementById('fields-' + section);
+    let obj = {};
+    try { obj = JSON.parse(jsonStr || '{}'); } catch(e) {}
+    container.innerHTML = '';
+    for (const [k, v] of Object.entries(obj)) {
+        addFieldRowHtml(container, section, k, String(v));
+    }
+}
+
+function addFieldRow(section) {
+    const container = document.getElementById('fields-' + section);
+    addFieldRowHtml(container, section, '', '');
+}
+
+function addFieldRowHtml(container, section, key, value) {
+    const row = document.createElement('div');
+    row.className = 'flex gap-2 items-center';
+    row.innerHTML = `
+        <input value="${escHtml(key)}" placeholder="Key" class="input flex-1 px-2 py-1 rounded text-xs" oninput="syncFieldsToJson('${section}')">
+        <input value="${escHtml(value)}" placeholder="Value" class="input flex-1 px-2 py-1 rounded text-xs" oninput="syncFieldsToJson('${section}')">
+        <button onclick="this.parentElement.remove();syncFieldsToJson('${section}')" class="text-xs" style="color:var(--red);">X</button>
+    `;
+    container.appendChild(row);
+}
+
+function syncFieldsToJson(section) {
+    const container = document.getElementById('fields-' + section);
+    const rows = container.querySelectorAll('div');
+    const obj = {};
+    rows.forEach(row => {
+        const inputs = row.querySelectorAll('input');
+        if (inputs[0] && inputs[0].value) {
+            obj[inputs[0].value] = inputs[1].value;
+        }
+    });
+    const textarea = document.getElementById('req-' + section + '-json');
+    textarea.value = JSON.stringify(obj, null, 2);
+}
+
+async function saveEpDetails() {
+    // Flush fields to JSON if in fields view
+    if (!document.getElementById('req-fields-view').classList.contains('hidden')) {
+        syncFieldsToJson('headers');
+        syncFieldsToJson('params');
+        syncFieldsToJson('body');
+    }
+
+    const payload = {
+        method: document.getElementById('ep-method').value,
+        path: document.getElementById('ep-path').value,
+        summary: document.getElementById('ep-summary').value,
+        expected_status: parseInt(document.getElementById('ep-expected').value),
+        tc_name: document.getElementById('ep-tc-name').value,
+        tc_baseurl: document.getElementById('ep-tc-baseurl').value,
+        request_headers: document.getElementById('req-headers-json').value,
+        request_params: document.getElementById('req-params-json').value,
+        request_body: document.getElementById('req-body-json').value,
+    };
+
+    const r = await fetch(`/api/save-endpoint/${currentEpId}`, {
+        method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload)
+    });
+    if (r.ok) {
+        const flash = document.getElementById('save-flash');
+        flash.classList.remove('hidden');
+        setTimeout(() => flash.classList.add('hidden'), 2000);
+        // Update local data
+        endpointsData[currentEpIdx] = {...endpointsData[currentEpIdx], ...payload};
+        renderEndpoints();
+    }
+}
+
+async function retestEndpoint() {
+    const r = await fetch(`/api/retest-endpoint/${currentEpId}`, {method:'POST'});
+    if (!r.ok) return;
+    const data = await r.json();
+    const tcId = data.tc_id;
+
+    let _polls = 0;
+    const poll = setInterval(async () => {
+        _polls++;
+        if (_polls > 60) { clearInterval(poll); return; }
+        const sr = await fetch(`/api/tc-status/${tcId}`);
+        if (!sr.ok) return;
+        const sd = await sr.json();
+        if (sd.status !== 'RUNNING') { clearInterval(poll); location.reload(); }
+    }, 2000);
+}
+
+async function parseSwagger() {
+    const url = document.getElementById('swagger-url').value;
+    const file = document.getElementById('swagger-file').files[0];
+    const fd = new FormData();
+    if (url) fd.append('swagger_url', url);
+    if (file) fd.append('swagger_file', file);
+
+    const r = await fetch(`/api/parse-swagger/${TC_ID}`, {method:'POST', body: fd});
+    const result = document.getElementById('parse-result');
+    result.classList.remove('hidden');
+
+    if (r.ok) {
+        const data = await r.json();
+        result.innerHTML = `<div class="p-3 rounded" style="background: rgba(74,222,128,.1); border: 1px solid var(--green); color: var(--green);">
+            Parsed ${data.endpoints} endpoints.
+            <a href="/api/flow/${TC_ID}" style="color:var(--cyan);">Positive TC</a> |
+            <a href="/api/flow/${data.neg_tc_id}" style="color:var(--cyan);">Negative (${data.neg_count})</a> |
+            <a href="/api/flow/${data.perf_tc_id}" style="color:var(--cyan);">Performance (${data.perf_count})</a>
+        </div>`;
+        location.reload();
+    } else {
+        const err = await r.json();
+        result.innerHTML = `<div class="p-3 rounded" style="background: rgba(248,113,113,.1); border: 1px solid var(--red); color: var(--red);">${err.error || err.detail || 'Parse failed'}</div>`;
+    }
+}
+
+async function fetchLogs() {
+    if (!currentEpId) return;
+    const r = await fetch(`/api/endpoint-logs/${currentEpId}`);
+    if (r.ok) {
+        logsData = await r.json();
+        renderLogs('all');
+    }
+}
+
+function renderLogs(filter) {
+    const container = document.getElementById('logs-container');
+    let filtered = logsData;
+    if (filter === 'relevant') filtered = logsData.filter(l => l.relevant);
+    if (filter === 'errors') filtered = logsData.filter(l => l.level === 'ERROR');
+
+    container.innerHTML = filtered.map(l => {
+        const cls = l.level === 'ERROR' ? 'color:var(--red)' : l.level === 'WARN' ? 'color:var(--amber)' : 'color:var(--t2)';
+        return `<div class="flex gap-2 py-1" style="border-bottom: 1px solid var(--bd);">
+            <span style="color:var(--t3);">${l.ts}</span>
+            <span style="${cls}" class="w-12">${l.level}</span>
+            <span style="color:var(--t3);" class="w-20">${l.state || ''}</span>
+            <span style="color:var(--t1);" class="flex-1">${l.msg}</span>
+            <span style="color:var(--t3);">${l.dur ? l.dur.toFixed(0)+'ms' : ''}</span>
+        </div>`;
+    }).join('');
+}
+
+function filterLogs(f) { renderLogs(f); }
+
+function formatJson(s) {
+    try { return JSON.stringify(JSON.parse(s || '{}'), null, 2); } catch(e) { return s || '{}'; }
+}
+
+function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+renderEndpoints();
+</script>
+{% endblock %}

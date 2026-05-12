@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}Reports - Playwright Agent{% endblock %}
+
+{% block content %}
+<div class="flex justify-between items-center mb-6">
+    <h1 class="text-xl font-bold">Run History</h1>
+    <div id="bulk-toolbar" class="hidden flex gap-2 items-center">
+        <button onclick="deleteSelected()" class="btn-xs px-3 py-1 rounded text-xs" style="color: var(--red); border: 1px solid var(--red);">Delete Selected</button>
+        <button onclick="clearSelection()" class="btn-xs px-3 py-1 rounded text-xs btn-ghost">Clear</button>
+    </div>
+</div>
+
+<div class="card overflow-x-auto">
+    <table class="w-full text-sm">
+        <thead>
+            <tr>
+                <th class="table-hd w-8"><input type="checkbox" id="master-check" onchange="toggleAll()"></th>
+                <th class="table-hd">Run ID</th>
+                <th class="table-hd">Test Case</th>
+                <th class="table-hd">Type</th>
+                <th class="table-hd">Status</th>
+                <th class="table-hd">Started</th>
+                <th class="table-hd">Duration</th>
+                <th class="table-hd">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for run in runs %}
+            <tr class="hover:bg-white/5">
+                <td class="table-cell"><input type="checkbox" class="run-check" value="{{ run.run_id }}" onchange="updateBulkToolbar()"></td>
+                <td class="table-cell font-mono text-xs">{{ run.run_id }}</td>
+                <td class="table-cell">
+                    <a href="/report/{{ run.tc_id }}?run_id={{ run.run_id }}" style="color: var(--accent-l);">{{ run.tc_name }}</a>
+                </td>
+                <td class="table-cell">
+                    <span class="tag-{{ run.flow_type }} text-xs px-1.5 py-0.5 rounded">{{ run.flow_type }}</span>
+                </td>
+                <td class="table-cell">
+                    {% set _cls = run.status|lower if run.status in ['PASS','FAIL'] else 'pending' %}
+                    <span class="badge-{{ _cls }} text-xs px-1.5 py-0.5 rounded">{{ run.status }}</span>
+                </td>
+                <td class="table-cell text-xs">{{ run.started }}</td>
+                <td class="table-cell text-xs">{{ run.duration }}</td>
+                <td class="table-cell">
+                    <form method="POST" action="/report/run/{{ run.run_id }}/delete" style="display:inline" onsubmit="return confirm('Delete this run?')">
+                        <button class="btn-xs text-xs px-2 py-1" style="color: var(--red);">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if not runs %}
+<div class="text-center py-12" style="color: var(--t3);">
+    <p class="text-lg">No runs yet</p>
+    <p class="text-sm mt-2">Execute test cases to see results here</p>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleAll() {
+    const master = document.getElementById('master-check').checked;
+    document.querySelectorAll('.run-check').forEach(cb => cb.checked = master);
+    updateBulkToolbar();
+}
+
+function updateBulkToolbar() {
+    const checked = document.querySelectorAll('.run-check:checked').length;
+    document.getElementById('bulk-toolbar').classList.toggle('hidden', checked === 0);
+}
+
+function clearSelection() {
+    document.querySelectorAll('.run-check').forEach(cb => cb.checked = false);
+    document.getElementById('master-check').checked = false;
+    updateBulkToolbar();
+}
+
+function deleteSelected() {
+    const ids = Array.from(document.querySelectorAll('.run-check:checked')).map(cb => cb.value);
+    if (!ids.length) return;
+    if (!confirm(`Delete ${ids.length} run(s)?`)) return;
+
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/report/runs/delete-selected';
+    const input = document.createElement('input');
+    input.name = 'run_ids';
+    input.value = ids.join(',');
+    form.appendChild(input);
+    document.body.appendChild(form);
+    form.submit();
+}
+</script>
+{% endblock %}
