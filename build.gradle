@@ -5,6 +5,7 @@ plugins {
     id "com.netflix.dgs.codegen" version "5.0.6"
     id "com.diffplug.spotless" version "6.2.1"
     id 'jacoco'
+    id 'org.owasp.dependencycheck' version '8.2.1'
 }
 
 version = '0.0.1-SNAPSHOT'
@@ -26,13 +27,12 @@ jacoco {
 }
 
 jacocoTestReport {
-    dependsOn test
     reports {
         xml.required = true
         html.required = true
         csv.required = false
     }
-    finalizedBy jacocoTestCoverageVerification
+    executionData fileTree(project.buildDir).include('jacoco/*.exec')
 }
 
 jacocoTestCoverageVerification {
@@ -93,7 +93,6 @@ tasks.named('test') {
 	useJUnitPlatform()
 	// Exclude Selenium tests from JUnit test task
 	exclude 'io/spring/selenium/**'
-	finalizedBy jacocoTestReport
 }
 
 // Separate task for Selenium E2E tests using TestNG
@@ -134,3 +133,34 @@ tasks.named('bootRun') {
         delete './dev.db'
     }
 }
+
+dependencyCheck {
+    failBuildOnCVSS = 7.0f
+    formats = ['HTML', 'JSON']
+    suppressionFiles = []
+    analyzers {
+        assemblyEnabled = false
+    }
+}
+
+tasks.register('unitTest', Test) {
+    description = 'Run unit tests'
+    group = 'verification'
+    useJUnitPlatform()
+    include 'io/spring/core/**'
+    include 'io/spring/infrastructure/service/**'
+    exclude 'io/spring/selenium/**'
+}
+
+tasks.register('integrationTest', Test) {
+    description = 'Run integration tests'
+    group = 'verification'
+    useJUnitPlatform()
+    include 'io/spring/api/**'
+    include 'io/spring/application/**'
+    include 'io/spring/infrastructure/**'
+    exclude 'io/spring/infrastructure/service/**'
+    exclude 'io/spring/selenium/**'
+}
+
+
