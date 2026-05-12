@@ -1,0 +1,146 @@
+version: "3.8"
+
+services:
+  gateway:
+    build:
+      context: ./microservices/gateway
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      user-service:
+        condition: service_healthy
+      article-service:
+        condition: service_healthy
+      comment-service:
+        condition: service_healthy
+      favorite-service:
+        condition: service_healthy
+      frontend:
+        condition: service_started
+    networks:
+      - conduit-network
+
+  user-service:
+    build:
+      context: ./microservices/user-service
+      dockerfile: ../common/Dockerfile.spring-boot
+      args:
+        SERVICE_PORT: 8081
+    ports:
+      - "8081:8081"
+    environment:
+      - SERVER_PORT=8081
+      - JWT_SECRET=${JWT_SECRET}
+      - SPRING_DATASOURCE_URL=jdbc:sqlite:/data/user-service.db
+      - ARTICLE_SERVICE_URL=http://article-service:8082
+      - COMMENT_SERVICE_URL=http://comment-service:8083
+      - FAVORITE_SERVICE_URL=http://favorite-service:8084
+    volumes:
+      - user-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - conduit-network
+
+  article-service:
+    build:
+      context: ./microservices/article-service
+      dockerfile: ../common/Dockerfile.spring-boot
+      args:
+        SERVICE_PORT: 8082
+    ports:
+      - "8082:8082"
+    environment:
+      - SERVER_PORT=8082
+      - JWT_SECRET=${JWT_SECRET}
+      - SPRING_DATASOURCE_URL=jdbc:sqlite:/data/article-service.db
+      - USER_SERVICE_URL=http://user-service:8081
+      - COMMENT_SERVICE_URL=http://comment-service:8083
+      - FAVORITE_SERVICE_URL=http://favorite-service:8084
+    volumes:
+      - article-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - conduit-network
+
+  comment-service:
+    build:
+      context: ./microservices/comment-service
+      dockerfile: ../common/Dockerfile.spring-boot
+      args:
+        SERVICE_PORT: 8083
+    ports:
+      - "8083:8083"
+    environment:
+      - SERVER_PORT=8083
+      - JWT_SECRET=${JWT_SECRET}
+      - SPRING_DATASOURCE_URL=jdbc:sqlite:/data/comment-service.db
+      - USER_SERVICE_URL=http://user-service:8081
+      - ARTICLE_SERVICE_URL=http://article-service:8082
+    volumes:
+      - comment-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8083/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - conduit-network
+
+  favorite-service:
+    build:
+      context: ./microservices/favorite-service
+      dockerfile: ../common/Dockerfile.spring-boot
+      args:
+        SERVICE_PORT: 8084
+    ports:
+      - "8084:8084"
+    environment:
+      - SERVER_PORT=8084
+      - JWT_SECRET=${JWT_SECRET}
+      - SPRING_DATASOURCE_URL=jdbc:sqlite:/data/favorite-service.db
+      - USER_SERVICE_URL=http://user-service:8081
+      - ARTICLE_SERVICE_URL=http://article-service:8082
+    volumes:
+      - favorite-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8084/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - conduit-network
+
+  frontend:
+    build:
+      context: ./microservices/frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://gateway/api
+      - NODE_ENV=production
+    networks:
+      - conduit-network
+
+volumes:
+  user-data:
+  article-data:
+  comment-data:
+  favorite-data:
+
+networks:
+  conduit-network:
+    driver: bridge
