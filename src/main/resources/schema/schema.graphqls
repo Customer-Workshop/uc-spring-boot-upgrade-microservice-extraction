@@ -14,6 +14,7 @@ type Query {
     feed(first: Int, after: String, last: Int, before: String): ArticlesConnection
     profile(username: String!): ProfilePayload
     tags: [String]
+    bookmarkedArticles(first: Int, after: String, last: Int, before: String): ArticlesConnection
 }
 
 union UserResult = UserPayload | Error
@@ -36,6 +37,10 @@ type Mutation {
     ### Comment
     addComment(slug: String!, body: String!): CommentPayload
     deleteComment(slug: String!, id: ID!): DeletionStatus
+
+    ### Bookmark
+    bookmarkArticle(slug: String!): ArticlePayload
+    unbookmarkArticle(slug: String!): ArticlePayload
 }
 
 schema {
@@ -47,6 +52,7 @@ schema {
 type Article {
     author: Profile!
     body: String!
+    bookmarked: Boolean!
     comments(first: Int, after: String, last: Int, before: String): CommentsConnection
     createdAt: String!
     description: String!
