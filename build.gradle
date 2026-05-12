@@ -87,12 +87,19 @@ dependencies {
     testImplementation 'org.testng:testng:7.8.0'
     testImplementation 'com.aventstack:extentreports:5.1.1'
     testImplementation 'org.apache.httpcomponents.client5:httpclient5:5.2.1'
+
+    // Cucumber BDD testing
+    testImplementation 'io.cucumber:cucumber-java:7.15.0'
+    testImplementation 'io.cucumber:cucumber-spring:7.15.0'
+    testImplementation 'io.cucumber:cucumber-junit-platform-engine:7.15.0'
+    testImplementation 'org.junit.platform:junit-platform-suite:1.9.3'
 }
 
 tasks.named('test') {
 	useJUnitPlatform()
-	// Exclude Selenium tests from JUnit test task
+	// Exclude Selenium and Cucumber tests from JUnit test task
 	exclude 'io/spring/selenium/**'
+	exclude 'io/spring/cucumber/**'
 	finalizedBy jacocoTestReport
 }
 
@@ -115,6 +122,28 @@ tasks.register('seleniumTest', Test) {
 	
 	// Don't fail the build on test failures (for CI reporting)
 	ignoreFailures = false
+}
+
+// Separate task for Cucumber BDD tests
+tasks.register('cucumberTest', Test) {
+	description = 'Run Cucumber BDD tests'
+	group = 'verification'
+
+	doFirst {
+		delete './cucumber-test.db'
+	}
+
+	useJUnitPlatform()
+
+	// Only include Cucumber tests
+	include 'io/spring/cucumber/**'
+
+	systemProperty 'cucumber.junit-platform.naming-strategy', 'long'
+
+	testLogging {
+		events "passed", "skipped", "failed"
+		showStandardStreams = true
+	}
 }
 
 tasks.named('clean') {
