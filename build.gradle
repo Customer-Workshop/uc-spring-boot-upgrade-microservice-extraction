@@ -30,12 +30,26 @@ jacocoTestReport {
     reports {
         xml.required = true
         html.required = true
-        csv.required = false
+        csv.required = true
+    }
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: [
+                'io/spring/graphql/**',
+            ])
+        }))
     }
     finalizedBy jacocoTestCoverageVerification
 }
 
 jacocoTestCoverageVerification {
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: [
+                'io/spring/graphql/**',
+            ])
+        }))
+    }
     violationRules {
         rule {
             limit {

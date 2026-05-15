@@ -6,5 +6,29 @@
             <class name="io.spring.selenium.tests.SeleniumSetupTest"/>
         </classes>
     </test>
+
+    <test name="Home Page Tests">
+        <classes>
+            <class name="io.spring.selenium.tests.HomePageTest"/>
+        </classes>
+    </test>
+
+    <test name="Login Page Tests">
+        <classes>
+            <class name="io.spring.selenium.tests.LoginPageTest"/>
+        </classes>
+    </test>
+
+    <test name="Register Page Tests">
+        <classes>
+            <class name="io.spring.selenium.tests.RegisterPageTest"/>
+        </classes>
+    </test>
+
+    <test name="Navigation Tests">
+        <classes>
+            <class name="io.spring.selenium.tests.NavigationTest"/>
+        </classes>
+    </test>
     
 </suite>
