@@ -1,5 +1,5 @@
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
-<suite name="Selenium Test Suite" parallel="classes" thread-count="2">
+<suite name="Selenium Full Test Suite" parallel="classes" thread-count="2">
     
     <listeners>
         <listener class-name="io.spring.selenium.listeners.TestListener"/>
@@ -28,9 +28,16 @@
     </test>
     
     <test name="All Tests">
-        <packages>
-            <package name="io.spring.selenium.tests.*"/>
-        </packages>
+        <classes>
+            <class name="io.spring.selenium.tests.SeleniumSetupTest"/>
+            <class name="io.spring.selenium.tests.HomePageTest"/>
+            <class name="io.spring.selenium.tests.LoginPageTest"/>
+            <class name="io.spring.selenium.tests.RegisterPageTest"/>
+            <class name="io.spring.selenium.tests.NavigationTest"/>
+            <class name="io.spring.selenium.tests.UserRegistrationFlowTest"/>
+            <class name="io.spring.selenium.tests.ArticleCRUDTest"/>
+            <class name="io.spring.selenium.tests.ArticleInteractionTest"/>
+        </classes>
     </test>
     
 </suite>
