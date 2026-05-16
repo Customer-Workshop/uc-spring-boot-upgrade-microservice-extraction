@@ -7,7 +7,7 @@ const UserAPI = {
     const user: any = window.localStorage.getItem("user");
     const token = user?.token;
     try {
-      const response = await axios.get(`/user`, {
+      const response = await axios.get(`${SERVER_BASE_URL}/user`, {
         headers: {
           Authorization: `Token ${encodeURIComponent(token)}`,
         },
