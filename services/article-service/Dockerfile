@@ -1,7 +1,7 @@
 FROM gradle:7.4-jdk11 AS build
 WORKDIR /app
-COPY ../../settings.gradle ./settings.gradle
-COPY ../../build.gradle ./build.gradle
+COPY settings.gradle ./settings.gradle
+COPY build.gradle ./build.gradle
 COPY services/common/ ./services/common/
 COPY services/article-service/ ./services/article-service/
 RUN gradle :services:article-service:bootJar --no-daemon -x test
