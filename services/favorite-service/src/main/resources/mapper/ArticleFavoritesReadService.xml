@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="io.spring.favoriteservice.infrastructure.mybatis.readservice.ArticleFavoritesReadService">
+    <select id="isUserFavorite" resultType="java.lang.Boolean">
+        select count(1) from article_favorites where user_id = #{userId} and article_id = #{articleId}
+    </select>
+    <select id="articleFavoriteCount" resultType="java.lang.Integer">
+        select count(1) from article_favorites where article_id = #{articleId}
+    </select>
+    <select id="articlesFavoriteCount" resultMap="transfer.data.favoriteCount">
+        select A.id, count(AF.user_id) as favoriteCount from article_favorites AF
+        left join article_favorites AF2 on AF2.article_id = AF.article_id
+        where AF.article_id in
+        <foreach collection="ids" item="item" separator="," open="(" close=")">
+            #{item}
+        </foreach>
+        group by AF.article_id
+    </select>
+    <resultMap id="transfer.data.favoriteCount" type="io.spring.favoriteservice.application.data.ArticleFavoriteCount">
+        <result column="id" property="id"/>
+        <result column="favoriteCount" property="count"/>
+    </resultMap>
+</mapper>
