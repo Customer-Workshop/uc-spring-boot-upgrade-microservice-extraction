@@ -22,7 +22,7 @@
         articles A
         left join article_tags AT on A.id = AT.article_id
         left join tags T on T.id = AT.tag_id
-        left join users U on U.id = A.user_id
+        left join user_schema.users U on U.id = A.user_id
     </sql>
     <sql id="selectArticleIds">
         select
@@ -31,9 +31,9 @@
         articles A
         left join article_tags AT on A.id = AT.article_id
         left join tags T on T.id = AT.tag_id
-        left join article_favorites AF on AF.article_id = A.id
-        left join users AU on AU.id = A.user_id
-        left join users AFU on AFU.id = AF.user_id
+        left join favorite_schema.article_favorites AF on AF.article_id = A.id
+        left join user_schema.users AU on AU.id = A.user_id
+        left join user_schema.users AFU on AFU.id = AF.user_id
     </sql>
 
     <select id="findById" resultMap="transfer.data.articleData">
@@ -67,9 +67,9 @@
         articles A
         left join article_tags AT on A.id = AT.article_id
         left join tags T on T.id = AT.tag_id
-        left join article_favorites AF on AF.article_id = A.id
-        left join users AU on AU.id = A.user_id
-        left join users AFU on AFU.id = AF.user_id
+        left join favorite_schema.article_favorites AF on AF.article_id = A.id
+        left join user_schema.users AU on AU.id = A.user_id
+        left join user_schema.users AFU on AFU.id = AF.user_id
         <where>
             <if test="tag != null">
                 T.name = #{tag}
