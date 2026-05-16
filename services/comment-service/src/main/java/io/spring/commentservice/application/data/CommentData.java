@@ -15,6 +15,7 @@ public class CommentData {
   private String id;
   private String body;
   @JsonIgnore private String articleId;
+  @JsonIgnore private String userId;
   private DateTime createdAt;
   private DateTime updatedAt;
 
