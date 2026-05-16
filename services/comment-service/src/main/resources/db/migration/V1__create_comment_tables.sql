@@ -1,0 +1,10 @@
+-- Comment service schema tables
+
+CREATE TABLE IF NOT EXISTS comments (
+  id VARCHAR(255) PRIMARY KEY,
+  body TEXT,
+  article_id VARCHAR(255),
+  user_id VARCHAR(255),
+  created_at TIMESTAMP NOT NULL,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
