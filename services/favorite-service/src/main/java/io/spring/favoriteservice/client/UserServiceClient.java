@@ -27,7 +27,7 @@ public class UserServiceClient {
     try {
       ResponseEntity<UserData> response =
           restTemplate.getForEntity(
-              userServiceUrl + "/users/" + userId, UserData.class);
+              userServiceUrl + "/internal/users/" + userId, UserData.class);
       return Optional.ofNullable(response.getBody());
     } catch (HttpClientErrorException.NotFound e) {
       return Optional.empty();
