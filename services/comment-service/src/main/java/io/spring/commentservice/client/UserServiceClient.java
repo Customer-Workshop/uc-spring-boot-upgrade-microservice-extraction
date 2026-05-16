@@ -28,9 +28,9 @@ public class UserServiceClient implements UserLookup {
     try {
       Map<String, Object> response =
           restTemplate.getForObject(
-              userServiceUrl + "/users/{userId}", Map.class, userId);
-      if (response != null && response.containsKey("user")) {
-        return Optional.of(response.get("user"));
+              userServiceUrl + "/internal/users/{userId}", Map.class, userId);
+      if (response != null) {
+        return Optional.of(response);
       }
       return Optional.empty();
     } catch (HttpClientErrorException.NotFound e) {
@@ -43,14 +43,13 @@ public class UserServiceClient implements UserLookup {
     try {
       Map<String, Object> response =
           restTemplate.getForObject(
-              userServiceUrl + "/users/{userId}", Map.class, userId);
-      if (response != null && response.containsKey("user")) {
-        Map<String, Object> userData = (Map<String, Object>) response.get("user");
+              userServiceUrl + "/internal/users/{userId}", Map.class, userId);
+      if (response != null) {
         ProfileData profile = new ProfileData(
-            (String) userData.get("id"),
-            (String) userData.get("username"),
-            (String) userData.get("bio"),
-            (String) userData.get("image"),
+            (String) response.get("id"),
+            (String) response.get("username"),
+            (String) response.get("bio"),
+            (String) response.get("image"),
             false);
         return Optional.of(profile);
       }
