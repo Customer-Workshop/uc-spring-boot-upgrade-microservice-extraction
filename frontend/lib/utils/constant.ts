@@ -1,5 +1,7 @@
-export const SERVER_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || `/api`;
+const isServer = typeof window === 'undefined';
+export const SERVER_BASE_URL = isServer
+  ? (process.env.INTERNAL_API_URL || 'http://api-gateway/api')
+  : (process.env.NEXT_PUBLIC_API_URL || '/api');
 
 export const APP_NAME = `conduit`;
 
