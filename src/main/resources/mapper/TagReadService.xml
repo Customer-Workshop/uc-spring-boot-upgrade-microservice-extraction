@@ -4,4 +4,10 @@
     <select id="all" resultType="string">
         select name from tags
     </select>
+
+    <select id="findTagsByArticleId" resultType="string">
+        select T.name from tags T
+        inner join article_tags AT on T.id = AT.tag_id
+        where AT.article_id = #{articleId}
+    </select>
 </mapper>
