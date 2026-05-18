@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="io.spring.commentservice.repository.ArticleMapper">
+    <select id="findBySlug" resultMap="article">
+        select
+          id articleId,
+          user_id articleUserId,
+          slug articleSlug,
+          title articleTitle,
+          description articleDescription,
+          body articleBody,
+          created_at articleCreatedAt,
+          updated_at articleUpdatedAt
+        from articles
+        where slug = #{slug}
+    </select>
+    <resultMap id="article" type="io.spring.commentservice.domain.Article">
+        <id column="articleId" property="id"/>
+        <result column="articleUserId" property="userId"/>
+        <result column="articleSlug" property="slug"/>
+        <result column="articleTitle" property="title"/>
+        <result column="articleDescription" property="description"/>
+        <result column="articleBody" property="body"/>
+        <result column="articleCreatedAt" property="createdAt"/>
+        <result column="articleUpdatedAt" property="updatedAt"/>
+    </resultMap>
+</mapper>
