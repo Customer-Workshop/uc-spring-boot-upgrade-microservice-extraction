@@ -34,7 +34,9 @@ public class ArticleFavoriteApi {
       throw new ResourceNotFoundException();
     }
     ArticleFavorite articleFavorite = new ArticleFavorite(article.getId(), user.getId());
-    articleFavoriteMapper.insert(articleFavorite);
+    if (articleFavoriteMapper.find(article.getId(), user.getId()) == null) {
+      articleFavoriteMapper.insert(articleFavorite);
+    }
     return responseArticleData(articleQueryService.findBySlug(slug, user).get());
   }
 
