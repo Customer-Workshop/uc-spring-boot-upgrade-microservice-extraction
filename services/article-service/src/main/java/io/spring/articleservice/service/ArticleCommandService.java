@@ -6,6 +6,7 @@ import io.spring.articleservice.domain.User;
 import io.spring.articleservice.repository.ArticleMapper;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @AllArgsConstructor
@@ -13,6 +14,7 @@ public class ArticleCommandService {
 
   private ArticleMapper articleMapper;
 
+  @Transactional
   public Article createArticle(String title, String description, String body,
       java.util.List<String> tagList, User creator) {
     Article article = new Article(title, description, body,
