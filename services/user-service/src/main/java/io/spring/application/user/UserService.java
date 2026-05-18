@@ -49,7 +49,7 @@ public class UserService {
     user.update(
         updateUserParam.getEmail(),
         updateUserParam.getUsername(),
-        updateUserParam.getPassword(),
+        updateUserParam.getPassword().isEmpty() ? "" : passwordEncoder.encode(updateUserParam.getPassword()),
         updateUserParam.getBio(),
         updateUserParam.getImage());
     userRepository.save(user);
