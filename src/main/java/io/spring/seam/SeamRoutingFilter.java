@@ -80,62 +80,66 @@ public class SeamRoutingFilter implements Filter {
     }
 
     HttpURLConnection connection = (HttpURLConnection) new URL(targetUrl).openConnection();
-    connection.setRequestMethod(request.getMethod());
-    connection.setConnectTimeout(5000);
-    connection.setReadTimeout(30000);
+    try {
+      connection.setRequestMethod(request.getMethod());
+      connection.setConnectTimeout(5000);
+      connection.setReadTimeout(30000);
 
-    List<String> headerNames = Collections.list(request.getHeaderNames());
-    for (String headerName : headerNames) {
-      if ("host".equalsIgnoreCase(headerName)) {
-        continue;
-      }
-      List<String> values = Collections.list(request.getHeaders(headerName));
-      for (String value : values) {
-        connection.addRequestProperty(headerName, value);
-      }
-    }
-
-    if ("POST".equalsIgnoreCase(request.getMethod())
-        || "PUT".equalsIgnoreCase(request.getMethod())
-        || "PATCH".equalsIgnoreCase(request.getMethod())) {
-      connection.setDoOutput(true);
-      try (InputStream in = request.getInputStream();
-          OutputStream out = connection.getOutputStream()) {
-        byte[] buffer = new byte[4096];
-        int bytesRead;
-        while ((bytesRead = in.read(buffer)) != -1) {
-          out.write(buffer, 0, bytesRead);
+      List<String> headerNames = Collections.list(request.getHeaderNames());
+      for (String headerName : headerNames) {
+        if ("host".equalsIgnoreCase(headerName)) {
+          continue;
+        }
+        List<String> values = Collections.list(request.getHeaders(headerName));
+        for (String value : values) {
+          connection.addRequestProperty(headerName, value);
         }
       }
-    }
 
-    int statusCode = connection.getResponseCode();
-    response.setStatus(statusCode);
+      if ("POST".equalsIgnoreCase(request.getMethod())
+          || "PUT".equalsIgnoreCase(request.getMethod())
+          || "PATCH".equalsIgnoreCase(request.getMethod())) {
+        connection.setDoOutput(true);
+        try (InputStream in = request.getInputStream();
+            OutputStream out = connection.getOutputStream()) {
+          byte[] buffer = new byte[4096];
+          int bytesRead;
+          while ((bytesRead = in.read(buffer)) != -1) {
+            out.write(buffer, 0, bytesRead);
+          }
+        }
+      }
 
-    connection
-        .getHeaderFields()
-        .forEach(
-            (name, values) -> {
-              if (name != null
-                  && !"Transfer-Encoding".equalsIgnoreCase(name)
-                  && !"Content-Length".equalsIgnoreCase(name)) {
-                for (String value : values) {
-                  response.addHeader(name, value);
+      int statusCode = connection.getResponseCode();
+      response.setStatus(statusCode);
+
+      connection
+          .getHeaderFields()
+          .forEach(
+              (name, values) -> {
+                if (name != null
+                    && !"Transfer-Encoding".equalsIgnoreCase(name)
+                    && !"Content-Length".equalsIgnoreCase(name)) {
+                  for (String value : values) {
+                    response.addHeader(name, value);
+                  }
                 }
-              }
-            });
+              });
 
-    InputStream responseStream =
-        statusCode >= 400 ? connection.getErrorStream() : connection.getInputStream();
-    if (responseStream != null) {
-      try (InputStream in = responseStream;
-          OutputStream out = response.getOutputStream()) {
-        byte[] buffer = new byte[4096];
-        int bytesRead;
-        while ((bytesRead = in.read(buffer)) != -1) {
-          out.write(buffer, 0, bytesRead);
+      InputStream responseStream =
+          statusCode >= 400 ? connection.getErrorStream() : connection.getInputStream();
+      if (responseStream != null) {
+        try (InputStream in = responseStream;
+            OutputStream out = response.getOutputStream()) {
+          byte[] buffer = new byte[4096];
+          int bytesRead;
+          while ((bytesRead = in.read(buffer)) != -1) {
+            out.write(buffer, 0, bytesRead);
+          }
         }
       }
+    } finally {
+      connection.disconnect();
     }
   }
 }
