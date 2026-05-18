@@ -1,5 +1,6 @@
 package io.spring.application.user;
 
+import io.spring.Util;
 import io.spring.core.user.User;
 import io.spring.core.user.UserRepository;
 import java.lang.annotation.Retention;
@@ -49,7 +50,7 @@ public class UserService {
     user.update(
         updateUserParam.getEmail(),
         updateUserParam.getUsername(),
-        updateUserParam.getPassword().isEmpty() ? "" : passwordEncoder.encode(updateUserParam.getPassword()),
+        Util.isEmpty(updateUserParam.getPassword()) ? "" : passwordEncoder.encode(updateUserParam.getPassword()),
         updateUserParam.getBio(),
         updateUserParam.getImage());
     userRepository.save(user);
