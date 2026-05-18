@@ -81,6 +81,7 @@ public class SeamRoutingFilter implements Filter {
 
     HttpURLConnection connection = (HttpURLConnection) new URL(targetUrl).openConnection();
     try {
+      connection.setInstanceFollowRedirects(false);
       connection.setRequestMethod(request.getMethod());
       connection.setConnectTimeout(5000);
       connection.setReadTimeout(30000);
