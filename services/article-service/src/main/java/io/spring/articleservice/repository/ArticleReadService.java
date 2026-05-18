@@ -25,7 +25,7 @@ public interface ArticleReadService {
 
   List<ArticleData> findArticles(@Param("articleIds") List<String> articleIds);
 
-  List<ArticleData> findArticlesOfAuthors(
+  List<String> queryArticleIdsOfAuthors(
       @Param("authors") List<String> authors,
       @Param("offset") int offset,
       @Param("limit") int limit);
