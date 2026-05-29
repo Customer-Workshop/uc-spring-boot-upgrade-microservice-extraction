@@ -50,7 +50,7 @@ public interface ArticleRepository extends JpaRepository<Article, String> {
   @Query(
       value =
           "SELECT a.* FROM articles a "
-              + "WHERE a.user_id IN :userIds "
+              + "WHERE a.user_id IN (:userIds) "
               + "ORDER BY a.created_at DESC "
               + "LIMIT :limit OFFSET :offset",
       nativeQuery = true)
