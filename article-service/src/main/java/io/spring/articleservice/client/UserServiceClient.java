@@ -63,14 +63,17 @@ public class UserServiceClient {
       return Collections.emptySet();
     }
     try {
-      Map<String, Object> request =
-          Map.of("userId", userId, "authorIds", authorIds);
       Set<String> result =
           restClient
-              .post()
-              .uri("/api/internal/users/following-authors")
-              .contentType(MediaType.APPLICATION_JSON)
-              .body(request)
+              .get()
+              .uri(
+                  uriBuilder ->
+                      uriBuilder
+                          .path("/api/internal/users/following-authors")
+                          .queryParam("userId", userId)
+                          .queryParam("authorIds", authorIds)
+                          .build())
+              .accept(MediaType.APPLICATION_JSON)
               .retrieve()
               .body(new ParameterizedTypeReference<Set<String>>() {});
       return result != null ? result : Collections.emptySet();
@@ -104,10 +107,14 @@ public class UserServiceClient {
     try {
       List<ProfileDto> profiles =
           restClient
-              .post()
-              .uri("/api/internal/users/profiles")
-              .contentType(MediaType.APPLICATION_JSON)
-              .body(uniqueIds)
+              .get()
+              .uri(
+                  uriBuilder ->
+                      uriBuilder
+                          .path("/api/internal/users/profiles")
+                          .queryParam("ids", uniqueIds)
+                          .build())
+              .accept(MediaType.APPLICATION_JSON)
               .retrieve()
               .body(new ParameterizedTypeReference<List<ProfileDto>>() {});
       if (profiles == null) {

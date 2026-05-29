@@ -92,6 +92,24 @@ public class ArticleService {
       authorUserId = authorProfile.get().id();
     }
 
+    if (favoritedBy != null) {
+      Optional<ProfileDto> favoritedByProfile = userServiceClient.getProfileByUsername(favoritedBy);
+      if (favoritedByProfile.isEmpty()) {
+        return new ArticleListDto(List.of(), 0);
+      }
+      List<String> favoritedArticleIds =
+          favoriteRepository.findArticleIdsByUserId(favoritedByProfile.get().id());
+      if (favoritedArticleIds.isEmpty()) {
+        return new ArticleListDto(List.of(), 0);
+      }
+      List<Article> articles =
+          articleRepository.findByIdInOrderByCreatedAtDesc(
+              favoritedArticleIds, PageRequest.of(offset / Math.max(limit, 1), limit));
+      int count = articleRepository.countByIdIn(favoritedArticleIds);
+      List<ArticleDto> dtos = enrichArticles(articles, currentUserId);
+      return new ArticleListDto(dtos, count);
+    }
+
     List<Article> articles =
         articleRepository.findByFilters(tag, authorUserId, PageRequest.of(offset / Math.max(limit, 1), limit));
     int count = articleRepository.countByFilters(tag, authorUserId);

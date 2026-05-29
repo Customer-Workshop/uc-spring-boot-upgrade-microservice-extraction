@@ -32,6 +32,10 @@ public interface ArticleRepository extends JpaRepository<Article, String> {
 
   int countByUserIdIn(List<String> userIds);
 
+  List<Article> findByIdInOrderByCreatedAtDesc(List<String> articleIds, Pageable pageable);
+
+  int countByIdIn(List<String> articleIds);
+
   @Query(
       "SELECT DISTINCT a FROM Article a JOIN a.tags t "
           + "WHERE t.name = :tag ORDER BY a.createdAt DESC")

@@ -38,10 +38,10 @@ public class SecurityConfig {
             auth ->
                 auth.requestMatchers(HttpMethod.OPTIONS, "/**")
                     .permitAll()
-                    .requestMatchers(HttpMethod.GET, "/articles/**", "/tags", "/actuator/**")
-                    .permitAll()
                     .requestMatchers(HttpMethod.GET, "/articles/feed")
                     .authenticated()
+                    .requestMatchers(HttpMethod.GET, "/articles/**", "/tags", "/actuator/**")
+                    .permitAll()
                     .anyRequest()
                     .authenticated())
         .addFilterBefore(jwtTokenFilter, UsernamePasswordAuthenticationFilter.class);

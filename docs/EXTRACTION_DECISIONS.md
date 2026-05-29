@@ -34,10 +34,12 @@ The article-service calls the user-service via REST for:
 | Endpoint | Purpose | When Used |
 |----------|---------|-----------|
 | `GET /api/internal/users/{id}/profile` | Fetch author profile for a single article | Article detail, create, update |
-| `GET /api/internal/users/by-username/{username}` | Resolve username to user ID for filtering | List articles by author |
-| `POST /api/internal/users/profiles` | Batch-fetch profiles for article lists | Article list, feed |
-| `POST /api/internal/users/following-authors` | Check follow relationships for "following" flag | All article/comment responses |
+| `GET /api/internal/users/by-username/{username}` | Resolve username to user ID for filtering | List articles by author/favoritedBy |
+| `GET /api/internal/users/profiles?ids=id1&ids=id2` | Batch-fetch profiles for article lists | Article list, feed |
+| `GET /api/internal/users/following-authors?userId=x&authorIds=y` | Check follow relationships for "following" flag | All article/comment responses |
 | `GET /api/internal/users/{id}/followed` | Get followed users for feed | User feed |
+
+All internal endpoints use GET with query parameters to avoid conflicts with the user-service's global `UNWRAP_ROOT_VALUE=true` Jackson setting, which would require root-wrapped JSON for POST request bodies.
 
 ### Shared JWT Authentication
 
@@ -104,12 +106,12 @@ GET    /actuator/health                   - Health check
 ### User Service Internal API (port 8080)
 
 ```
-GET    /api/internal/users/{id}/profile          - Get profile by user ID
-GET    /api/internal/users/by-username/{username} - Get profile by username
-POST   /api/internal/users/profiles              - Batch get profiles by IDs
-POST   /api/internal/users/following-authors     - Check follow relationships
-GET    /api/internal/users/{id}/followed         - Get followed user IDs
-GET    /actuator/health                          - Health check
+GET    /api/internal/users/{id}/profile                              - Get profile by user ID
+GET    /api/internal/users/by-username/{username}                    - Get profile by username
+GET    /api/internal/users/profiles?ids=id1&ids=id2                  - Batch get profiles by IDs
+GET    /api/internal/users/following-authors?userId=x&authorIds=y,z  - Check follow relationships
+GET    /api/internal/users/{id}/followed                             - Get followed user IDs
+GET    /actuator/health                                              - Health check
 ```
 
 ## Running the Services

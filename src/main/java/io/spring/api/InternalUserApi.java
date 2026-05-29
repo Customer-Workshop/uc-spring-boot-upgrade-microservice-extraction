@@ -11,14 +11,11 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -43,24 +40,23 @@ public class InternalUserApi {
         .orElse(ResponseEntity.notFound().build());
   }
 
-  @PostMapping("/profiles")
-  public ResponseEntity<List<ProfileData>> getProfilesByIds(@RequestBody List<String> userIds) {
+  @GetMapping("/profiles")
+  public ResponseEntity<List<ProfileData>> getProfilesByIds(@RequestParam List<String> ids) {
     List<ProfileData> profiles =
-        userIds.stream()
+        ids.stream()
             .map(id -> userRepository.findById(id).map(this::toProfileData).orElse(null))
             .filter(Objects::nonNull)
             .collect(Collectors.toList());
     return ResponseEntity.ok(profiles);
   }
 
-  @PostMapping("/following-authors")
+  @GetMapping("/following-authors")
   public ResponseEntity<Set<String>> getFollowingAuthors(
-      @RequestBody FollowingAuthorsRequest request) {
-    if (request.getAuthorIds() == null || request.getAuthorIds().isEmpty()) {
+      @RequestParam String userId, @RequestParam List<String> authorIds) {
+    if (authorIds.isEmpty()) {
       return ResponseEntity.ok(Collections.emptySet());
     }
-    Set<String> following =
-        userRelationshipQueryService.followingAuthors(request.getUserId(), request.getAuthorIds());
+    Set<String> following = userRelationshipQueryService.followingAuthors(userId, authorIds);
     return ResponseEntity.ok(following);
   }
 
@@ -73,12 +69,4 @@ public class InternalUserApi {
   private ProfileData toProfileData(User user) {
     return new ProfileData(user.getId(), user.getUsername(), user.getBio(), user.getImage(), false);
   }
-}
-
-@Getter
-@NoArgsConstructor
-@AllArgsConstructor
-class FollowingAuthorsRequest {
-  private String userId;
-  private List<String> authorIds;
 }
