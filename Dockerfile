@@ -5,7 +5,7 @@ COPY gradle gradle
 COPY build.gradle settings.gradle ./
 RUN chmod +x gradlew && ./gradlew dependencies --no-daemon || true
 COPY src src
-RUN ./gradlew bootJar --no-daemon -x test -x generateJava
+RUN ./gradlew bootJar --no-daemon -x test
 
 FROM eclipse-temurin:11-jre
 WORKDIR /app
