@@ -15,7 +15,7 @@ spotless {
     java {
         target project.fileTree(project.rootDir) {
             include '**/*.java'
-            exclude 'build/generated/**/*.*', 'build/generated-examples/**/*.*'
+            exclude 'build/generated/**/*.*', 'build/generated-examples/**/*.*', 'article-service/**/*.*'
         }
         googleJavaFormat()
     }
@@ -60,6 +60,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-hateoas'
     implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:2.2.2'
     implementation 'com.netflix.graphql.dgs:graphql-dgs-spring-boot-starter:4.9.21'
     implementation 'org.flywaydb:flyway-core'
