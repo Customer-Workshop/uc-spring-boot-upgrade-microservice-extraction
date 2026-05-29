@@ -34,6 +34,7 @@ public class CommentService {
     return toDto(comment, userId);
   }
 
+  @Transactional(readOnly = true)
   public List<CommentDto> getCommentsBySlug(String slug, String currentUserId) {
     Article article =
         articleRepository.findBySlug(slug).orElseThrow(ResourceNotFoundException::new);

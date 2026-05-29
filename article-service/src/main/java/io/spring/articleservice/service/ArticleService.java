@@ -49,6 +49,7 @@ public class ArticleService {
     return toDto(article, userId);
   }
 
+  @Transactional(readOnly = true)
   public Optional<ArticleDto> findBySlug(String slug, String currentUserId) {
     return articleRepository.findBySlug(slug).map(article -> toDto(article, currentUserId));
   }
@@ -79,6 +80,7 @@ public class ArticleService {
     articleRepository.delete(article);
   }
 
+  @Transactional(readOnly = true)
   public ArticleListDto listArticles(
       String tag, String author, String favoritedBy, int offset, int limit, String currentUserId) {
 
@@ -108,6 +110,7 @@ public class ArticleService {
     return new ArticleListDto(dtos, count);
   }
 
+  @Transactional(readOnly = true)
   public ArticleListDto getUserFeed(String userId, int offset, int limit) {
     List<String> followedUserIds = userServiceClient.getFollowedUsers(userId);
     if (followedUserIds.isEmpty()) {
