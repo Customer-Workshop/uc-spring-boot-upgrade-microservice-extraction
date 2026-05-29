@@ -20,7 +20,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -92,27 +91,18 @@ public class ArticleService {
       authorUserId = authorProfile.get().id();
     }
 
+    String favoritedByUserId = null;
     if (favoritedBy != null) {
       Optional<ProfileDto> favoritedByProfile = userServiceClient.getProfileByUsername(favoritedBy);
       if (favoritedByProfile.isEmpty()) {
         return new ArticleListDto(List.of(), 0);
       }
-      List<String> favoritedArticleIds =
-          favoriteRepository.findArticleIdsByUserId(favoritedByProfile.get().id());
-      if (favoritedArticleIds.isEmpty()) {
-        return new ArticleListDto(List.of(), 0);
-      }
-      List<Article> articles =
-          articleRepository.findByIdInOrderByCreatedAtDesc(
-              favoritedArticleIds, PageRequest.of(offset / Math.max(limit, 1), limit));
-      int count = articleRepository.countByIdIn(favoritedArticleIds);
-      List<ArticleDto> dtos = enrichArticles(articles, currentUserId);
-      return new ArticleListDto(dtos, count);
+      favoritedByUserId = favoritedByProfile.get().id();
     }
 
     List<Article> articles =
-        articleRepository.findByFilters(tag, authorUserId, PageRequest.of(offset / Math.max(limit, 1), limit));
-    int count = articleRepository.countByFilters(tag, authorUserId);
+        articleRepository.findByAllFilters(tag, authorUserId, favoritedByUserId, offset, limit);
+    int count = articleRepository.countByAllFilters(tag, authorUserId, favoritedByUserId);
 
     List<ArticleDto> dtos = enrichArticles(articles, currentUserId);
     return new ArticleListDto(dtos, count);
@@ -125,8 +115,7 @@ public class ArticleService {
     }
 
     List<Article> articles =
-        articleRepository.findByUserIdInOrderByCreatedAtDesc(
-            followedUserIds, PageRequest.of(offset / Math.max(limit, 1), limit));
+        articleRepository.findByUserIdsFeed(followedUserIds, offset, limit);
     int count = articleRepository.countByUserIdIn(followedUserIds);
 
     List<ArticleDto> dtos = enrichArticles(articles, userId);
