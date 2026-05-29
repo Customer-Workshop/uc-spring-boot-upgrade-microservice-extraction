@@ -1,7 +1,7 @@
 package io.spring.articleservice.controller;
 
 import io.spring.articleservice.dto.CommentDto;
-import io.spring.articleservice.dto.request.NewCommentRequest;
+import io.spring.articleservice.dto.request.CreateCommentWrapper;
 import io.spring.articleservice.service.CommentService;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -28,12 +28,8 @@ public class CommentsController {
   public ResponseEntity<Map<String, CommentDto>> createComment(
       @PathVariable String slug,
       @AuthenticationPrincipal String userId,
-      @Valid @RequestBody Map<String, NewCommentRequest> wrapper) {
-    NewCommentRequest request = wrapper.get("comment");
-    if (request == null) {
-      return ResponseEntity.badRequest().build();
-    }
-    CommentDto comment = commentService.createComment(slug, request.body(), userId);
+      @Valid @RequestBody CreateCommentWrapper wrapper) {
+    CommentDto comment = commentService.createComment(slug, wrapper.comment().body(), userId);
     return ResponseEntity.status(201).body(Map.of("comment", comment));
   }
 

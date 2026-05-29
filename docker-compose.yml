@@ -29,8 +29,8 @@ services:
       - "8081:8081"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
-      - USER_SERVICE_URL=http://user-service:8080
-      - USER_SERVICE_API_KEY=realworld-internal-api-key-2024
+      - USERSERVICE_URL=http://user-service:8080
+      - USERSERVICE_APIKEY=realworld-internal-api-key-2024
     depends_on:
       user-service:
         condition: service_healthy

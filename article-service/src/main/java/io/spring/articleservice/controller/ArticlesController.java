@@ -2,7 +2,7 @@ package io.spring.articleservice.controller;
 
 import io.spring.articleservice.dto.ArticleDto;
 import io.spring.articleservice.dto.ArticleListDto;
-import io.spring.articleservice.dto.request.NewArticleRequest;
+import io.spring.articleservice.dto.request.CreateArticleWrapper;
 import io.spring.articleservice.service.ArticleService;
 import jakarta.validation.Valid;
 import java.util.Map;
@@ -25,13 +25,9 @@ public class ArticlesController {
 
   @PostMapping
   public ResponseEntity<Map<String, ArticleDto>> createArticle(
-      @Valid @RequestBody Map<String, NewArticleRequest> wrapper,
+      @Valid @RequestBody CreateArticleWrapper wrapper,
       @AuthenticationPrincipal String userId) {
-    NewArticleRequest request = wrapper.get("article");
-    if (request == null) {
-      return ResponseEntity.badRequest().build();
-    }
-    ArticleDto article = articleService.createArticle(request, userId);
+    ArticleDto article = articleService.createArticle(wrapper.article(), userId);
     return ResponseEntity.ok(Map.of("article", article));
   }
 
