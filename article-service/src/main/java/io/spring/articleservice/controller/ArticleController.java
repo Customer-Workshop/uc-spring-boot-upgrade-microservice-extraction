@@ -38,6 +38,9 @@ public class ArticleController {
       @AuthenticationPrincipal String userId,
       @Valid @RequestBody Map<String, UpdateArticleRequest> wrapper) {
     UpdateArticleRequest request = wrapper.get("article");
+    if (request == null) {
+      return ResponseEntity.badRequest().build();
+    }
     ArticleDto article = articleService.updateArticle(slug, request, userId);
     return ResponseEntity.ok(Map.of("article", article));
   }

@@ -30,6 +30,9 @@ public class CommentsController {
       @AuthenticationPrincipal String userId,
       @Valid @RequestBody Map<String, NewCommentRequest> wrapper) {
     NewCommentRequest request = wrapper.get("comment");
+    if (request == null) {
+      return ResponseEntity.badRequest().build();
+    }
     CommentDto comment = commentService.createComment(slug, request.body(), userId);
     return ResponseEntity.status(201).body(Map.of("comment", comment));
   }

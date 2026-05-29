@@ -28,6 +28,9 @@ public class ArticlesController {
       @Valid @RequestBody Map<String, NewArticleRequest> wrapper,
       @AuthenticationPrincipal String userId) {
     NewArticleRequest request = wrapper.get("article");
+    if (request == null) {
+      return ResponseEntity.badRequest().build();
+    }
     ArticleDto article = articleService.createArticle(request, userId);
     return ResponseEntity.ok(Map.of("article", article));
   }

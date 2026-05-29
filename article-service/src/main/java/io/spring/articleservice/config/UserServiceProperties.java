@@ -12,4 +12,5 @@ import org.springframework.stereotype.Component;
 public class UserServiceProperties {
 
   private String url = "http://localhost:8080";
+  private String apiKey = "realworld-internal-api-key-2024";
 }

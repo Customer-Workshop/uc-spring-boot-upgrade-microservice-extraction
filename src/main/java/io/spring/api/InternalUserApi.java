@@ -1,6 +1,5 @@
 package io.spring.api;
 
-import io.spring.application.data.ProfileData;
 import io.spring.core.user.User;
 import io.spring.core.user.UserRepository;
 import io.spring.infrastructure.mybatis.readservice.UserRelationshipQueryService;
@@ -27,24 +26,25 @@ public class InternalUserApi {
   private UserRelationshipQueryService userRelationshipQueryService;
 
   @GetMapping("/{userId}/profile")
-  public ResponseEntity<ProfileData> getProfileById(@PathVariable String userId) {
+  public ResponseEntity<InternalProfileData> getProfileById(@PathVariable String userId) {
     Optional<User> user = userRepository.findById(userId);
-    return user.map(u -> ResponseEntity.ok(toProfileData(u)))
+    return user.map(u -> ResponseEntity.ok(toInternalProfile(u)))
         .orElse(ResponseEntity.notFound().build());
   }
 
   @GetMapping("/by-username/{username}")
-  public ResponseEntity<ProfileData> getProfileByUsername(@PathVariable String username) {
+  public ResponseEntity<InternalProfileData> getProfileByUsername(@PathVariable String username) {
     Optional<User> user = userRepository.findByUsername(username);
-    return user.map(u -> ResponseEntity.ok(toProfileData(u)))
+    return user.map(u -> ResponseEntity.ok(toInternalProfile(u)))
         .orElse(ResponseEntity.notFound().build());
   }
 
   @GetMapping("/profiles")
-  public ResponseEntity<List<ProfileData>> getProfilesByIds(@RequestParam List<String> ids) {
-    List<ProfileData> profiles =
+  public ResponseEntity<List<InternalProfileData>> getProfilesByIds(
+      @RequestParam List<String> ids) {
+    List<InternalProfileData> profiles =
         ids.stream()
-            .map(id -> userRepository.findById(id).map(this::toProfileData).orElse(null))
+            .map(id -> userRepository.findById(id).map(this::toInternalProfile).orElse(null))
             .filter(Objects::nonNull)
             .collect(Collectors.toList());
     return ResponseEntity.ok(profiles);
@@ -66,7 +66,8 @@ public class InternalUserApi {
     return ResponseEntity.ok(followedUsers);
   }
 
-  private ProfileData toProfileData(User user) {
-    return new ProfileData(user.getId(), user.getUsername(), user.getBio(), user.getImage(), false);
+  private InternalProfileData toInternalProfile(User user) {
+    return new InternalProfileData(
+        user.getId(), user.getUsername(), user.getBio(), user.getImage(), false);
   }
 }

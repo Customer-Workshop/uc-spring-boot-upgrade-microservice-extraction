@@ -22,8 +22,14 @@ public class UserServiceClient {
   private static final Logger log = LoggerFactory.getLogger(UserServiceClient.class);
   private final RestClient restClient;
 
+  private static final String API_KEY_HEADER = "X-Internal-Api-Key";
+
   public UserServiceClient(RestClient.Builder builder, UserServiceProperties properties) {
-    this.restClient = builder.baseUrl(properties.getUrl()).build();
+    this.restClient =
+        builder
+            .baseUrl(properties.getUrl())
+            .defaultHeader(API_KEY_HEADER, properties.getApiKey())
+            .build();
   }
 
   public Optional<ProfileDto> getProfileById(String userId) {

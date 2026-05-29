@@ -27,6 +27,7 @@ jwt:
 
 user-service:
   url: http://localhost:8080
+  api-key: realworld-internal-api-key-2024
 
 management:
   endpoints:
