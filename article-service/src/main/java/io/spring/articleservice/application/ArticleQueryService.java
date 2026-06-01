@@ -170,10 +170,12 @@ public class ArticleQueryService {
   private void fillExtraInfo(String id, String userId, ArticleData articleData) {
     articleData.setFavorited(articleFavoritesReadService.isUserFavorite(userId, id));
     articleData.setFavoritesCount(articleFavoritesReadService.articleFavoriteCount(id));
-    articleData
-        .getProfileData()
-        .setFollowing(
-            userServiceClient.isUserFollowing(userId, articleData.getProfileData().getId()));
+    if (articleData.getProfileData() != null) {
+      articleData
+          .getProfileData()
+          .setFollowing(
+              userServiceClient.isUserFollowing(userId, articleData.getProfileData().getId()));
+    }
   }
 
   private String resolveUsernameToUserId(String username) {

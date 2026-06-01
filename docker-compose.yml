@@ -11,6 +11,7 @@ services:
       - realworld
     environment:
       - SPRING_DATASOURCE_URL=jdbc:sqlite:/data/dev.db
+      - INTERNAL_API_KEY=${INTERNAL_API_KEY:-realworld-internal-api-key-2024}
 
   article-service:
     build:
@@ -23,6 +24,7 @@ services:
     environment:
       - SPRING_DATASOURCE_URL=jdbc:sqlite:/data/article-dev.db
       - USER_SERVICE_URL=http://main-app:8080
+      - INTERNAL_API_KEY=${INTERNAL_API_KEY:-realworld-internal-api-key-2024}
     depends_on:
       - main-app
 
