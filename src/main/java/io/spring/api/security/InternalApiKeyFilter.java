@@ -21,7 +21,7 @@ public class InternalApiKeyFilter extends OncePerRequestFilter {
   protected void doFilterInternal(
       HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
       throws ServletException, IOException {
-    if (request.getRequestURI().startsWith("/api/internal/")) {
+    if (request.getServletPath().startsWith("/api/internal/")) {
       String providedKey = request.getHeader(HEADER_NAME);
       if (providedKey == null || !providedKey.equals(expectedApiKey)) {
         response.setStatus(HttpServletResponse.SC_FORBIDDEN);

@@ -24,7 +24,7 @@ public class CommentQueryService {
       return Optional.empty();
     } else {
       fillProfileData(commentData);
-      if (userId != null) {
+      if (userId != null && commentData.getProfileData() != null) {
         commentData
             .getProfileData()
             .setFollowing(

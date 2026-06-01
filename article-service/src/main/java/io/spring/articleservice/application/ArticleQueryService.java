@@ -182,6 +182,6 @@ public class ArticleQueryService {
     if (username == null) {
       return null;
     }
-    return userServiceClient.getUserIdByUsername(username).orElse(username);
+    return userServiceClient.getUserIdByUsername(username).orElse(null);
   }
 }

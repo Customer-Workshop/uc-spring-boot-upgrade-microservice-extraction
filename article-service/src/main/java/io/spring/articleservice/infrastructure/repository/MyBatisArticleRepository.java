@@ -7,6 +7,7 @@ import io.spring.articleservice.infrastructure.mybatis.mapper.ArticleMapper;
 import java.util.Optional;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 @Repository
 @AllArgsConstructor
@@ -14,6 +15,7 @@ public class MyBatisArticleRepository implements ArticleRepository {
   private ArticleMapper articleMapper;
 
   @Override
+  @Transactional
   public void save(Article article) {
     if (articleMapper.findById(article.getId()) == null) {
       createNew(article);
