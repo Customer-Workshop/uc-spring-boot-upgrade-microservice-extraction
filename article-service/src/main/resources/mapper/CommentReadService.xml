@@ -6,6 +6,7 @@
         C.id commentId,
         C.body commentBody,
         C.created_at commentCreatedAt,
+        C.updated_at commentUpdatedAt,
         C.article_id commentArticleId,
         C.user_id commentUserId
         from comments C

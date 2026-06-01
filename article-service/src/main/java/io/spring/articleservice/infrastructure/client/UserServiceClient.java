@@ -107,4 +107,15 @@ public class UserServiceClient {
   public Optional<String> getUsernameById(String userId) {
     return getUserProfile(userId).map(UserProfileResponse::getUsername);
   }
+
+  public Optional<String> getUserIdByUsername(String username) {
+    try {
+      String url = userServiceUrl + "/api/internal/users/by-username/" + username;
+      ResponseEntity<UserProfileResponse> response =
+          restTemplate.getForEntity(url, UserProfileResponse.class);
+      return Optional.ofNullable(response.getBody()).map(UserProfileResponse::getId);
+    } catch (Exception e) {
+      return Optional.empty();
+    }
+  }
 }

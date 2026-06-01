@@ -53,8 +53,11 @@ public class ArticleQueryService {
 
   public ArticleDataList findRecentArticles(
       String tag, String author, String favoritedBy, Page page, String currentUserId) {
-    List<String> articleIds = articleReadService.queryArticles(tag, author, favoritedBy, page);
-    int articleCount = articleReadService.countArticle(tag, author, favoritedBy);
+    String authorUserId = resolveUsernameToUserId(author);
+    String favoritedByUserId = resolveUsernameToUserId(favoritedBy);
+    List<String> articleIds =
+        articleReadService.queryArticles(tag, authorUserId, favoritedByUserId, page);
+    int articleCount = articleReadService.countArticle(tag, authorUserId, favoritedByUserId);
     if (articleIds.size() == 0) {
       return new ArticleDataList(new ArrayList<>(), articleCount);
     } else {
@@ -171,5 +174,12 @@ public class ArticleQueryService {
         .getProfileData()
         .setFollowing(
             userServiceClient.isUserFollowing(userId, articleData.getProfileData().getId()));
+  }
+
+  private String resolveUsernameToUserId(String username) {
+    if (username == null) {
+      return null;
+    }
+    return userServiceClient.getUserIdByUsername(username).orElse(username);
   }
 }
