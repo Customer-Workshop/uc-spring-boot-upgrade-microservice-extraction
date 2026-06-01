@@ -1,0 +1,31 @@
+version: "3.8"
+
+services:
+  main-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    networks:
+      - realworld
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:sqlite:/data/dev.db
+
+  article-service:
+    build:
+      context: ./article-service
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8081"
+    networks:
+      - realworld
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:sqlite:/data/article-dev.db
+      - USER_SERVICE_URL=http://main-app:8080
+    depends_on:
+      - main-app
+
+networks:
+  realworld:
+    driver: bridge

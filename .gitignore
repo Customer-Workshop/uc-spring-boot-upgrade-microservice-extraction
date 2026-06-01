@@ -1,6 +1,7 @@
 .gradle
 /build/
 !gradle/wrapper/gradle-wrapper.jar
+!article-service/gradle/wrapper/gradle-wrapper.jar
 *.db
 .DS_Store
 
