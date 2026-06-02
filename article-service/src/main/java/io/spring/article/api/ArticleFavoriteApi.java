@@ -7,6 +7,7 @@ import io.spring.article.core.article.Article;
 import io.spring.article.core.article.ArticleRepository;
 import io.spring.article.core.favorite.ArticleFavorite;
 import io.spring.article.core.favorite.ArticleFavoriteRepository;
+import io.spring.article.infrastructure.client.UserProfileCacheService;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.AllArgsConstructor;
@@ -25,12 +26,14 @@ public class ArticleFavoriteApi {
   private ArticleFavoriteRepository articleFavoriteRepository;
   private ArticleRepository articleRepository;
   private ArticleQueryService articleQueryService;
+  private UserProfileCacheService userProfileCacheService;
 
   @PostMapping
   public ResponseEntity<?> favoriteArticle(
       @PathVariable("slug") String slug, @AuthenticationPrincipal String userId) {
     Article article =
         articleRepository.findBySlug(slug).orElseThrow(ResourceNotFoundException::new);
+    userProfileCacheService.ensureProfileCached(userId);
     ArticleFavorite articleFavorite = new ArticleFavorite(article.getId(), userId);
     articleFavoriteRepository.save(articleFavorite);
     return ResponseEntity.ok(
