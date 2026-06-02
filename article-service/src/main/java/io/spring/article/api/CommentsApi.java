@@ -9,6 +9,7 @@ import io.spring.article.core.article.ArticleRepository;
 import io.spring.article.core.comment.Comment;
 import io.spring.article.core.comment.CommentRepository;
 import io.spring.article.core.service.AuthorizationService;
+import io.spring.article.infrastructure.client.UserProfileCacheService;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,6 +36,7 @@ public class CommentsApi {
   private ArticleRepository articleRepository;
   private CommentRepository commentRepository;
   private CommentQueryService commentQueryService;
+  private UserProfileCacheService userProfileCacheService;
 
   @PostMapping
   public ResponseEntity<?> createComment(
@@ -43,6 +45,7 @@ public class CommentsApi {
       @Valid @RequestBody NewCommentParam newCommentParam) {
     Article article =
         articleRepository.findBySlug(slug).orElseThrow(ResourceNotFoundException::new);
+    userProfileCacheService.ensureProfileCached(userId);
     Comment comment = new Comment(newCommentParam.getBody(), userId, article.getId());
     commentRepository.save(comment);
     return ResponseEntity.status(201)

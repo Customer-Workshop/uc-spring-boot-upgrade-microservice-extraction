@@ -2,6 +2,7 @@ package io.spring.article.application.article;
 
 import io.spring.article.core.article.Article;
 import io.spring.article.core.article.ArticleRepository;
+import io.spring.article.infrastructure.client.UserProfileCacheService;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -9,8 +10,10 @@ import org.springframework.stereotype.Service;
 @AllArgsConstructor
 public class ArticleCommandService {
   private ArticleRepository articleRepository;
+  private UserProfileCacheService userProfileCacheService;
 
   public Article createArticle(NewArticleParam newArticleParam, String userId) {
+    userProfileCacheService.ensureProfileCached(userId);
     Article article =
         new Article(
             newArticleParam.getTitle(),

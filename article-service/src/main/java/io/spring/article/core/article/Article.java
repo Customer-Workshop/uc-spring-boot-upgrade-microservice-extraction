@@ -42,7 +42,10 @@ public class Article {
     this.title = title;
     this.description = description;
     this.body = body;
-    this.tags = new HashSet<>(tagList).stream().map(Tag::new).collect(toList());
+    this.tags =
+        new HashSet<>(tagList == null ? List.of() : tagList).stream()
+            .map(Tag::new)
+            .collect(toList());
     this.userId = userId;
     this.createdAt = createdAt;
     this.updatedAt = createdAt;
