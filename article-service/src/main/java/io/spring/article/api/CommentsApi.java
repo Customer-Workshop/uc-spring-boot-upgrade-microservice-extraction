@@ -12,6 +12,7 @@ import io.spring.article.core.service.AuthorizationService;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import com.fasterxml.jackson.annotation.JsonRootName;
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
@@ -44,8 +45,8 @@ public class CommentsApi {
         articleRepository.findBySlug(slug).orElseThrow(ResourceNotFoundException::new);
     Comment comment = new Comment(newCommentParam.getBody(), userId, article.getId());
     commentRepository.save(comment);
-    return ResponseEntity.ok(
-        commentResponse(commentQueryService.findById(comment.getId(), userId).get()));
+    return ResponseEntity.status(201)
+        .body(commentResponse(commentQueryService.findById(comment.getId(), userId).get()));
   }
 
   @GetMapping
@@ -94,6 +95,7 @@ public class CommentsApi {
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonRootName("comment")
 class NewCommentParam {
   @NotBlank(message = "can't be empty")
   private String body;
