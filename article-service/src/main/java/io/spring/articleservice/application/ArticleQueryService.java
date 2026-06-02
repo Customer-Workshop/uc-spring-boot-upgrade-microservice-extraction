@@ -72,9 +72,13 @@ public class ArticleQueryService {
     if (followedUsers.size() == 0) {
       return new ArticleDataList(new ArrayList<>(), 0);
     } else {
-      List<ArticleData> articles = articleReadService.findArticlesOfAuthors(followedUsers, page);
-      fillExtraInfo(articles, userId);
+      List<String> articleIds = articleReadService.queryArticleIdsOfAuthors(followedUsers, page);
       int count = articleReadService.countFeedSize(followedUsers);
+      if (articleIds.isEmpty()) {
+        return new ArticleDataList(new ArrayList<>(), count);
+      }
+      List<ArticleData> articles = articleReadService.findArticles(articleIds);
+      fillExtraInfo(articles, userId);
       return new ArticleDataList(articles, count);
     }
   }
