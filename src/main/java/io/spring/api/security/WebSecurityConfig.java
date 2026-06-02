@@ -22,6 +22,12 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @EnableWebSecurity
 public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
+  private final InternalApiKeyFilter internalApiKeyFilter;
+
+  public WebSecurityConfig(InternalApiKeyFilter internalApiKeyFilter) {
+    this.internalApiKeyFilter = internalApiKeyFilter;
+  }
+
   @Bean
   public JwtTokenFilter jwtTokenFilter() {
     return new JwtTokenFilter();
@@ -63,6 +69,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
         .anyRequest()
         .authenticated();
 
+    http.addFilterBefore(internalApiKeyFilter, UsernamePasswordAuthenticationFilter.class);
     http.addFilterBefore(jwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
   }
 
