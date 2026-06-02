@@ -7,7 +7,10 @@
         C.body commentBody,
         C.created_at commentCreatedAt,
         C.article_id commentArticleId,
-        <include refid="io.spring.articleservice.infrastructure.mybatis.readservice.ArticleReadService.profileColumns"/>
+        C.user_id userId,
+        U.username userUsername,
+        U.bio userBio,
+        U.image userImage
         from comments C
         left join users U
         on C.user_id = U.id

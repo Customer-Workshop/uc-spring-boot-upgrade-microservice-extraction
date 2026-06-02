@@ -1,6 +1,7 @@
 package io.spring.articleservice.application;
 
 import io.spring.articleservice.application.data.CommentData;
+import io.spring.articleservice.infrastructure.client.UserProfileDto;
 import io.spring.articleservice.infrastructure.client.UserServiceClient;
 import io.spring.articleservice.infrastructure.mybatis.readservice.CommentReadService;
 import java.util.ArrayList;
@@ -24,6 +25,7 @@ public class CommentQueryService {
     if (commentData == null) {
       return Optional.empty();
     } else {
+      enrichProfile(commentData);
       if (userId != null) {
         commentData
             .getProfileData()
@@ -36,6 +38,7 @@ public class CommentQueryService {
 
   public List<CommentData> findByArticleId(String articleId, String userId) {
     List<CommentData> comments = commentReadService.findByArticleId(articleId);
+    comments.forEach(this::enrichProfile);
     if (comments.size() > 0 && userId != null) {
       Set<String> followingAuthors =
           userServiceClient.followingAuthors(
@@ -59,6 +62,7 @@ public class CommentQueryService {
     if (comments.isEmpty()) {
       return new CursorPager<>(new ArrayList<>(), page.getDirection(), false);
     }
+    comments.forEach(this::enrichProfile);
     if (userId != null) {
       Set<String> followingAuthors =
           userServiceClient.followingAuthors(
@@ -81,5 +85,18 @@ public class CommentQueryService {
       Collections.reverse(comments);
     }
     return new CursorPager<>(comments, page.getDirection(), hasExtra);
+  }
+
+  private void enrichProfile(CommentData commentData) {
+    if (commentData.getProfileData() != null
+        && commentData.getProfileData().getUsername() == null) {
+      UserProfileDto profile =
+          userServiceClient.findUserProfileById(commentData.getProfileData().getId());
+      if (profile != null) {
+        commentData.getProfileData().setUsername(profile.getUsername());
+        commentData.getProfileData().setBio(profile.getBio());
+        commentData.getProfileData().setImage(profile.getImage());
+      }
+    }
   }
 }

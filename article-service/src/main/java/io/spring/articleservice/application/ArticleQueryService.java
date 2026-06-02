@@ -5,6 +5,7 @@ import static java.util.stream.Collectors.toList;
 import io.spring.articleservice.application.data.ArticleData;
 import io.spring.articleservice.application.data.ArticleDataList;
 import io.spring.articleservice.application.data.ArticleFavoriteCount;
+import io.spring.articleservice.infrastructure.client.UserProfileDto;
 import io.spring.articleservice.infrastructure.client.UserServiceClient;
 import io.spring.articleservice.infrastructure.mybatis.readservice.ArticleFavoritesReadService;
 import io.spring.articleservice.infrastructure.mybatis.readservice.ArticleReadService;
@@ -33,6 +34,8 @@ public class ArticleQueryService {
     } else {
       if (userId != null) {
         fillExtraInfo(id, userId, articleData);
+      } else {
+        enrichSingleProfile(articleData);
       }
       return Optional.of(articleData);
     }
@@ -45,8 +48,23 @@ public class ArticleQueryService {
     } else {
       if (userId != null) {
         fillExtraInfo(articleData.getId(), userId, articleData);
+      } else {
+        enrichSingleProfile(articleData);
       }
       return Optional.of(articleData);
+    }
+  }
+
+  private void enrichSingleProfile(ArticleData articleData) {
+    if (articleData.getProfileData() != null
+        && articleData.getProfileData().getUsername() == null) {
+      UserProfileDto profile =
+          userServiceClient.findUserProfileById(articleData.getProfileData().getId());
+      if (profile != null) {
+        articleData.getProfileData().setUsername(profile.getUsername());
+        articleData.getProfileData().setBio(profile.getBio());
+        articleData.getProfileData().setImage(profile.getImage());
+      }
     }
   }
 
@@ -122,11 +140,28 @@ public class ArticleQueryService {
   }
 
   private void fillExtraInfo(List<ArticleData> articles, String currentUserId) {
+    enrichProfiles(articles);
     setFavoriteCount(articles);
     if (currentUserId != null) {
       setIsFavorite(articles, currentUserId);
       setIsFollowingAuthor(articles, currentUserId);
     }
+  }
+
+  private void enrichProfiles(List<ArticleData> articles) {
+    articles.forEach(
+        articleData -> {
+          if (articleData.getProfileData() != null
+              && articleData.getProfileData().getUsername() == null) {
+            UserProfileDto profile =
+                userServiceClient.findUserProfileById(articleData.getProfileData().getId());
+            if (profile != null) {
+              articleData.getProfileData().setUsername(profile.getUsername());
+              articleData.getProfileData().setBio(profile.getBio());
+              articleData.getProfileData().setImage(profile.getImage());
+            }
+          }
+        });
   }
 
   private void setIsFollowingAuthor(List<ArticleData> articles, String currentUserId) {
@@ -171,6 +206,16 @@ public class ArticleQueryService {
   }
 
   private void fillExtraInfo(String id, String userId, ArticleData articleData) {
+    if (articleData.getProfileData() != null
+        && articleData.getProfileData().getUsername() == null) {
+      UserProfileDto profile =
+          userServiceClient.findUserProfileById(articleData.getProfileData().getId());
+      if (profile != null) {
+        articleData.getProfileData().setUsername(profile.getUsername());
+        articleData.getProfileData().setBio(profile.getBio());
+        articleData.getProfileData().setImage(profile.getImage());
+      }
+    }
     articleData.setFavorited(articleFavoritesReadService.isUserFavorite(userId, id));
     articleData.setFavoritesCount(articleFavoritesReadService.articleFavoriteCount(id));
     articleData
