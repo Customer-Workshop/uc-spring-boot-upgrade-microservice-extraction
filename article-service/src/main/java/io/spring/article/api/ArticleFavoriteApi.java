@@ -37,7 +37,8 @@ public class ArticleFavoriteApi {
     ArticleFavorite articleFavorite = new ArticleFavorite(article.getId(), userId);
     articleFavoriteRepository.save(articleFavorite);
     return ResponseEntity.ok(
-        articleResponse(articleQueryService.findBySlug(slug, userId).get()));
+        articleResponse(
+            articleQueryService.findBySlug(slug, userId).orElseThrow(ResourceNotFoundException::new)));
   }
 
   @DeleteMapping
@@ -49,7 +50,8 @@ public class ArticleFavoriteApi {
         .find(article.getId(), userId)
         .ifPresent(articleFavoriteRepository::remove);
     return ResponseEntity.ok(
-        articleResponse(articleQueryService.findBySlug(slug, userId).get()));
+        articleResponse(
+            articleQueryService.findBySlug(slug, userId).orElseThrow(ResourceNotFoundException::new)));
   }
 
   private Map<String, Object> articleResponse(ArticleData articleData) {

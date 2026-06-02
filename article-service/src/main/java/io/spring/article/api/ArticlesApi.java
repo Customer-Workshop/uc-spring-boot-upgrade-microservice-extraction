@@ -1,6 +1,7 @@
 package io.spring.article.api;
 
 import io.spring.article.api.exception.InvalidRequestException;
+import io.spring.article.api.exception.ResourceNotFoundException;
 import io.spring.article.application.ArticleQueryService;
 import io.spring.article.application.Page;
 import io.spring.article.application.article.ArticleCommandService;
@@ -40,7 +41,8 @@ public class ArticlesApi {
 
     Article article = articleCommandService.createArticle(newArticleParam, userId);
     return ResponseEntity.ok(
-        articleResponse(articleQueryService.findById(article.getId(), userId).get()));
+        articleResponse(
+            articleQueryService.findById(article.getId(), userId).orElseThrow(ResourceNotFoundException::new)));
   }
 
   @GetMapping(path = "feed")
