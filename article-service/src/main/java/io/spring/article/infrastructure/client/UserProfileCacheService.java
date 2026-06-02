@@ -20,16 +20,13 @@ public class UserProfileCacheService {
     if (userId == null) {
       return;
     }
-    String existing = userProfileMapper.findById(userId);
-    if (existing == null) {
-      Optional<ProfileData> profile = userServiceClient.getProfileByUserId(userId);
-      profile.ifPresent(
-          p ->
-              userProfileMapper.upsert(
-                  p.getId() != null ? p.getId() : userId,
-                  p.getUsername(),
-                  p.getBio(),
-                  p.getImage()));
-    }
+    Optional<ProfileData> profile = userServiceClient.getProfileByUserId(userId);
+    profile.ifPresent(
+        p ->
+            userProfileMapper.upsert(
+                p.getId() != null ? p.getId() : userId,
+                p.getUsername(),
+                p.getBio(),
+                p.getImage()));
   }
 }
