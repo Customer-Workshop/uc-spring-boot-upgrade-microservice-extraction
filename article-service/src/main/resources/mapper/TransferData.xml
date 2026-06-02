@@ -9,6 +9,7 @@
         <result column="articleBody" property="body"/>
         <result column="articleCreatedAt" property="createdAt"/>
         <result column="articleUpdatedAt" property="updatedAt"/>
+        <result column="articleUserId" property="userId"/>
         <collection property="tagList" javaType="list" ofType="string">
             <result column="tagName"/>
         </collection>

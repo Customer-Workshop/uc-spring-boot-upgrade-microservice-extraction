@@ -6,9 +6,9 @@ import io.spring.application.article.ArticleCommandService;
 import io.spring.application.article.NewArticleParam;
 import io.spring.core.article.Article;
 import io.spring.core.service.UserDto;
+import io.spring.core.service.UserServiceClient;
 import java.util.HashMap;
 import javax.validation.Valid;
-import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,10 +20,19 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping(path = "/articles")
-@AllArgsConstructor
 public class ArticlesApi {
   private ArticleCommandService articleCommandService;
   private ArticleQueryService articleQueryService;
+  private UserServiceClient userServiceClient;
+
+  public ArticlesApi(
+      ArticleCommandService articleCommandService,
+      ArticleQueryService articleQueryService,
+      UserServiceClient userServiceClient) {
+    this.articleCommandService = articleCommandService;
+    this.articleQueryService = articleQueryService;
+    this.userServiceClient = userServiceClient;
+  }
 
   @PostMapping
   public ResponseEntity createArticle(
@@ -44,7 +53,15 @@ public class ArticlesApi {
       @RequestParam(value = "tag", required = false) String tag,
       @RequestParam(value = "author", required = false) String author,
       @AuthenticationPrincipal UserDto user) {
+    String authorUserId = resolveAuthorToUserId(author);
     return ResponseEntity.ok(
-        articleQueryService.findRecentArticles(tag, author, new Page(offset, limit)));
+        articleQueryService.findRecentArticles(tag, authorUserId, new Page(offset, limit)));
+  }
+
+  private String resolveAuthorToUserId(String author) {
+    if (author == null) {
+      return null;
+    }
+    return userServiceClient.findUserByUsername(author).map(UserDto::getId).orElse(author);
   }
 }

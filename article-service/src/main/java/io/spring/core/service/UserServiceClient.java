@@ -30,4 +30,17 @@ public class UserServiceClient {
       return Optional.empty();
     }
   }
+
+  public Optional<UserDto> findUserByUsername(String username) {
+    try {
+      UserDto user =
+          restTemplate.getForObject(
+              userServiceUrl + "/internal/users/by-username/" + username, UserDto.class);
+      return Optional.ofNullable(user);
+    } catch (Exception e) {
+      log.warn(
+          "Failed to fetch user by username {} from user service: {}", username, e.getMessage());
+      return Optional.empty();
+    }
+  }
 }
