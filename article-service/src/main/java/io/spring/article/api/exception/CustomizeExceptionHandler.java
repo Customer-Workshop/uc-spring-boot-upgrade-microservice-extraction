@@ -4,10 +4,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
@@ -19,22 +20,33 @@ public class CustomizeExceptionHandler extends ResponseEntityExceptionHandler {
   @ExceptionHandler(InvalidRequestException.class)
   public ResponseEntity<Object> handleInvalidRequest(
       InvalidRequestException e, WebRequest request) {
-    List<Map<String, Object>> fieldErrors =
-        e.getErrors().getFieldErrors().stream()
-            .map(
-                fieldError -> {
-                  Map<String, Object> error = new HashMap<>();
-                  error.put("resource", fieldError.getObjectName());
-                  error.put("field", fieldError.getField());
-                  error.put("code", fieldError.getDefaultMessage());
-                  return error;
-                })
-            .collect(Collectors.toList());
+    Map<String, List<String>> grouped = new HashMap<>();
+    for (FieldError fe : e.getErrors().getFieldErrors()) {
+      grouped.computeIfAbsent(fe.getField(), k -> new ArrayList<>()).add(fe.getDefaultMessage());
+    }
 
     Map<String, Object> body = new HashMap<>();
-    body.put("errors", fieldErrors.isEmpty() ? Map.of("body", List.of("invalid")) : fieldErrors);
+    body.put("errors", grouped.isEmpty() ? Map.of("body", List.of("invalid")) : grouped);
 
-    return handleExceptionInternal(e, body, new HttpHeaders(), HttpStatus.UNPROCESSABLE_ENTITY, request);
+    return handleExceptionInternal(
+        e, body, new HttpHeaders(), HttpStatus.UNPROCESSABLE_ENTITY, request);
+  }
+
+  @Override
+  protected ResponseEntity<Object> handleMethodArgumentNotValid(
+      MethodArgumentNotValidException ex,
+      HttpHeaders headers,
+      HttpStatus status,
+      WebRequest request) {
+    Map<String, List<String>> grouped = new HashMap<>();
+    for (FieldError fe : ex.getBindingResult().getFieldErrors()) {
+      grouped.computeIfAbsent(fe.getField(), k -> new ArrayList<>()).add(fe.getDefaultMessage());
+    }
+
+    Map<String, Object> body = new HashMap<>();
+    body.put("errors", grouped.isEmpty() ? Map.of("body", List.of("invalid")) : grouped);
+
+    return handleExceptionInternal(ex, body, headers, HttpStatus.UNPROCESSABLE_ENTITY, request);
   }
 
   @ExceptionHandler(NoAuthorizationException.class)
