@@ -76,6 +76,7 @@ public class InternalUserApi {
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
+@com.fasterxml.jackson.annotation.JsonRootName("followingAuthorsRequest")
 class FollowingAuthorsRequest {
   private String userId;
   private List<String> authorIds;

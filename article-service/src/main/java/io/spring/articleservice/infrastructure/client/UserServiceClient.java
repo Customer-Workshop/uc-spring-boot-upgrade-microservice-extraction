@@ -2,7 +2,9 @@ package io.spring.articleservice.infrastructure.client;
 
 import io.spring.articleservice.application.data.ProfileData;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -12,6 +14,7 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
@@ -86,12 +89,15 @@ public class UserServiceClient {
   public Set<String> followingAuthors(String userId, List<String> authorIds) {
     try {
       FollowingAuthorsRequest request = new FollowingAuthorsRequest(userId, authorIds);
+      Map<String, Object> wrappedRequest = new HashMap<>();
+      wrappedRequest.put("followingAuthorsRequest", request);
       HttpHeaders headers = createHeaders();
+      headers.setContentType(MediaType.APPLICATION_JSON);
       ResponseEntity<List<String>> response =
           restTemplate.exchange(
               userServiceUrl + "/api/internal/users/following-authors",
               HttpMethod.POST,
-              new HttpEntity<>(request, headers),
+              new HttpEntity<>(wrappedRequest, headers),
               new ParameterizedTypeReference<List<String>>() {});
       List<String> body = response.getBody();
       if (body != null) {
