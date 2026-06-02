@@ -218,9 +218,11 @@ public class ArticleQueryService {
     }
     articleData.setFavorited(articleFavoritesReadService.isUserFavorite(userId, id));
     articleData.setFavoritesCount(articleFavoritesReadService.articleFavoriteCount(id));
-    articleData
-        .getProfileData()
-        .setFollowing(
-            userServiceClient.isUserFollowing(userId, articleData.getProfileData().getId()));
+    if (articleData.getProfileData() != null) {
+      articleData
+          .getProfileData()
+          .setFollowing(
+              userServiceClient.isUserFollowing(userId, articleData.getProfileData().getId()));
+    }
   }
 }
