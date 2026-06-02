@@ -1,11 +1,14 @@
 package io.spring.articleservice.application;
 
 import io.spring.articleservice.application.data.CommentData;
+import io.spring.articleservice.application.data.ProfileData;
 import io.spring.articleservice.infrastructure.client.UserServiceClient;
 import io.spring.articleservice.infrastructure.mybatis.readservice.CommentReadService;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -24,6 +27,11 @@ public class CommentQueryService {
     if (commentData == null) {
       return Optional.empty();
     } else {
+      ProfileData authorProfile =
+          userServiceClient.getProfile(commentData.getProfileData().getId());
+      commentData.getProfileData().setUsername(authorProfile.getUsername());
+      commentData.getProfileData().setBio(authorProfile.getBio());
+      commentData.getProfileData().setImage(authorProfile.getImage());
       if (userId != null) {
         commentData
             .getProfileData()
@@ -36,6 +44,7 @@ public class CommentQueryService {
 
   public List<CommentData> findByArticleId(String articleId, String userId) {
     List<CommentData> comments = commentReadService.findByArticleId(articleId);
+    fillAuthorProfiles(comments);
     if (comments.size() > 0 && userId != null) {
       Set<String> followingAuthors =
           userServiceClient.followingAuthors(
@@ -59,6 +68,7 @@ public class CommentQueryService {
     if (comments.isEmpty()) {
       return new CursorPager<>(new ArrayList<>(), page.getDirection(), false);
     }
+    fillAuthorProfiles(comments);
     if (userId != null) {
       Set<String> followingAuthors =
           userServiceClient.followingAuthors(
@@ -81,5 +91,22 @@ public class CommentQueryService {
       Collections.reverse(comments);
     }
     return new CursorPager<>(comments, page.getDirection(), hasExtra);
+  }
+
+  private void fillAuthorProfiles(List<CommentData> comments) {
+    Set<String> authorIds =
+        comments.stream().map(c -> c.getProfileData().getId()).collect(Collectors.toSet());
+    Map<String, ProfileData> profileCache = new HashMap<>();
+    authorIds.forEach(
+        authorId -> profileCache.put(authorId, userServiceClient.getProfile(authorId)));
+    comments.forEach(
+        commentData -> {
+          ProfileData cached = profileCache.get(commentData.getProfileData().getId());
+          if (cached != null) {
+            commentData.getProfileData().setUsername(cached.getUsername());
+            commentData.getProfileData().setBio(cached.getBio());
+            commentData.getProfileData().setImage(cached.getImage());
+          }
+        });
   }
 }

@@ -15,6 +15,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
@@ -28,13 +30,19 @@ class UserServiceClientTest {
 
   @BeforeEach
   void setUp() {
-    userServiceClient = new UserServiceClient(restTemplate, "http://localhost:8080");
+    userServiceClient =
+        new UserServiceClient(restTemplate, "http://localhost:8080", "test-api-key");
   }
 
   @Test
   void getProfile_success() {
     UserProfileResponse response = new UserProfileResponse("user-1", "johndoe", "bio", "image");
-    when(restTemplate.getForEntity(any(String.class), eq(UserProfileResponse.class), eq("user-1")))
+    when(restTemplate.exchange(
+            any(String.class),
+            eq(HttpMethod.GET),
+            any(),
+            eq(UserProfileResponse.class),
+            eq("user-1")))
         .thenReturn(ResponseEntity.ok(response));
 
     ProfileData profile = userServiceClient.getProfile("user-1");
@@ -44,7 +52,12 @@ class UserServiceClientTest {
 
   @Test
   void getProfile_fallback_on_error() {
-    when(restTemplate.getForEntity(any(String.class), eq(UserProfileResponse.class), eq("user-1")))
+    when(restTemplate.exchange(
+            any(String.class),
+            eq(HttpMethod.GET),
+            any(),
+            eq(UserProfileResponse.class),
+            eq("user-1")))
         .thenThrow(new RestClientException("Connection refused"));
 
     ProfileData profile = userServiceClient.getProfile("user-1");
@@ -55,8 +68,13 @@ class UserServiceClientTest {
 
   @Test
   void isUserFollowing_fallback_on_error() {
-    when(restTemplate.getForEntity(
-            any(String.class), eq(Boolean.class), eq("user-1"), eq("user-2")))
+    when(restTemplate.exchange(
+            any(String.class),
+            eq(HttpMethod.GET),
+            any(),
+            eq(Boolean.class),
+            eq("user-1"),
+            eq("user-2")))
         .thenThrow(new RestClientException("Connection refused"));
 
     boolean result = userServiceClient.isUserFollowing("user-1", "user-2");
@@ -66,10 +84,7 @@ class UserServiceClientTest {
   @Test
   void followingAuthors_fallback_on_error() {
     when(restTemplate.exchange(
-            any(String.class),
-            any(),
-            any(),
-            any(org.springframework.core.ParameterizedTypeReference.class)))
+            any(String.class), any(), any(), any(ParameterizedTypeReference.class)))
         .thenThrow(new RestClientException("Connection refused"));
 
     Set<String> result =

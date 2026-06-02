@@ -5,6 +5,7 @@ import static java.util.stream.Collectors.toList;
 import io.spring.articleservice.application.data.ArticleData;
 import io.spring.articleservice.application.data.ArticleDataList;
 import io.spring.articleservice.application.data.ArticleFavoriteCount;
+import io.spring.articleservice.application.data.ProfileData;
 import io.spring.articleservice.infrastructure.client.UserServiceClient;
 import io.spring.articleservice.infrastructure.mybatis.readservice.ArticleFavoritesReadService;
 import io.spring.articleservice.infrastructure.mybatis.readservice.ArticleReadService;
@@ -15,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import org.joda.time.DateTime;
 import org.springframework.stereotype.Service;
@@ -56,8 +58,11 @@ public class ArticleQueryService {
       String favoritedBy,
       CursorPageParameter<DateTime> page,
       String currentUserId) {
+    String authorId = author != null ? userServiceClient.getUserIdByUsername(author) : null;
+    String favoritedById =
+        favoritedBy != null ? userServiceClient.getUserIdByUsername(favoritedBy) : null;
     List<String> articleIds =
-        articleReadService.findArticlesWithCursor(tag, author, favoritedBy, page);
+        articleReadService.findArticlesWithCursor(tag, authorId, favoritedById, page);
     if (articleIds.size() == 0) {
       return new CursorPager<>(new ArrayList<>(), page.getDirection(), false);
     } else {
@@ -98,8 +103,11 @@ public class ArticleQueryService {
 
   public ArticleDataList findRecentArticles(
       String tag, String author, String favoritedBy, Page page, String currentUserId) {
-    List<String> articleIds = articleReadService.queryArticles(tag, author, favoritedBy, page);
-    int articleCount = articleReadService.countArticle(tag, author, favoritedBy);
+    String authorId = author != null ? userServiceClient.getUserIdByUsername(author) : null;
+    String favoritedById =
+        favoritedBy != null ? userServiceClient.getUserIdByUsername(favoritedBy) : null;
+    List<String> articleIds = articleReadService.queryArticles(tag, authorId, favoritedById, page);
+    int articleCount = articleReadService.countArticle(tag, authorId, favoritedById);
     if (articleIds.size() == 0) {
       return new ArticleDataList(new ArrayList<>(), articleCount);
     } else {
@@ -122,6 +130,7 @@ public class ArticleQueryService {
   }
 
   private void fillExtraInfo(List<ArticleData> articles, String currentUserId) {
+    setAuthorProfiles(articles);
     setFavoriteCount(articles);
     if (currentUserId != null) {
       setIsFavorite(articles, currentUserId);
@@ -172,11 +181,32 @@ public class ArticleQueryService {
   }
 
   private void fillExtraInfo(String id, String userId, ArticleData articleData) {
+    ProfileData authorProfile = userServiceClient.getProfile(articleData.getProfileData().getId());
+    articleData.getProfileData().setUsername(authorProfile.getUsername());
+    articleData.getProfileData().setBio(authorProfile.getBio());
+    articleData.getProfileData().setImage(authorProfile.getImage());
     articleData.setFavorited(articleFavoritesReadService.isUserFavorite(userId, id));
     articleData.setFavoritesCount(articleFavoritesReadService.articleFavoriteCount(id));
     articleData
         .getProfileData()
         .setFollowing(
             userServiceClient.isUserFollowing(userId, articleData.getProfileData().getId()));
+  }
+
+  private void setAuthorProfiles(List<ArticleData> articles) {
+    Set<String> authorIds =
+        articles.stream().map(a -> a.getProfileData().getId()).collect(Collectors.toSet());
+    Map<String, ProfileData> profileCache = new HashMap<>();
+    authorIds.forEach(
+        authorId -> profileCache.put(authorId, userServiceClient.getProfile(authorId)));
+    articles.forEach(
+        articleData -> {
+          ProfileData cached = profileCache.get(articleData.getProfileData().getId());
+          if (cached != null) {
+            articleData.getProfileData().setUsername(cached.getUsername());
+            articleData.getProfileData().setBio(cached.getBio());
+            articleData.getProfileData().setImage(cached.getImage());
+          }
+        });
   }
 }
