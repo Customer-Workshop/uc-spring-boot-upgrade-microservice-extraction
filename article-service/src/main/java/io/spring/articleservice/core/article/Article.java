@@ -3,6 +3,7 @@ package io.spring.articleservice.core.article;
 import static java.util.stream.Collectors.toList;
 
 import io.spring.articleservice.Util;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
@@ -42,7 +43,10 @@ public class Article {
     this.title = title;
     this.description = description;
     this.body = body;
-    this.tags = new HashSet<>(tagList).stream().map(Tag::new).collect(toList());
+    this.tags =
+        tagList == null
+            ? Collections.emptyList()
+            : new HashSet<>(tagList).stream().map(Tag::new).collect(toList());
     this.userId = userId;
     this.createdAt = createdAt;
     this.updatedAt = createdAt;

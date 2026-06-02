@@ -59,8 +59,14 @@ public class ArticleQueryService {
       CursorPageParameter<DateTime> page,
       String currentUserId) {
     String authorId = author != null ? userServiceClient.getUserIdByUsername(author) : null;
+    if (author != null && authorId == null) {
+      return new CursorPager<>(new ArrayList<>(), page.getDirection(), false);
+    }
     String favoritedById =
         favoritedBy != null ? userServiceClient.getUserIdByUsername(favoritedBy) : null;
+    if (favoritedBy != null && favoritedById == null) {
+      return new CursorPager<>(new ArrayList<>(), page.getDirection(), false);
+    }
     List<String> articleIds =
         articleReadService.findArticlesWithCursor(tag, authorId, favoritedById, page);
     if (articleIds.size() == 0) {
@@ -104,8 +110,14 @@ public class ArticleQueryService {
   public ArticleDataList findRecentArticles(
       String tag, String author, String favoritedBy, Page page, String currentUserId) {
     String authorId = author != null ? userServiceClient.getUserIdByUsername(author) : null;
+    if (author != null && authorId == null) {
+      return new ArticleDataList(new ArrayList<>(), 0);
+    }
     String favoritedById =
         favoritedBy != null ? userServiceClient.getUserIdByUsername(favoritedBy) : null;
+    if (favoritedBy != null && favoritedById == null) {
+      return new ArticleDataList(new ArrayList<>(), 0);
+    }
     List<String> articleIds = articleReadService.queryArticles(tag, authorId, favoritedById, page);
     int articleCount = articleReadService.countArticle(tag, authorId, favoritedById);
     if (articleIds.size() == 0) {
