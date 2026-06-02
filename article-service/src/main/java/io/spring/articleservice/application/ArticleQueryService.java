@@ -130,11 +130,13 @@ public class ArticleQueryService {
         userServiceClient.followingAuthors(
             currentUserId,
             articles.stream()
+                .filter(articleData -> articleData.getProfileData() != null)
                 .map(articleData -> articleData.getProfileData().getId())
                 .collect(toList()));
     articles.forEach(
         articleData -> {
-          if (followingAuthors.contains(articleData.getProfileData().getId())) {
+          if (articleData.getProfileData() != null
+              && followingAuthors.contains(articleData.getProfileData().getId())) {
             articleData.getProfileData().setFollowing(true);
           }
         });

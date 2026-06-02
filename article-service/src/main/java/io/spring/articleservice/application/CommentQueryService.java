@@ -43,11 +43,13 @@ public class CommentQueryService {
             userServiceClient.followingAuthors(
                 userId,
                 comments.stream()
+                    .filter(commentData -> commentData.getProfileData() != null)
                     .map(commentData -> commentData.getProfileData().getId())
                     .collect(Collectors.toList()));
         comments.forEach(
             commentData -> {
-              if (followingAuthors.contains(commentData.getProfileData().getId())) {
+              if (commentData.getProfileData() != null
+                  && followingAuthors.contains(commentData.getProfileData().getId())) {
                 commentData.getProfileData().setFollowing(true);
               }
             });
