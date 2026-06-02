@@ -33,6 +33,7 @@ public class ArticleQueryService {
     if (articleData == null) {
       return Optional.empty();
     } else {
+      fillAlwaysNeededInfo(articleData);
       if (userId != null) {
         fillExtraInfo(id, userId, articleData);
       }
@@ -45,6 +46,7 @@ public class ArticleQueryService {
     if (articleData == null) {
       return Optional.empty();
     } else {
+      fillAlwaysNeededInfo(articleData);
       if (userId != null) {
         fillExtraInfo(articleData.getId(), userId, articleData);
       }
@@ -192,13 +194,17 @@ public class ArticleQueryService {
         });
   }
 
-  private void fillExtraInfo(String id, String userId, ArticleData articleData) {
+  private void fillAlwaysNeededInfo(ArticleData articleData) {
     ProfileData authorProfile = userServiceClient.getProfile(articleData.getProfileData().getId());
     articleData.getProfileData().setUsername(authorProfile.getUsername());
     articleData.getProfileData().setBio(authorProfile.getBio());
     articleData.getProfileData().setImage(authorProfile.getImage());
+    articleData.setFavoritesCount(
+        articleFavoritesReadService.articleFavoriteCount(articleData.getId()));
+  }
+
+  private void fillExtraInfo(String id, String userId, ArticleData articleData) {
     articleData.setFavorited(articleFavoritesReadService.isUserFavorite(userId, id));
-    articleData.setFavoritesCount(articleFavoritesReadService.articleFavoriteCount(id));
     articleData
         .getProfileData()
         .setFollowing(
