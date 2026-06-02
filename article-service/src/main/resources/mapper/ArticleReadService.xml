@@ -144,13 +144,13 @@
         <if test='page.cursor != null and page.direction.name() == "PREV"'>
             AND A.created_at > #{page.cursor}
         </if>
+        </where>
         <if test='page.direction.name() == "NEXT"'>
             order by A.created_at desc
         </if>
         <if test='page.direction.name() == "PREV"'>
             order by A.created_at asc
         </if>
-        </where>
         limit #{page.queryLimit}
     </select>
 
