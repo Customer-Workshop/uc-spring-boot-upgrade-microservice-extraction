@@ -62,6 +62,6 @@ public class ArticlesApi {
     if (author == null) {
       return null;
     }
-    return userServiceClient.findUserByUsername(author).map(UserDto::getId).orElse(author);
+    return userServiceClient.findUserByUsername(author).map(UserDto::getId).orElse(null);
   }
 }
