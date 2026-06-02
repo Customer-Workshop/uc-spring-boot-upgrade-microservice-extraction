@@ -2,6 +2,7 @@ package io.spring.api.security;
 
 import io.spring.client.UserServiceClient;
 import io.spring.core.service.JwtService;
+import io.spring.infrastructure.mybatis.mapper.UserMapper;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Optional;
@@ -19,6 +20,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class JwtTokenFilter extends OncePerRequestFilter {
   @Autowired private UserServiceClient userServiceClient;
   @Autowired private JwtService jwtService;
+  @Autowired private UserMapper userMapper;
   private final String header = "Authorization";
 
   @Override
@@ -34,6 +36,10 @@ public class JwtTokenFilter extends OncePerRequestFilter {
                     .findUserById(id)
                     .ifPresent(
                         user -> {
+                          try {
+                            userMapper.upsert(user);
+                          } catch (Exception ignored) {
+                          }
                           UsernamePasswordAuthenticationToken authenticationToken =
                               new UsernamePasswordAuthenticationToken(
                                   user, null, Collections.emptyList());

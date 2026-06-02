@@ -50,12 +50,14 @@ public class UserServiceClient {
 
   public Set<String> followingAuthors(String userId, List<String> authorIds) {
     try {
-      String url = userServiceUrl + "/api/internal/users/" + userId + "/following-authors";
+      String ids = String.join(",", authorIds);
+      String url =
+          userServiceUrl + "/api/internal/users/" + userId + "/following-authors?ids=" + ids;
       ResponseEntity<Set<String>> response =
           restTemplate.exchange(
               url,
-              HttpMethod.POST,
-              new HttpEntity<>(authorIds, createHeaders()),
+              HttpMethod.GET,
+              new HttpEntity<>(createHeaders()),
               new ParameterizedTypeReference<Set<String>>() {});
       Set<String> body = response.getBody();
       return body != null ? body : Collections.emptySet();
