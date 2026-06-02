@@ -22,10 +22,18 @@ public class UserServiceClient {
 
   public Optional<ProfileData> getProfileByUserId(String userId) {
     try {
-      ProfileData profile =
+      UserProfileResponse response =
           restTemplate.getForObject(
-              userServiceUrl + "/api/users/{userId}/profile", ProfileData.class, userId);
-      return Optional.ofNullable(profile);
+              userServiceUrl + "/api/users/{userId}/profile",
+              UserProfileResponse.class,
+              userId);
+      if (response == null) {
+        return Optional.empty();
+      }
+      ProfileData profile =
+          new ProfileData(
+              response.getId(), response.getUsername(), response.getBio(), response.getImage(), false);
+      return Optional.of(profile);
     } catch (RestClientException e) {
       return Optional.empty();
     }
