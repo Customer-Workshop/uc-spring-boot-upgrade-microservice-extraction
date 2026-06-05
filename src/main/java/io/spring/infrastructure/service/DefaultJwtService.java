@@ -22,7 +22,7 @@ public class DefaultJwtService implements JwtService {
   public DefaultJwtService(
       @Value("${jwt.secret}") String secret, @Value("${jwt.sessionTime}") int sessionTime) {
     this.sessionTime = sessionTime;
-    this.signingKey = new SecretKeySpec(secret.getBytes(), "HmacSHA256");
+    this.signingKey = new SecretKeySpec(secret.getBytes(), "HmacSHA512");
   }
 
   @Override
@@ -30,7 +30,7 @@ public class DefaultJwtService implements JwtService {
     return Jwts.builder()
         .subject(user.getId())
         .expiration(expireTimeFromNow())
-        .signWith(signingKey, Jwts.SIG.HS256)
+        .signWith(signingKey, Jwts.SIG.HS512)
         .compact();
   }
 
