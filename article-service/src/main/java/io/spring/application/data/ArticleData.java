@@ -1,5 +1,6 @@
 package io.spring.application.data;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 import lombok.AllArgsConstructor;
@@ -21,7 +22,7 @@ public class ArticleData {
   private DateTime createdAt;
   private DateTime updatedAt;
   private List<String> tagList;
-  private String userId;
+  @JsonIgnore private String userId;
 
   @JsonProperty("author")
   private ProfileData profileData;
