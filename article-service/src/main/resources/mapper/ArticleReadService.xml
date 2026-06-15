@@ -77,6 +77,7 @@
         <foreach index="index" collection="authors" item="id" open="(" separator="," close=")">
             #{id}
         </foreach>
+        order by A.created_at desc
         limit #{page.offset}, #{page.limit}
     </select>
     <select id="countFeedSize" resultType="java.lang.Integer">

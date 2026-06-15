@@ -13,6 +13,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
@@ -26,7 +28,8 @@ public class UserServiceClientTest {
 
   @BeforeEach
   void setUp() {
-    userServiceClient = new UserServiceClient(restTemplate, "http://localhost:8080");
+    userServiceClient =
+        new UserServiceClient(restTemplate, "http://localhost:8080", "test-api-key");
   }
 
   @Test
@@ -40,7 +43,11 @@ public class UserServiceClientTest {
     UserServiceClient.ProfileResponse response = new UserServiceClient.ProfileResponse();
     response.setProfile(profile);
 
-    when(restTemplate.getForEntity(any(String.class), eq(UserServiceClient.ProfileResponse.class)))
+    when(restTemplate.exchange(
+            any(String.class),
+            eq(HttpMethod.GET),
+            any(HttpEntity.class),
+            eq(UserServiceClient.ProfileResponse.class)))
         .thenReturn(ResponseEntity.ok(response));
 
     ProfileData result = userServiceClient.getProfile("user-123");
@@ -54,7 +61,11 @@ public class UserServiceClientTest {
 
   @Test
   void should_return_default_profile_on_failure() {
-    when(restTemplate.getForEntity(any(String.class), eq(UserServiceClient.ProfileResponse.class)))
+    when(restTemplate.exchange(
+            any(String.class),
+            eq(HttpMethod.GET),
+            any(HttpEntity.class),
+            eq(UserServiceClient.ProfileResponse.class)))
         .thenThrow(new RestClientException("Connection refused"));
 
     ProfileData result = userServiceClient.getProfile("user-123");
@@ -66,13 +77,19 @@ public class UserServiceClientTest {
 
   @Test
   void should_resolve_username_to_user_id() {
+    UserServiceClient.UserLookupResponse.UserData userData =
+        new UserServiceClient.UserLookupResponse.UserData();
+    userData.setId("resolved-user-id");
+    userData.setUsername("testuser");
     UserServiceClient.UserLookupResponse lookupResponse =
         new UserServiceClient.UserLookupResponse();
-    lookupResponse.setId("resolved-user-id");
-    lookupResponse.setUsername("testuser");
+    lookupResponse.setUser(userData);
 
-    when(restTemplate.getForEntity(
-            any(String.class), eq(UserServiceClient.UserLookupResponse.class)))
+    when(restTemplate.exchange(
+            any(String.class),
+            eq(HttpMethod.GET),
+            any(HttpEntity.class),
+            eq(UserServiceClient.UserLookupResponse.class)))
         .thenReturn(ResponseEntity.ok(lookupResponse));
 
     String result = userServiceClient.resolveUsernameToUserId("testuser");
@@ -81,8 +98,11 @@ public class UserServiceClientTest {
 
   @Test
   void should_return_null_on_username_resolve_failure() {
-    when(restTemplate.getForEntity(
-            any(String.class), eq(UserServiceClient.UserLookupResponse.class)))
+    when(restTemplate.exchange(
+            any(String.class),
+            eq(HttpMethod.GET),
+            any(HttpEntity.class),
+            eq(UserServiceClient.UserLookupResponse.class)))
         .thenThrow(new RestClientException("Connection refused"));
 
     String result = userServiceClient.resolveUsernameToUserId("testuser");

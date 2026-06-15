@@ -45,9 +45,11 @@ public class InternalProfileApi {
         .findByUsername(username)
         .map(
             user -> {
+              Map<String, Object> userData = new HashMap<>();
+              userData.put("id", user.getId());
+              userData.put("username", user.getUsername());
               Map<String, Object> result = new HashMap<>();
-              result.put("id", user.getId());
-              result.put("username", user.getUsername());
+              result.put("user", userData);
               return ResponseEntity.ok(result);
             })
         .orElse(ResponseEntity.notFound().build());
