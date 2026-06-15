@@ -210,11 +210,14 @@ public class ArticleQueryService {
         });
   }
 
+  private static final String NON_EXISTENT_USER_ID = "00000000-0000-0000-0000-000000000000";
+
   private String resolveUserId(String username) {
     if (username == null || username.isEmpty()) {
       return null;
     }
-    return userServiceClient.getUserIdByUsername(username);
+    String userId = userServiceClient.getUserIdByUsername(username);
+    return userId != null ? userId : NON_EXISTENT_USER_ID;
   }
 
   private void fillExtraInfo(String id, String userId, ArticleData articleData) {
