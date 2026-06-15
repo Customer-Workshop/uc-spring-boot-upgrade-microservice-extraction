@@ -43,8 +43,13 @@ public class InternalUserApi {
   }
 
   @PostMapping("/profiles")
-  public ResponseEntity<?> getProfiles(@RequestBody String body) throws Exception {
-    List<String> userIds = PLAIN_MAPPER.readValue(body, new TypeReference<List<String>>() {});
+  public ResponseEntity<?> getProfiles(@RequestBody String body) {
+    List<String> userIds;
+    try {
+      userIds = PLAIN_MAPPER.readValue(body, new TypeReference<List<String>>() {});
+    } catch (Exception e) {
+      return ResponseEntity.badRequest().build();
+    }
     List<Map<String, Object>> profiles = new ArrayList<>();
     for (String userId : userIds) {
       UserData userData = userReadService.findById(userId);
@@ -72,8 +77,13 @@ public class InternalUserApi {
 
   @PostMapping("/{userId}/following-authors")
   public ResponseEntity<?> getFollowingAuthors(
-      @PathVariable("userId") String userId, @RequestBody String body) throws Exception {
-    List<String> authorIds = PLAIN_MAPPER.readValue(body, new TypeReference<List<String>>() {});
+      @PathVariable("userId") String userId, @RequestBody String body) {
+    List<String> authorIds;
+    try {
+      authorIds = PLAIN_MAPPER.readValue(body, new TypeReference<List<String>>() {});
+    } catch (Exception e) {
+      return ResponseEntity.badRequest().build();
+    }
     Set<String> followingAuthors = userRelationshipQueryService.followingAuthors(userId, authorIds);
     return ResponseEntity.ok(followingAuthors);
   }
