@@ -91,7 +91,10 @@ public class ArticleQueryService {
 
   private void fillAuthorProfiles(List<ArticleData> articles) {
     Set<String> authorIds =
-        articles.stream().map(a -> a.getProfileData().getId()).collect(Collectors.toSet());
+        articles.stream()
+            .filter(a -> a.getProfileData() != null && a.getProfileData().getId() != null)
+            .map(a -> a.getProfileData().getId())
+            .collect(Collectors.toSet());
 
     Map<String, ProfileData> profileCache =
         authorIds.stream()
@@ -99,9 +102,12 @@ public class ArticleQueryService {
 
     articles.forEach(
         articleData -> {
-          ProfileData cached = profileCache.get(articleData.getProfileData().getId());
-          if (cached != null) {
-            articleData.setProfileData(cached);
+          if (articleData.getProfileData() != null
+              && articleData.getProfileData().getId() != null) {
+            ProfileData cached = profileCache.get(articleData.getProfileData().getId());
+            if (cached != null) {
+              articleData.setProfileData(cached);
+            }
           }
         });
   }
