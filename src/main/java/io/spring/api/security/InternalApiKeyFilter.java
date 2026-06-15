@@ -25,6 +25,7 @@ public class InternalApiKeyFilter extends OncePerRequestFilter {
       String providedKey = request.getHeader(API_KEY_HEADER);
       if (providedKey == null || !providedKey.equals(internalApiKey)) {
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setContentType("application/json");
         response.getWriter().write("{\"error\": \"Invalid or missing internal API key\"}");
         return;
       }

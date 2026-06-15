@@ -1,6 +1,5 @@
 package io.spring.api;
 
-import io.spring.application.ProfileQueryService;
 import io.spring.core.user.UserRepository;
 import java.util.HashMap;
 import java.util.Map;
@@ -16,7 +15,6 @@ import org.springframework.web.bind.annotation.RestController;
 @AllArgsConstructor
 public class InternalProfileApi {
   private UserRepository userRepository;
-  private ProfileQueryService profileQueryService;
 
   @GetMapping(path = "profiles/{userId}")
   public ResponseEntity getProfileByUserId(@PathVariable("userId") String userId) {
