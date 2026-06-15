@@ -26,7 +26,7 @@ public class UserServiceClient {
 
   public Optional<UserProfileDto> findUserById(String userId) {
     try {
-      String url = userServiceUrl + "/users/" + userId;
+      String url = userServiceUrl + "/internal/users/" + userId;
       UserProfileResponse response = restTemplate.getForObject(url, UserProfileResponse.class);
       if (response != null && response.getUser() != null) {
         return Optional.of(response.getUser());
@@ -40,7 +40,7 @@ public class UserServiceClient {
 
   public List<String> getFollowedUserIds(String userId) {
     try {
-      String url = userServiceUrl + "/users/" + userId + "/following";
+      String url = userServiceUrl + "/internal/users/" + userId + "/following";
       FollowedUsersResponse response = restTemplate.getForObject(url, FollowedUsersResponse.class);
       if (response != null && response.getFollowedUserIds() != null) {
         return response.getFollowedUserIds();
@@ -54,7 +54,7 @@ public class UserServiceClient {
 
   public Optional<String> findUserIdByUsername(String username) {
     try {
-      String url = userServiceUrl + "/profiles/" + username;
+      String url = userServiceUrl + "/internal/profiles/" + username;
       ProfileResponse response = restTemplate.getForObject(url, ProfileResponse.class);
       if (response != null && response.getProfile() != null) {
         return Optional.ofNullable(response.getProfile().getId());
