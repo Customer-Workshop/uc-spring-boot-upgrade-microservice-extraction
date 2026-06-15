@@ -40,8 +40,9 @@ public class ArticleQueryService {
 
   public ArticleDataList findRecentArticles(
       String tag, String author, Page page, String currentUserId) {
-    List<String> articleIds = articleReadService.queryArticles(tag, author, page);
-    int articleCount = articleReadService.countArticle(tag, author);
+    String authorUserId = resolveAuthorUsername(author);
+    List<String> articleIds = articleReadService.queryArticles(tag, authorUserId, page);
+    int articleCount = articleReadService.countArticle(tag, authorUserId);
     if (articleIds.size() == 0) {
       return new ArticleDataList(new ArrayList<>(), articleCount);
     } else {
@@ -49,6 +50,13 @@ public class ArticleQueryService {
       fillAuthorProfiles(articles);
       return new ArticleDataList(articles, articleCount);
     }
+  }
+
+  private String resolveAuthorUsername(String author) {
+    if (author == null) {
+      return null;
+    }
+    return userServiceClient.findUserIdByUsername(author).orElse(author);
   }
 
   public ArticleDataList findUserFeed(List<String> followedUsers, Page page) {

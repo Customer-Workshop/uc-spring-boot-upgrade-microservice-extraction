@@ -52,6 +52,20 @@ public class UserServiceClient {
     }
   }
 
+  public Optional<String> findUserIdByUsername(String username) {
+    try {
+      String url = userServiceUrl + "/profiles/" + username;
+      ProfileResponse response = restTemplate.getForObject(url, ProfileResponse.class);
+      if (response != null && response.getProfile() != null) {
+        return Optional.ofNullable(response.getProfile().getId());
+      }
+      return Optional.empty();
+    } catch (RestClientException e) {
+      logger.warn("Failed to resolve username={}: {}", username, e.getMessage());
+      return Optional.empty();
+    }
+  }
+
   @lombok.Data
   @lombok.NoArgsConstructor
   private static class UserProfileResponse {
@@ -62,5 +76,11 @@ public class UserServiceClient {
   @lombok.NoArgsConstructor
   private static class FollowedUsersResponse {
     private List<String> followedUserIds;
+  }
+
+  @lombok.Data
+  @lombok.NoArgsConstructor
+  private static class ProfileResponse {
+    private UserProfileDto profile;
   }
 }
