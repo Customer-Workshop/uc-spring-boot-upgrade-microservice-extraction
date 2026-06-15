@@ -38,6 +38,20 @@ public class UserServiceClient {
     return defaultProfile(userId);
   }
 
+  public String resolveUsernameToUserId(String username) {
+    try {
+      String url = monolithBaseUrl + "/api/internal/users/by-username/" + username;
+      ResponseEntity<UserLookupResponse> response =
+          restTemplate.getForEntity(url, UserLookupResponse.class);
+      if (response.getBody() != null && response.getBody().getId() != null) {
+        return response.getBody().getId();
+      }
+    } catch (Exception e) {
+      logger.warn("Failed to resolve username={}: {}", username, e.getMessage());
+    }
+    return null;
+  }
+
   private ProfileData defaultProfile(String userId) {
     return new ProfileData(userId, userId, "", "", false);
   }
@@ -50,9 +64,17 @@ public class UserServiceClient {
     @lombok.Data
     @lombok.NoArgsConstructor
     public static class Profile {
+      private String id;
       private String username;
       private String bio;
       private String image;
     }
+  }
+
+  @lombok.Data
+  @lombok.NoArgsConstructor
+  public static class UserLookupResponse {
+    private String id;
+    private String username;
   }
 }

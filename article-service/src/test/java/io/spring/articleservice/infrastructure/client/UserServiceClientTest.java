@@ -2,6 +2,7 @@ package io.spring.articleservice.infrastructure.client;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
@@ -61,5 +62,30 @@ public class UserServiceClientTest {
     assertNotNull(result);
     assertEquals("user-123", result.getUsername());
     assertEquals("user-123", result.getId());
+  }
+
+  @Test
+  void should_resolve_username_to_user_id() {
+    UserServiceClient.UserLookupResponse lookupResponse =
+        new UserServiceClient.UserLookupResponse();
+    lookupResponse.setId("resolved-user-id");
+    lookupResponse.setUsername("testuser");
+
+    when(restTemplate.getForEntity(
+            any(String.class), eq(UserServiceClient.UserLookupResponse.class)))
+        .thenReturn(ResponseEntity.ok(lookupResponse));
+
+    String result = userServiceClient.resolveUsernameToUserId("testuser");
+    assertEquals("resolved-user-id", result);
+  }
+
+  @Test
+  void should_return_null_on_username_resolve_failure() {
+    when(restTemplate.getForEntity(
+            any(String.class), eq(UserServiceClient.UserLookupResponse.class)))
+        .thenThrow(new RestClientException("Connection refused"));
+
+    String result = userServiceClient.resolveUsernameToUserId("testuser");
+    assertNull(result);
   }
 }

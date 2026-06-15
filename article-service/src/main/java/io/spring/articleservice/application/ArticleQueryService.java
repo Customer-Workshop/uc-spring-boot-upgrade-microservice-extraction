@@ -44,7 +44,8 @@ public class ArticleQueryService {
 
   public CursorPager<ArticleData> findRecentArticlesWithCursor(
       String tag, String author, CursorPageParameter<DateTime> page, String currentUserId) {
-    List<String> articleIds = articleReadService.findArticlesWithCursor(tag, author, page);
+    String authorUserId = resolveAuthorToUserId(author);
+    List<String> articleIds = articleReadService.findArticlesWithCursor(tag, authorUserId, page);
     if (articleIds.size() == 0) {
       return new CursorPager<>(new ArrayList<>(), page.getDirection(), false);
     } else {
@@ -65,8 +66,9 @@ public class ArticleQueryService {
 
   public ArticleDataList findRecentArticles(
       String tag, String author, Page page, String currentUserId) {
-    List<String> articleIds = articleReadService.queryArticles(tag, author, page);
-    int articleCount = articleReadService.countArticle(tag, author);
+    String authorUserId = resolveAuthorToUserId(author);
+    List<String> articleIds = articleReadService.queryArticles(tag, authorUserId, page);
+    int articleCount = articleReadService.countArticle(tag, authorUserId);
     if (articleIds.size() == 0) {
       return new ArticleDataList(new ArrayList<>(), articleCount);
     } else {
@@ -102,6 +104,14 @@ public class ArticleQueryService {
             articleData.setProfileData(cached);
           }
         });
+  }
+
+  private String resolveAuthorToUserId(String author) {
+    if (author == null) {
+      return null;
+    }
+    String userId = userServiceClient.resolveUsernameToUserId(author);
+    return userId != null ? userId : author;
   }
 
   private void fillAuthorProfile(ArticleData articleData) {
