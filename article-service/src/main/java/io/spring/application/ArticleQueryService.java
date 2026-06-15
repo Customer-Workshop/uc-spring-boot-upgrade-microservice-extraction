@@ -56,7 +56,7 @@ public class ArticleQueryService {
     if (author == null) {
       return null;
     }
-    return userServiceClient.findUserIdByUsername(author).orElse(author);
+    return userServiceClient.findUserIdByUsername(author).orElse(null);
   }
 
   public ArticleDataList findUserFeed(List<String> followedUsers, Page page) {
