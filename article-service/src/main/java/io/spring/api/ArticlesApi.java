@@ -5,7 +5,9 @@ import io.spring.application.Page;
 import io.spring.application.article.ArticleCommandService;
 import io.spring.application.article.NewArticleParam;
 import io.spring.core.article.Article;
+import io.spring.infrastructure.client.UserServiceClient;
 import java.util.HashMap;
+import java.util.List;
 import javax.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -23,6 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class ArticlesApi {
   private ArticleCommandService articleCommandService;
   private ArticleQueryService articleQueryService;
+  private UserServiceClient userServiceClient;
 
   @PostMapping
   public ResponseEntity createArticle(
@@ -41,9 +44,9 @@ public class ArticlesApi {
       @RequestParam(value = "offset", defaultValue = "0") int offset,
       @RequestParam(value = "limit", defaultValue = "20") int limit,
       @AuthenticationPrincipal String userId) {
+    List<String> followedUsers = userServiceClient.getFollowedUserIds(userId);
     return ResponseEntity.ok(
-        articleQueryService.findUserFeed(
-            java.util.Collections.emptyList(), new Page(offset, limit)));
+        articleQueryService.findUserFeed(followedUsers, new Page(offset, limit)));
   }
 
   @GetMapping

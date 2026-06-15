@@ -1,5 +1,7 @@
 package io.spring.infrastructure.client;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,9 +38,29 @@ public class UserServiceClient {
     }
   }
 
+  public List<String> getFollowedUserIds(String userId) {
+    try {
+      String url = userServiceUrl + "/users/" + userId + "/following";
+      FollowedUsersResponse response = restTemplate.getForObject(url, FollowedUsersResponse.class);
+      if (response != null && response.getFollowedUserIds() != null) {
+        return response.getFollowedUserIds();
+      }
+      return Collections.emptyList();
+    } catch (RestClientException e) {
+      logger.warn("Failed to fetch followed users for userId={}: {}", userId, e.getMessage());
+      return Collections.emptyList();
+    }
+  }
+
   @lombok.Data
   @lombok.NoArgsConstructor
   private static class UserProfileResponse {
     private UserProfileDto user;
+  }
+
+  @lombok.Data
+  @lombok.NoArgsConstructor
+  private static class FollowedUsersResponse {
+    private List<String> followedUserIds;
   }
 }
