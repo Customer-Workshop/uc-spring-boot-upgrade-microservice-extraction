@@ -9,6 +9,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -18,6 +19,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
+@Slf4j
 @Component
 public class UserServiceClient {
 
@@ -43,6 +45,7 @@ public class UserServiceClient {
       return new ProfileData(
           body.getId(), body.getUsername(), body.getBio(), body.getImage(), false);
     } catch (Exception e) {
+      log.warn("Failed to get profile for userId={}", userId, e);
       return defaultProfile(userId);
     }
   }
@@ -74,6 +77,7 @@ public class UserServiceClient {
       }
       return result;
     } catch (Exception e) {
+      log.warn("Failed to get profiles for userIds={}", userIds, e);
       return Collections.emptyMap();
     }
   }
@@ -88,6 +92,7 @@ public class UserServiceClient {
               targetId);
       return Boolean.TRUE.equals(response.getBody());
     } catch (Exception e) {
+      log.warn("Failed to check following status userId={} targetId={}", userId, targetId, e);
       return false;
     }
   }
@@ -113,7 +118,26 @@ public class UserServiceClient {
       }
       return new HashSet<>(Arrays.asList(body));
     } catch (Exception e) {
+      log.warn("Failed to get following authors for userId={}", userId, e);
       return Collections.emptySet();
+    }
+  }
+
+  public String getUserIdByUsername(String username) {
+    if (username == null || username.isEmpty()) {
+      return null;
+    }
+    try {
+      ResponseEntity<UserProfileResponse> response =
+          restTemplate.getForEntity(
+              userServiceUrl + "/internal/users/by-username/{username}",
+              UserProfileResponse.class,
+              username);
+      UserProfileResponse body = response.getBody();
+      return body != null ? body.getId() : null;
+    } catch (Exception e) {
+      log.warn("Failed to resolve username={}", username, e);
+      return null;
     }
   }
 
@@ -128,6 +152,7 @@ public class UserServiceClient {
       }
       return Arrays.asList(body);
     } catch (Exception e) {
+      log.warn("Failed to get followed users for userId={}", userId, e);
       return Collections.emptyList();
     }
   }

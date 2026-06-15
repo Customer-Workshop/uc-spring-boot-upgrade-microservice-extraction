@@ -59,8 +59,10 @@ public class ArticleQueryService {
       String favoritedBy,
       CursorPageParameter<DateTime> page,
       String currentUserId) {
+    String authorId = resolveUserId(author);
+    String favoritedById = resolveUserId(favoritedBy);
     List<String> articleIds =
-        articleReadService.findArticlesWithCursor(tag, author, favoritedBy, page);
+        articleReadService.findArticlesWithCursor(tag, authorId, favoritedById, page);
     if (articleIds.size() == 0) {
       return new CursorPager<>(new ArrayList<>(), page.getDirection(), false);
     } else {
@@ -101,8 +103,10 @@ public class ArticleQueryService {
 
   public ArticleDataList findRecentArticles(
       String tag, String author, String favoritedBy, Page page, String currentUserId) {
-    List<String> articleIds = articleReadService.queryArticles(tag, author, favoritedBy, page);
-    int articleCount = articleReadService.countArticle(tag, author, favoritedBy);
+    String authorId = resolveUserId(author);
+    String favoritedById = resolveUserId(favoritedBy);
+    List<String> articleIds = articleReadService.queryArticles(tag, authorId, favoritedById, page);
+    int articleCount = articleReadService.countArticle(tag, authorId, favoritedById);
     if (articleIds.size() == 0) {
       return new ArticleDataList(new ArrayList<>(), articleCount);
     } else {
@@ -188,7 +192,8 @@ public class ArticleQueryService {
           countMap.put(item.getId(), item.getCount());
         });
     articles.forEach(
-        articleData -> articleData.setFavoritesCount(countMap.get(articleData.getId())));
+        articleData ->
+            articleData.setFavoritesCount(countMap.getOrDefault(articleData.getId(), 0)));
   }
 
   private void setIsFavorite(List<ArticleData> articles, String currentUserId) {
@@ -203,6 +208,13 @@ public class ArticleQueryService {
             articleData.setFavorited(true);
           }
         });
+  }
+
+  private String resolveUserId(String username) {
+    if (username == null || username.isEmpty()) {
+      return null;
+    }
+    return userServiceClient.getUserIdByUsername(username);
   }
 
   private void fillExtraInfo(String id, String userId, ArticleData articleData) {
