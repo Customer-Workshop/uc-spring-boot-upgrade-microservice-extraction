@@ -31,7 +31,12 @@ public class ArticlesApi {
     return ResponseEntity.ok(
         new HashMap<String, Object>() {
           {
-            put("article", articleQueryService.findById(article.getId(), userId).get());
+            put(
+                "article",
+                articleQueryService
+                    .findById(article.getId(), userId)
+                    .orElseThrow(
+                        io.spring.articleservice.api.exception.ResourceNotFoundException::new));
           }
         });
   }
