@@ -1,0 +1,17 @@
+package io.spring.commentservice.infrastructure.mybatis.mapper;
+
+import io.spring.commentservice.core.Comment;
+import java.util.List;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+@Mapper
+public interface CommentMapper {
+  void insert(@Param("comment") Comment comment);
+
+  Comment findById(@Param("id") String id);
+
+  List<Comment> findByArticleId(@Param("articleId") String articleId);
+
+  void delete(@Param("id") String id);
+}

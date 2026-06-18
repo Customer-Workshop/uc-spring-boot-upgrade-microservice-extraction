@@ -5,9 +5,11 @@ import io.spring.core.comment.CommentRepository;
 import io.spring.infrastructure.mybatis.mapper.CommentMapper;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 @Component
+@Profile("!microservice")
 public class MyBatisCommentRepository implements CommentRepository {
   private CommentMapper commentMapper;
 

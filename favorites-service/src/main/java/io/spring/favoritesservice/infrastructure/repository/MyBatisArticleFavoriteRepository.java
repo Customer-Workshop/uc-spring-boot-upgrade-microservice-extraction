@@ -1,19 +1,15 @@
-package io.spring.infrastructure.repository;
+package io.spring.favoritesservice.infrastructure.repository;
 
-import io.spring.core.favorite.ArticleFavorite;
-import io.spring.core.favorite.ArticleFavoriteRepository;
-import io.spring.infrastructure.mybatis.mapper.ArticleFavoriteMapper;
+import io.spring.favoritesservice.core.ArticleFavorite;
+import io.spring.favoritesservice.core.ArticleFavoriteRepository;
+import io.spring.favoritesservice.infrastructure.mybatis.mapper.ArticleFavoriteMapper;
 import java.util.Optional;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Repository;
 
 @Repository
-@Profile("!microservice")
 public class MyBatisArticleFavoriteRepository implements ArticleFavoriteRepository {
-  private ArticleFavoriteMapper mapper;
+  private final ArticleFavoriteMapper mapper;
 
-  @Autowired
   public MyBatisArticleFavoriteRepository(ArticleFavoriteMapper mapper) {
     this.mapper = mapper;
   }
@@ -33,5 +29,15 @@ public class MyBatisArticleFavoriteRepository implements ArticleFavoriteReposito
   @Override
   public void remove(ArticleFavorite favorite) {
     mapper.delete(favorite);
+  }
+
+  @Override
+  public int countByArticleId(String articleId) {
+    return mapper.countByArticleId(articleId);
+  }
+
+  @Override
+  public boolean isUserFavorite(String articleId, String userId) {
+    return mapper.find(articleId, userId) != null;
   }
 }
