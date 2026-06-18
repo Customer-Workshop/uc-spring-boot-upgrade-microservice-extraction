@@ -1,5 +1,6 @@
 package io.spring.infrastructure.mybatis.readservice;
 
+import io.spring.application.CommentReadServiceInterface;
 import io.spring.application.CursorPageParameter;
 import io.spring.application.data.CommentData;
 import java.util.List;
@@ -8,7 +9,7 @@ import org.apache.ibatis.annotations.Param;
 import org.joda.time.DateTime;
 
 @Mapper
-public interface CommentReadService {
+public interface CommentReadService extends CommentReadServiceInterface {
   CommentData findById(@Param("id") String id);
 
   List<CommentData> findByArticleId(@Param("articleId") String articleId);

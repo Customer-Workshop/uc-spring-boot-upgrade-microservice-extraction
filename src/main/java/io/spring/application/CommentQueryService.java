@@ -2,7 +2,6 @@ package io.spring.application;
 
 import io.spring.application.data.CommentData;
 import io.spring.core.user.User;
-import io.spring.infrastructure.mybatis.readservice.CommentReadService;
 import io.spring.infrastructure.mybatis.readservice.UserRelationshipQueryService;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -17,7 +16,7 @@ import org.springframework.stereotype.Service;
 @Service
 @AllArgsConstructor
 public class CommentQueryService {
-  private CommentReadService commentReadService;
+  private CommentReadServiceInterface commentReadService;
   private UserRelationshipQueryService userRelationshipQueryService;
 
   public Optional<CommentData> findById(String id, User user) {

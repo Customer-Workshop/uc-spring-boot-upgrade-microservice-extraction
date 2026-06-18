@@ -1,0 +1,20 @@
+server:
+  port: 8081
+
+spring:
+  datasource:
+    url: jdbc:sqlite:comments-dev.db
+    driver-class-name: org.sqlite.JDBC
+
+mybatis:
+  configuration:
+    cache-enabled: true
+    default-statement-timeout: 3000
+    map-underscore-to-camel-case: true
+    use-generated-keys: true
+  type-handlers-package: io.spring.comments.infrastructure.mybatis
+  mapper-locations: mapper/*.xml
+
+services:
+  monolith:
+    url: http://localhost:8080
