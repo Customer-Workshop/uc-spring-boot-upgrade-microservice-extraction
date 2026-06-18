@@ -1,15 +1,13 @@
-package io.spring.infrastructure.repository;
+package io.spring.favorites.infrastructure.repository;
 
-import io.spring.core.favorite.ArticleFavorite;
-import io.spring.core.favorite.ArticleFavoriteRepository;
-import io.spring.infrastructure.mybatis.mapper.ArticleFavoriteMapper;
+import io.spring.favorites.core.ArticleFavorite;
+import io.spring.favorites.core.ArticleFavoriteRepository;
+import io.spring.favorites.infrastructure.mybatis.mapper.ArticleFavoriteMapper;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Repository;
 
 @Repository
-@Profile("!microservice")
 public class MyBatisArticleFavoriteRepository implements ArticleFavoriteRepository {
   private ArticleFavoriteMapper mapper;
 

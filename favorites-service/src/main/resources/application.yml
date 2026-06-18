@@ -1,0 +1,20 @@
+server:
+  port: 8082
+
+spring:
+  datasource:
+    url: jdbc:sqlite:favorites-dev.db
+    driver-class-name: org.sqlite.JDBC
+
+mybatis:
+  configuration:
+    cache-enabled: true
+    default-statement-timeout: 3000
+    map-underscore-to-camel-case: true
+    use-generated-keys: true
+  type-handlers-package: io.spring.favorites.infrastructure.mybatis
+  mapper-locations: mapper/*.xml
+
+services:
+  monolith:
+    url: http://localhost:8080
