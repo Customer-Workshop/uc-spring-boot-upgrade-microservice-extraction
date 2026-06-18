@@ -8,6 +8,20 @@ This codebase was created to demonstrate a fully fledged full-stack application 
 
 For more information on how to this works with other frontends/backends, head over to the [RealWorld](https://github.com/gothinkster/realworld) repo.
 
+# Technology Stack
+
+| Component | Version |
+|---|---|
+| Java | 17 |
+| Spring Boot | 3.2.5 |
+| Spring Security | 6.x (SecurityFilterChain, jakarta namespace) |
+| Gradle | 8.7 |
+| Netflix DGS | 8.7.1 |
+| MyBatis Spring Boot | 3.0.3 |
+| JJWT | 0.12.5 |
+| Flyway | managed by Spring Boot |
+| SQLite | 3.45.3.0 |
+
 # *NEW* GraphQL Support  
 
 Following some DDD principles. REST or GraphQL is just a kind of adapter. And the domain layer will be consistent all the time. So this repository implement GraphQL and REST at the same time.
@@ -19,7 +33,7 @@ The GraphQL schema is https://github.com/gothinkster/spring-boot-realworld-examp
 And this implementation is using [dgs-framework](https://github.com/Netflix/dgs-framework) which is a quite new java graphql server framework.
 # How it works
 
-The application uses Spring Boot (Web, Mybatis).
+The application uses Spring Boot 3.2 (Web, Mybatis).
 
 * Use the idea of Domain Driven Design to separate the business term and infrastructure term.
 * Use MyBatis to implement the [Data Mapper](https://martinfowler.com/eaaCatalog/dataMapper.html) pattern for persistence.
