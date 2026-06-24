@@ -1,4 +1,4 @@
-package io.spring.core.comment;
+package io.spring.comments.core.comment;
 
 import java.util.UUID;
 import lombok.EqualsAndHashCode;
@@ -17,11 +17,7 @@ public class Comment {
   private DateTime createdAt;
 
   public Comment(String body, String userId, String articleId) {
-    this.id = UUID.randomUUID().toString();
-    this.body = body;
-    this.userId = userId;
-    this.articleId = articleId;
-    this.createdAt = new DateTime();
+    this(UUID.randomUUID().toString(), body, userId, articleId, new DateTime());
   }
 
   public Comment(String id, String body, String userId, String articleId, DateTime createdAt) {

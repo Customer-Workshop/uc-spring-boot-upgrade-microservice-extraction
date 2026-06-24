@@ -1,76 +1,85 @@
 package io.spring.application.comment;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import io.spring.application.CommentQueryService;
+import io.spring.application.CursorPageParameter;
+import io.spring.application.CursorPager;
+import io.spring.application.CursorPager.Direction;
 import io.spring.application.data.CommentData;
-import io.spring.core.article.Article;
-import io.spring.core.article.ArticleRepository;
-import io.spring.core.comment.Comment;
-import io.spring.core.comment.CommentRepository;
-import io.spring.core.user.FollowRelation;
+import io.spring.application.data.ProfileData;
 import io.spring.core.user.User;
-import io.spring.core.user.UserRepository;
-import io.spring.infrastructure.DbTestBase;
-import io.spring.infrastructure.repository.MyBatisArticleRepository;
-import io.spring.infrastructure.repository.MyBatisCommentRepository;
-import io.spring.infrastructure.repository.MyBatisUserRepository;
+import io.spring.infrastructure.client.CommentServiceClient;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-import org.junit.jupiter.api.Assertions;
+import org.joda.time.DateTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Import;
 
-@Import({
-  MyBatisCommentRepository.class,
-  MyBatisUserRepository.class,
-  CommentQueryService.class,
-  MyBatisArticleRepository.class
-})
-public class CommentQueryServiceTest extends DbTestBase {
-  @Autowired private CommentRepository commentRepository;
+public class CommentQueryServiceTest {
 
-  @Autowired private UserRepository userRepository;
-
-  @Autowired private CommentQueryService commentQueryService;
-
-  @Autowired private ArticleRepository articleRepository;
-
+  private CommentServiceClient commentServiceClient;
+  private CommentQueryService commentQueryService;
   private User user;
 
   @BeforeEach
   public void setUp() {
+    commentServiceClient = mock(CommentServiceClient.class);
+    commentQueryService = new CommentQueryService(commentServiceClient);
     user = new User("aisensiy@test.com", "aisensiy", "123", "", "");
-    userRepository.save(user);
+  }
+
+  private CommentData sampleComment(String id) {
+    return new CommentData(
+        id,
+        "content",
+        "article-1",
+        new DateTime(),
+        new DateTime(),
+        new ProfileData("u1", "aisensiy", "", "", false));
   }
 
   @Test
-  public void should_read_comment_success() {
-    Comment comment = new Comment("content", user.getId(), "123");
-    commentRepository.save(comment);
+  public void should_delegate_find_by_id_with_viewer() {
+    CommentData data = sampleComment("c1");
+    when(commentServiceClient.findCommentData(eq("c1"), eq(user.getId())))
+        .thenReturn(Optional.of(data));
 
-    Optional<CommentData> optional = commentQueryService.findById(comment.getId(), user);
-    Assertions.assertTrue(optional.isPresent());
-    CommentData commentData = optional.get();
-    Assertions.assertEquals(commentData.getProfileData().getUsername(), user.getUsername());
+    Optional<CommentData> result = commentQueryService.findById("c1", user);
+
+    assertTrue(result.isPresent());
+    assertSame(data, result.get());
   }
 
   @Test
-  public void should_read_comments_of_article() {
-    Article article = new Article("title", "desc", "body", Arrays.asList("java"), user.getId());
-    articleRepository.save(article);
+  public void should_pass_null_viewer_when_user_is_null() {
+    when(commentServiceClient.findByArticleId(eq("article-1"), isNull()))
+        .thenReturn(Arrays.asList(sampleComment("c1"), sampleComment("c2")));
 
-    User user2 = new User("user2@email.com", "user2", "123", "", "");
-    userRepository.save(user2);
-    userRepository.saveRelation(new FollowRelation(user.getId(), user2.getId()));
+    List<CommentData> result = commentQueryService.findByArticleId("article-1", null);
 
-    Comment comment1 = new Comment("content1", user.getId(), article.getId());
-    commentRepository.save(comment1);
-    Comment comment2 = new Comment("content2", user2.getId(), article.getId());
-    commentRepository.save(comment2);
+    assertEquals(2, result.size());
+  }
 
-    List<CommentData> comments = commentQueryService.findByArticleId(article.getId(), user);
-    Assertions.assertEquals(comments.size(), 2);
+  @Test
+  public void should_delegate_cursor_query() {
+    CursorPageParameter<DateTime> page = new CursorPageParameter<>(null, 10, Direction.NEXT);
+    CursorPager<CommentData> pager =
+        new CursorPager<>(Arrays.asList(sampleComment("c1")), Direction.NEXT, false);
+    when(commentServiceClient.findByArticleIdWithCursor(
+            eq("article-1"), eq(user.getId()), eq(page)))
+        .thenReturn(pager);
+
+    CursorPager<CommentData> result =
+        commentQueryService.findByArticleIdWithCursor("article-1", user, page);
+
+    assertEquals(1, result.getData().size());
   }
 }

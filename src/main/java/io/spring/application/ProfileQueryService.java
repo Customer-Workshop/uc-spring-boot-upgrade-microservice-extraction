@@ -32,4 +32,22 @@ public class ProfileQueryService {
       return Optional.of(profileData);
     }
   }
+
+  public Optional<ProfileData> findByUserId(String userId, String viewerId) {
+    UserData userData = userReadService.findById(userId);
+    if (userData == null) {
+      return Optional.empty();
+    }
+    boolean following =
+        viewerId != null
+            && !viewerId.isEmpty()
+            && userRelationshipQueryService.isUserFollowing(viewerId, userData.getId());
+    return Optional.of(
+        new ProfileData(
+            userData.getId(),
+            userData.getUsername(),
+            userData.getBio(),
+            userData.getImage(),
+            following));
+  }
 }

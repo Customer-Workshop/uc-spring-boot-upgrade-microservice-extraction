@@ -1,0 +1,9 @@
+.git
+.gradle
+build/
+comments-service/
+frontend/
+*.db
+*.png
+.idea
+.windsurf
