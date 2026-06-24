@@ -138,7 +138,7 @@ public class ArticleQueryService {
     if (username == null) {
       return null;
     }
-    return userServiceClient.findUserByUsername(username).map(User::getId).orElse(username);
+    return userServiceClient.findUserByUsername(username).map(User::getId).orElse(null);
   }
 
   private void enrichProfileData(ArticleData articleData) {
