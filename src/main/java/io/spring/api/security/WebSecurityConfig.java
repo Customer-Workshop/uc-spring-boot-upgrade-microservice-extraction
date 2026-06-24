@@ -42,7 +42,9 @@ public class WebSecurityConfig {
             session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(
             auth ->
-                auth.requestMatchers(HttpMethod.OPTIONS)
+                auth.requestMatchers("/api/internal/**")
+                    .permitAll()
+                    .requestMatchers(HttpMethod.OPTIONS)
                     .permitAll()
                     .requestMatchers("/graphiql")
                     .permitAll()
