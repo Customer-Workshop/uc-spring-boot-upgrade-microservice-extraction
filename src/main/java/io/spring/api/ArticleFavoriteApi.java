@@ -1,5 +1,8 @@
 package io.spring.api;
 
+// NOTE: The article-service is now the canonical source for article management.
+// This controller is retained for backward compatibility during the migration period.
+
 import io.spring.api.exception.ResourceNotFoundException;
 import io.spring.application.ArticleQueryService;
 import io.spring.application.data.ArticleData;
