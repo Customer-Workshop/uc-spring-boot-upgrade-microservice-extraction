@@ -35,7 +35,9 @@ public class WebSecurityConfig {
             session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(
             auth ->
-                auth.requestMatchers(HttpMethod.OPTIONS)
+                auth.requestMatchers("/actuator/**")
+                    .permitAll()
+                    .requestMatchers(HttpMethod.OPTIONS)
                     .permitAll()
                     .requestMatchers(HttpMethod.GET, "/articles/feed")
                     .authenticated()

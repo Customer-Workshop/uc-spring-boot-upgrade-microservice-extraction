@@ -16,7 +16,7 @@ public class DefaultJwtService implements JwtService {
 
   @Autowired
   public DefaultJwtService(@Value("${jwt.secret}") String secret) {
-    this.signingKey = new SecretKeySpec(secret.getBytes(), "HmacSHA256");
+    this.signingKey = new SecretKeySpec(secret.getBytes(), "HmacSHA512");
   }
 
   @Override

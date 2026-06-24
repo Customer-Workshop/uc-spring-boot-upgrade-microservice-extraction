@@ -1,10 +1,12 @@
 package io.spring.infrastructure.client;
 
 import io.spring.core.user.User;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
@@ -66,11 +68,31 @@ public class UserServiceClient {
   }
 
   public Set<String> followingAuthors(String userId, List<String> authorIds) {
-    return Set.of();
+    Set<String> result = new HashSet<>();
+    for (String authorId : authorIds) {
+      if (isUserFollowing(userId, authorId)) {
+        result.add(authorId);
+      }
+    }
+    return result;
   }
 
   public List<String> followedUsers(String userId) {
-    return List.of();
+    try {
+      Map<String, Object> response =
+          restTemplate.getForObject(
+              monolithBaseUrl + "/api/internal/users/{id}/following", Map.class, userId);
+      if (response == null) {
+        return List.of();
+      }
+      Object ids = response.get("userIds");
+      if (ids instanceof List) {
+        return ((List<?>) ids).stream().map(Object::toString).collect(Collectors.toList());
+      }
+      return List.of();
+    } catch (Exception e) {
+      return List.of();
+    }
   }
 
   private User mapToUser(Map<String, Object> data) {

@@ -12,6 +12,8 @@ RUN chmod +x gradlew && ./gradlew build -x test -x jacocoTestCoverageVerificatio
 
 FROM eclipse-temurin:17-jre
 
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 COPY --from=build /app/build/libs/*.jar app.jar

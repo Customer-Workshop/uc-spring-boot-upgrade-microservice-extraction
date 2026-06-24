@@ -5,6 +5,7 @@ import static java.util.stream.Collectors.toList;
 import io.spring.application.data.ArticleData;
 import io.spring.application.data.ArticleDataList;
 import io.spring.application.data.ArticleFavoriteCount;
+import io.spring.application.data.ProfileData;
 import io.spring.core.user.User;
 import io.spring.infrastructure.client.UserServiceClient;
 import io.spring.infrastructure.mybatis.readservice.ArticleFavoritesReadService;
@@ -32,6 +33,7 @@ public class ArticleQueryService {
     if (articleData == null) {
       return Optional.empty();
     } else {
+      enrichProfileData(articleData);
       if (user != null) {
         fillExtraInfo(id, user, articleData);
       }
@@ -44,6 +46,7 @@ public class ArticleQueryService {
     if (articleData == null) {
       return Optional.empty();
     } else {
+      enrichProfileData(articleData);
       if (user != null) {
         fillExtraInfo(articleData.getId(), user, articleData);
       }
@@ -57,8 +60,10 @@ public class ArticleQueryService {
       String favoritedBy,
       CursorPageParameter<DateTime> page,
       User currentUser) {
+    String authorUserId = resolveUsernameToId(author);
+    String favoritedByUserId = resolveUsernameToId(favoritedBy);
     List<String> articleIds =
-        articleReadService.findArticlesWithCursor(tag, author, favoritedBy, page);
+        articleReadService.findArticlesWithCursor(tag, authorUserId, favoritedByUserId, page);
     if (articleIds.size() == 0) {
       return new CursorPager<>(new ArrayList<>(), page.getDirection(), false);
     } else {
@@ -71,6 +76,7 @@ public class ArticleQueryService {
       }
 
       List<ArticleData> articles = articleReadService.findArticles(articleIds);
+      enrichProfileDataList(articles);
       fillExtraInfo(articles, currentUser);
 
       return new CursorPager<>(articles, page.getDirection(), hasExtra);
@@ -92,6 +98,7 @@ public class ArticleQueryService {
       if (!page.isNext()) {
         Collections.reverse(articles);
       }
+      enrichProfileDataList(articles);
       fillExtraInfo(articles, user);
       return new CursorPager<>(articles, page.getDirection(), hasExtra);
     }
@@ -99,12 +106,16 @@ public class ArticleQueryService {
 
   public ArticleDataList findRecentArticles(
       String tag, String author, String favoritedBy, Page page, User currentUser) {
-    List<String> articleIds = articleReadService.queryArticles(tag, author, favoritedBy, page);
-    int articleCount = articleReadService.countArticle(tag, author, favoritedBy);
+    String authorUserId = resolveUsernameToId(author);
+    String favoritedByUserId = resolveUsernameToId(favoritedBy);
+    List<String> articleIds =
+        articleReadService.queryArticles(tag, authorUserId, favoritedByUserId, page);
+    int articleCount = articleReadService.countArticle(tag, authorUserId, favoritedByUserId);
     if (articleIds.size() == 0) {
       return new ArticleDataList(new ArrayList<>(), articleCount);
     } else {
       List<ArticleData> articles = articleReadService.findArticles(articleIds);
+      enrichProfileDataList(articles);
       fillExtraInfo(articles, currentUser);
       return new ArticleDataList(articles, articleCount);
     }
@@ -116,9 +127,55 @@ public class ArticleQueryService {
       return new ArticleDataList(new ArrayList<>(), 0);
     } else {
       List<ArticleData> articles = articleReadService.findArticlesOfAuthors(followedUsers, page);
+      enrichProfileDataList(articles);
       fillExtraInfo(articles, user);
       int count = articleReadService.countFeedSize(followedUsers);
       return new ArticleDataList(articles, count);
+    }
+  }
+
+  private String resolveUsernameToId(String username) {
+    if (username == null) {
+      return null;
+    }
+    return userServiceClient.findUserByUsername(username).map(User::getId).orElse(username);
+  }
+
+  private void enrichProfileData(ArticleData articleData) {
+    if (articleData == null || articleData.getProfileData() == null) {
+      return;
+    }
+    ProfileData profile = articleData.getProfileData();
+    String userId = profile.getId();
+    if (userId != null) {
+      userServiceClient
+          .findUserById(userId)
+          .ifPresent(
+              user -> {
+                profile.setUsername(user.getUsername());
+                profile.setBio(user.getBio());
+                profile.setImage(user.getImage());
+              });
+    }
+  }
+
+  private void enrichProfileDataList(List<ArticleData> articles) {
+    Map<String, User> userCache = new HashMap<>();
+    for (ArticleData article : articles) {
+      if (article.getProfileData() == null) {
+        continue;
+      }
+      String userId = article.getProfileData().getId();
+      if (userId == null) {
+        continue;
+      }
+      User user =
+          userCache.computeIfAbsent(userId, id -> userServiceClient.findUserById(id).orElse(null));
+      if (user != null) {
+        article.getProfileData().setUsername(user.getUsername());
+        article.getProfileData().setBio(user.getBio());
+        article.getProfileData().setImage(user.getImage());
+      }
     }
   }
 
