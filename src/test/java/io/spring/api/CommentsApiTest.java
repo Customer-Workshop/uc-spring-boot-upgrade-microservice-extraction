@@ -16,8 +16,8 @@ import io.spring.application.data.ProfileData;
 import io.spring.core.article.Article;
 import io.spring.core.article.ArticleRepository;
 import io.spring.core.comment.Comment;
-import io.spring.core.comment.CommentRepository;
 import io.spring.core.user.User;
+import io.spring.infrastructure.service.client.CommentServiceClient;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -36,8 +36,8 @@ public class CommentsApiTest extends TestWithCurrentUser {
 
   @MockBean private ArticleRepository articleRepository;
 
-  @MockBean private CommentRepository commentRepository;
   @MockBean private CommentQueryService commentQueryService;
+  @MockBean private CommentServiceClient commentServiceClient;
 
   private Article article;
   private CommentData commentData;
@@ -77,6 +77,8 @@ public class CommentsApiTest extends TestWithCurrentUser {
           }
         };
 
+    when(commentServiceClient.saveAndReturnId(anyString(), anyString(), anyString()))
+        .thenReturn(comment.getId());
     when(commentQueryService.findById(anyString(), eq(user))).thenReturn(Optional.of(commentData));
 
     given()
@@ -130,7 +132,7 @@ public class CommentsApiTest extends TestWithCurrentUser {
 
   @Test
   public void should_delete_comment_success() throws Exception {
-    when(commentRepository.findById(eq(article.getId()), eq(comment.getId())))
+    when(commentServiceClient.findById(eq(article.getId()), eq(comment.getId())))
         .thenReturn(Optional.of(comment));
 
     given()
@@ -151,7 +153,7 @@ public class CommentsApiTest extends TestWithCurrentUser {
     when(userRepository.findById(eq(anotherUser.getId())))
         .thenReturn(Optional.ofNullable(anotherUser));
 
-    when(commentRepository.findById(eq(article.getId()), eq(comment.getId())))
+    when(commentServiceClient.findById(eq(article.getId()), eq(comment.getId())))
         .thenReturn(Optional.of(comment));
     String token = jwtService.toToken(anotherUser);
     when(userRepository.findById(eq(anotherUser.getId()))).thenReturn(Optional.of(anotherUser));

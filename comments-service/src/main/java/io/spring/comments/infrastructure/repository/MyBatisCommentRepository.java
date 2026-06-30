@@ -1,8 +1,9 @@
-package io.spring.infrastructure.repository;
+package io.spring.comments.infrastructure.repository;
 
-import io.spring.core.comment.Comment;
-import io.spring.core.comment.CommentRepository;
-import io.spring.infrastructure.mybatis.mapper.CommentMapper;
+import io.spring.comments.core.Comment;
+import io.spring.comments.core.CommentRepository;
+import io.spring.comments.infrastructure.mybatis.mapper.CommentMapper;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -24,6 +25,16 @@ public class MyBatisCommentRepository implements CommentRepository {
   @Override
   public Optional<Comment> findById(String articleId, String id) {
     return Optional.ofNullable(commentMapper.findById(articleId, id));
+  }
+
+  @Override
+  public Optional<Comment> findCommentById(String id) {
+    return Optional.ofNullable(commentMapper.findCommentById(id));
+  }
+
+  @Override
+  public List<Comment> findByArticleId(String articleId) {
+    return commentMapper.findByArticleId(articleId);
   }
 
   @Override
