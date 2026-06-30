@@ -2,12 +2,15 @@ package io.spring.infrastructure.service.client;
 
 import io.spring.core.comment.Comment;
 import io.spring.core.comment.CommentRepository;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.joda.time.DateTime;
+import org.joda.time.format.ISODateTimeFormat;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
@@ -127,8 +130,30 @@ public class CommentServiceClient implements CommentRepository {
     if (map == null) {
       return null;
     }
-    return new Comment(
-        (String) map.get("body"), (String) map.get("userId"), (String) map.get("articleId"));
+    Comment comment = new Comment();
+    setField(comment, "id", map.get("id"));
+    setField(comment, "body", map.get("body"));
+    setField(comment, "userId", map.get("userId"));
+    setField(comment, "articleId", map.get("articleId"));
+    String createdAtStr = (String) map.get("createdAt");
+    if (createdAtStr != null) {
+      try {
+        setField(comment, "createdAt", ISODateTimeFormat.dateTime().parseDateTime(createdAtStr));
+      } catch (Exception e) {
+        setField(comment, "createdAt", new DateTime());
+      }
+    }
+    return comment;
+  }
+
+  private void setField(Object target, String fieldName, Object value) {
+    try {
+      Field field = target.getClass().getDeclaredField(fieldName);
+      field.setAccessible(true);
+      field.set(target, value);
+    } catch (NoSuchFieldException | IllegalAccessException e) {
+      throw new RuntimeException("Failed to set field " + fieldName, e);
+    }
   }
 
   private CommentServiceResponse mapToResponse(Map<String, Object> map) {

@@ -102,7 +102,10 @@ public class CommentServiceIntegrationTest {
 
     Optional<Comment> comment = commentServiceClient.findById("article-1", "c1");
     Assertions.assertTrue(comment.isPresent());
+    Assertions.assertEquals("c1", comment.get().getId());
     Assertions.assertEquals("test comment", comment.get().getBody());
+    Assertions.assertEquals("user-1", comment.get().getUserId());
+    Assertions.assertEquals("article-1", comment.get().getArticleId());
     mockServer.verify();
   }
 
