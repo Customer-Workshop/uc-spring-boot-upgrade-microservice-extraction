@@ -1,6 +1,5 @@
 package io.spring.api;
 
-import static io.restassured.module.mockmvc.RestAssuredMockMvc.given;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.ArgumentMatchers.eq;
@@ -59,13 +58,9 @@ public class ArticleStatsApiTest extends TestWithCurrentUser {
 
   @Test
   public void should_get_404_if_article_not_found_for_stats() throws Exception {
-    when(articleStatsQueryService.getArticleStats(eq("non-existent")))
-        .thenReturn(Optional.empty());
+    when(articleStatsQueryService.getArticleStats(eq("non-existent"))).thenReturn(Optional.empty());
 
-    RestAssuredMockMvc.when()
-        .get("/articles/{slug}/stats", "non-existent")
-        .then()
-        .statusCode(404);
+    RestAssuredMockMvc.when().get("/articles/{slug}/stats", "non-existent").then().statusCode(404);
   }
 
   @Test
@@ -92,11 +87,11 @@ public class ArticleStatsApiTest extends TestWithCurrentUser {
     DateTime createdAt = new DateTime();
 
     TrendingArticleData trending1 =
-        new TrendingArticleData("id1", "popular-post", "Popular Post", "A popular post", 25,
-            createdAt, author);
+        new TrendingArticleData(
+            "id1", "popular-post", "Popular Post", "A popular post", 25, createdAt, author);
     TrendingArticleData trending2 =
-        new TrendingArticleData("id2", "another-hit", "Another Hit", "Another hit post", 18,
-            createdAt, author);
+        new TrendingArticleData(
+            "id2", "another-hit", "Another Hit", "Another hit post", 18, createdAt, author);
 
     when(articleStatsQueryService.getTrendingArticles())
         .thenReturn(Arrays.asList(trending1, trending2));
