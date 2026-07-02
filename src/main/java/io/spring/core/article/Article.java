@@ -49,17 +49,21 @@ public class Article {
   }
 
   public void update(String title, String description, String body) {
+    boolean changed = false;
     if (!Util.isEmpty(title)) {
       this.title = title;
       this.slug = toSlug(title);
-      this.updatedAt = new DateTime();
+      changed = true;
     }
     if (!Util.isEmpty(description)) {
       this.description = description;
-      this.updatedAt = new DateTime();
+      changed = true;
     }
     if (!Util.isEmpty(body)) {
       this.body = body;
+      changed = true;
+    }
+    if (changed) {
       this.updatedAt = new DateTime();
     }
   }

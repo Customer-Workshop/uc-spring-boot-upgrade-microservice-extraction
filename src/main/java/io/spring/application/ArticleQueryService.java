@@ -79,12 +79,12 @@ public class ArticleQueryService {
 
   public CursorPager<ArticleData> findUserFeedWithCursor(
       User user, CursorPageParameter<DateTime> page) {
-    List<String> followdUsers = userRelationshipQueryService.followedUsers(user.getId());
-    if (followdUsers.size() == 0) {
+    List<String> followedUsers = userRelationshipQueryService.followedUsers(user.getId());
+    if (followedUsers.size() == 0) {
       return new CursorPager<>(new ArrayList<>(), page.getDirection(), false);
     } else {
       List<ArticleData> articles =
-          articleReadService.findArticlesOfAuthorsWithCursor(followdUsers, page);
+          articleReadService.findArticlesOfAuthorsWithCursor(followedUsers, page);
       boolean hasExtra = articles.size() > page.getLimit();
       if (hasExtra) {
         articles.remove(page.getLimit());
@@ -111,13 +111,13 @@ public class ArticleQueryService {
   }
 
   public ArticleDataList findUserFeed(User user, Page page) {
-    List<String> followdUsers = userRelationshipQueryService.followedUsers(user.getId());
-    if (followdUsers.size() == 0) {
+    List<String> followedUsers = userRelationshipQueryService.followedUsers(user.getId());
+    if (followedUsers.size() == 0) {
       return new ArticleDataList(new ArrayList<>(), 0);
     } else {
-      List<ArticleData> articles = articleReadService.findArticlesOfAuthors(followdUsers, page);
+      List<ArticleData> articles = articleReadService.findArticlesOfAuthors(followedUsers, page);
       fillExtraInfo(articles, user);
-      int count = articleReadService.countFeedSize(followdUsers);
+      int count = articleReadService.countFeedSize(followedUsers);
       return new ArticleDataList(articles, count);
     }
   }
@@ -134,13 +134,11 @@ public class ArticleQueryService {
     Set<String> followingAuthors =
         userRelationshipQueryService.followingAuthors(
             currentUser.getId(),
-            articles.stream()
-                .map(articleData1 -> articleData1.getProfileData().getId())
-                .collect(toList()));
+            articles.stream().map(article -> article.getProfileData().getId()).collect(toList()));
     articles.forEach(
-        articleData -> {
-          if (followingAuthors.contains(articleData.getProfileData().getId())) {
-            articleData.getProfileData().setFollowing(true);
+        article -> {
+          if (followingAuthors.contains(article.getProfileData().getId())) {
+            article.getProfileData().setFollowing(true);
           }
         });
   }
@@ -155,19 +153,17 @@ public class ArticleQueryService {
           countMap.put(item.getId(), item.getCount());
         });
     articles.forEach(
-        articleData -> articleData.setFavoritesCount(countMap.get(articleData.getId())));
+        article -> article.setFavoritesCount(countMap.getOrDefault(article.getId(), 0)));
   }
 
   private void setIsFavorite(List<ArticleData> articles, User currentUser) {
     Set<String> favoritedArticles =
         articleFavoritesReadService.userFavorites(
-            articles.stream().map(articleData -> articleData.getId()).collect(toList()),
-            currentUser);
-
+            articles.stream().map(ArticleData::getId).collect(toList()), currentUser);
     articles.forEach(
-        articleData -> {
-          if (favoritedArticles.contains(articleData.getId())) {
-            articleData.setFavorited(true);
+        article -> {
+          if (favoritedArticles.contains(article.getId())) {
+            article.setFavorited(true);
           }
         });
   }

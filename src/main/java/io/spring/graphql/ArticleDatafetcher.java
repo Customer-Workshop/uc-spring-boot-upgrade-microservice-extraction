@@ -30,6 +30,7 @@ import io.spring.graphql.types.Profile;
 import java.util.HashMap;
 import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
+import org.joda.time.DateTime;
 import org.joda.time.format.ISODateTimeFormat;
 
 @DgsComponent
@@ -46,43 +47,17 @@ public class ArticleDatafetcher {
       @InputArgument("last") Integer last,
       @InputArgument("before") String before,
       DgsDataFetchingEnvironment dfe) {
-    if (first == null && last == null) {
-      throw new IllegalArgumentException("first 和 last 必须只存在一个");
-    }
-
     User current = SecurityUtil.getCurrentUser().orElse(null);
-
-    CursorPager<ArticleData> articles;
-    if (first != null) {
-      articles =
-          articleQueryService.findUserFeedWithCursor(
-              current,
-              new CursorPageParameter<>(DateTimeCursor.parse(after), first, Direction.NEXT));
-    } else {
-      articles =
-          articleQueryService.findUserFeedWithCursor(
-              current,
-              new CursorPageParameter<>(DateTimeCursor.parse(before), last, Direction.PREV));
-    }
-    graphql.relay.PageInfo pageInfo = buildArticlePageInfo(articles);
-    ArticlesConnection articlesConnection =
-        ArticlesConnection.newBuilder()
-            .pageInfo(pageInfo)
-            .edges(
-                articles.getData().stream()
-                    .map(
-                        a ->
-                            ArticleEdge.newBuilder()
-                                .cursor(a.getCursor().toString())
-                                .node(buildArticleResult(a))
-                                .build())
-                    .collect(Collectors.toList()))
-            .build();
-    return DataFetcherResult.<ArticlesConnection>newResult()
-        .data(articlesConnection)
-        .localContext(
-            articles.getData().stream().collect(Collectors.toMap(ArticleData::getSlug, a -> a)))
-        .build();
+    CursorPager<ArticleData> articles =
+        fetchArticlesCursor(
+            first,
+            after,
+            last,
+            before,
+            (cursor, limit, direction) ->
+                articleQueryService.findUserFeedWithCursor(
+                    current, new CursorPageParameter<>(cursor, limit, direction)));
+    return buildConnectionResult(articles);
   }
 
   @DgsData(parentType = PROFILE.TYPE_NAME, field = PROFILE.Feed)
@@ -92,47 +67,21 @@ public class ArticleDatafetcher {
       @InputArgument("last") Integer last,
       @InputArgument("before") String before,
       DgsDataFetchingEnvironment dfe) {
-    if (first == null && last == null) {
-      throw new IllegalArgumentException("first 和 last 必须只存在一个");
-    }
-
     Profile profile = dfe.getSource();
     User target =
         userRepository
             .findByUsername(profile.getUsername())
             .orElseThrow(ResourceNotFoundException::new);
-
-    CursorPager<ArticleData> articles;
-    if (first != null) {
-      articles =
-          articleQueryService.findUserFeedWithCursor(
-              target,
-              new CursorPageParameter<>(DateTimeCursor.parse(after), first, Direction.NEXT));
-    } else {
-      articles =
-          articleQueryService.findUserFeedWithCursor(
-              target,
-              new CursorPageParameter<>(DateTimeCursor.parse(before), last, Direction.PREV));
-    }
-    graphql.relay.PageInfo pageInfo = buildArticlePageInfo(articles);
-    ArticlesConnection articlesConnection =
-        ArticlesConnection.newBuilder()
-            .pageInfo(pageInfo)
-            .edges(
-                articles.getData().stream()
-                    .map(
-                        a ->
-                            ArticleEdge.newBuilder()
-                                .cursor(a.getCursor().toString())
-                                .node(buildArticleResult(a))
-                                .build())
-                    .collect(Collectors.toList()))
-            .build();
-    return DataFetcherResult.<ArticlesConnection>newResult()
-        .data(articlesConnection)
-        .localContext(
-            articles.getData().stream().collect(Collectors.toMap(ArticleData::getSlug, a -> a)))
-        .build();
+    CursorPager<ArticleData> articles =
+        fetchArticlesCursor(
+            first,
+            after,
+            last,
+            before,
+            (cursor, limit, direction) ->
+                articleQueryService.findUserFeedWithCursor(
+                    target, new CursorPageParameter<>(cursor, limit, direction)));
+    return buildConnectionResult(articles);
   }
 
   @DgsData(parentType = PROFILE.TYPE_NAME, field = PROFILE.Favorites)
@@ -142,51 +91,22 @@ public class ArticleDatafetcher {
       @InputArgument("last") Integer last,
       @InputArgument("before") String before,
       DgsDataFetchingEnvironment dfe) {
-    if (first == null && last == null) {
-      throw new IllegalArgumentException("first 和 last 必须只存在一个");
-    }
-
     User current = SecurityUtil.getCurrentUser().orElse(null);
     Profile profile = dfe.getSource();
-
-    CursorPager<ArticleData> articles;
-    if (first != null) {
-      articles =
-          articleQueryService.findRecentArticlesWithCursor(
-              null,
-              null,
-              profile.getUsername(),
-              new CursorPageParameter<>(DateTimeCursor.parse(after), first, Direction.NEXT),
-              current);
-    } else {
-      articles =
-          articleQueryService.findRecentArticlesWithCursor(
-              null,
-              null,
-              profile.getUsername(),
-              new CursorPageParameter<>(DateTimeCursor.parse(before), last, Direction.PREV),
-              current);
-    }
-    graphql.relay.PageInfo pageInfo = buildArticlePageInfo(articles);
-
-    ArticlesConnection articlesConnection =
-        ArticlesConnection.newBuilder()
-            .pageInfo(pageInfo)
-            .edges(
-                articles.getData().stream()
-                    .map(
-                        a ->
-                            ArticleEdge.newBuilder()
-                                .cursor(a.getCursor().toString())
-                                .node(buildArticleResult(a))
-                                .build())
-                    .collect(Collectors.toList()))
-            .build();
-    return DataFetcherResult.<ArticlesConnection>newResult()
-        .data(articlesConnection)
-        .localContext(
-            articles.getData().stream().collect(Collectors.toMap(ArticleData::getSlug, a -> a)))
-        .build();
+    CursorPager<ArticleData> articles =
+        fetchArticlesCursor(
+            first,
+            after,
+            last,
+            before,
+            (cursor, limit, direction) ->
+                articleQueryService.findRecentArticlesWithCursor(
+                    null,
+                    null,
+                    profile.getUsername(),
+                    new CursorPageParameter<>(cursor, limit, direction),
+                    current));
+    return buildConnectionResult(articles);
   }
 
   @DgsData(parentType = PROFILE.TYPE_NAME, field = PROFILE.Articles)
@@ -196,50 +116,22 @@ public class ArticleDatafetcher {
       @InputArgument("last") Integer last,
       @InputArgument("before") String before,
       DgsDataFetchingEnvironment dfe) {
-    if (first == null && last == null) {
-      throw new IllegalArgumentException("first 和 last 必须只存在一个");
-    }
-
     User current = SecurityUtil.getCurrentUser().orElse(null);
     Profile profile = dfe.getSource();
-
-    CursorPager<ArticleData> articles;
-    if (first != null) {
-      articles =
-          articleQueryService.findRecentArticlesWithCursor(
-              null,
-              profile.getUsername(),
-              null,
-              new CursorPageParameter<>(DateTimeCursor.parse(after), first, Direction.NEXT),
-              current);
-    } else {
-      articles =
-          articleQueryService.findRecentArticlesWithCursor(
-              null,
-              profile.getUsername(),
-              null,
-              new CursorPageParameter<>(DateTimeCursor.parse(before), last, Direction.PREV),
-              current);
-    }
-    graphql.relay.PageInfo pageInfo = buildArticlePageInfo(articles);
-    ArticlesConnection articlesConnection =
-        ArticlesConnection.newBuilder()
-            .pageInfo(pageInfo)
-            .edges(
-                articles.getData().stream()
-                    .map(
-                        a ->
-                            ArticleEdge.newBuilder()
-                                .cursor(a.getCursor().toString())
-                                .node(buildArticleResult(a))
-                                .build())
-                    .collect(Collectors.toList()))
-            .build();
-    return DataFetcherResult.<ArticlesConnection>newResult()
-        .data(articlesConnection)
-        .localContext(
-            articles.getData().stream().collect(Collectors.toMap(ArticleData::getSlug, a -> a)))
-        .build();
+    CursorPager<ArticleData> articles =
+        fetchArticlesCursor(
+            first,
+            after,
+            last,
+            before,
+            (cursor, limit, direction) ->
+                articleQueryService.findRecentArticlesWithCursor(
+                    null,
+                    profile.getUsername(),
+                    null,
+                    new CursorPageParameter<>(cursor, limit, direction),
+                    current));
+    return buildConnectionResult(articles);
   }
 
   @DgsData(parentType = DgsConstants.QUERY_TYPE, field = QUERY.Articles)
@@ -252,49 +144,21 @@ public class ArticleDatafetcher {
       @InputArgument("favoritedBy") String favoritedBy,
       @InputArgument("withTag") String withTag,
       DgsDataFetchingEnvironment dfe) {
-    if (first == null && last == null) {
-      throw new IllegalArgumentException("first 和 last 必须只存在一个");
-    }
-
     User current = SecurityUtil.getCurrentUser().orElse(null);
-
-    CursorPager<ArticleData> articles;
-    if (first != null) {
-      articles =
-          articleQueryService.findRecentArticlesWithCursor(
-              withTag,
-              authoredBy,
-              favoritedBy,
-              new CursorPageParameter<>(DateTimeCursor.parse(after), first, Direction.NEXT),
-              current);
-    } else {
-      articles =
-          articleQueryService.findRecentArticlesWithCursor(
-              withTag,
-              authoredBy,
-              favoritedBy,
-              new CursorPageParameter<>(DateTimeCursor.parse(before), last, Direction.PREV),
-              current);
-    }
-    graphql.relay.PageInfo pageInfo = buildArticlePageInfo(articles);
-    ArticlesConnection articlesConnection =
-        ArticlesConnection.newBuilder()
-            .pageInfo(pageInfo)
-            .edges(
-                articles.getData().stream()
-                    .map(
-                        a ->
-                            ArticleEdge.newBuilder()
-                                .cursor(a.getCursor().toString())
-                                .node(buildArticleResult(a))
-                                .build())
-                    .collect(Collectors.toList()))
-            .build();
-    return DataFetcherResult.<ArticlesConnection>newResult()
-        .data(articlesConnection)
-        .localContext(
-            articles.getData().stream().collect(Collectors.toMap(ArticleData::getSlug, a -> a)))
-        .build();
+    CursorPager<ArticleData> articles =
+        fetchArticlesCursor(
+            first,
+            after,
+            last,
+            before,
+            (cursor, limit, direction) ->
+                articleQueryService.findRecentArticlesWithCursor(
+                    withTag,
+                    authoredBy,
+                    favoritedBy,
+                    new CursorPageParameter<>(cursor, limit, direction),
+                    current));
+    return buildConnectionResult(articles);
   }
 
   @DgsData(parentType = ARTICLEPAYLOAD.TYPE_NAME, field = ARTICLEPAYLOAD.Article)
@@ -353,6 +217,45 @@ public class ArticleDatafetcher {
               }
             })
         .data(articleResult)
+        .build();
+  }
+
+  @FunctionalInterface
+  private interface CursorFetcher {
+    CursorPager<ArticleData> fetch(DateTime cursor, int limit, CursorPager.Direction direction);
+  }
+
+  private CursorPager<ArticleData> fetchArticlesCursor(
+      Integer first, String after, Integer last, String before, CursorFetcher fetcher) {
+    if (first == null && last == null) {
+      throw new IllegalArgumentException("first 和 last 必须只存在一个");
+    }
+    if (first != null) {
+      return fetcher.fetch(DateTimeCursor.parse(after), first, Direction.NEXT);
+    }
+    return fetcher.fetch(DateTimeCursor.parse(before), last, Direction.PREV);
+  }
+
+  private DataFetcherResult<ArticlesConnection> buildConnectionResult(
+      CursorPager<ArticleData> articles) {
+    graphql.relay.PageInfo pageInfo = buildArticlePageInfo(articles);
+    ArticlesConnection articlesConnection =
+        ArticlesConnection.newBuilder()
+            .pageInfo(pageInfo)
+            .edges(
+                articles.getData().stream()
+                    .map(
+                        a ->
+                            ArticleEdge.newBuilder()
+                                .cursor(a.getCursor().toString())
+                                .node(buildArticleResult(a))
+                                .build())
+                    .collect(Collectors.toList()))
+            .build();
+    return DataFetcherResult.<ArticlesConnection>newResult()
+        .data(articlesConnection)
+        .localContext(
+            articles.getData().stream().collect(Collectors.toMap(ArticleData::getSlug, a -> a)))
         .build();
   }
 

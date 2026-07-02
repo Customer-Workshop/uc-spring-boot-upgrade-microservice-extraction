@@ -10,7 +10,7 @@ import io.spring.core.article.Article;
 import io.spring.core.article.ArticleRepository;
 import io.spring.core.service.AuthorizationService;
 import io.spring.core.user.User;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.Map;
 import javax.validation.Valid;
 import lombok.AllArgsConstructor;
@@ -46,43 +46,30 @@ public class ArticleApi {
       @PathVariable("slug") String slug,
       @AuthenticationPrincipal User user,
       @Valid @RequestBody UpdateArticleParam updateArticleParam) {
-    return articleRepository
-        .findBySlug(slug)
-        .map(
-            article -> {
-              if (!AuthorizationService.canWriteArticle(user, article)) {
-                throw new NoAuthorizationException();
-              }
-              Article updatedArticle =
-                  articleCommandService.updateArticle(article, updateArticleParam);
-              return ResponseEntity.ok(
-                  articleResponse(
-                      articleQueryService.findBySlug(updatedArticle.getSlug(), user).get()));
-            })
-        .orElseThrow(ResourceNotFoundException::new);
+    Article article = findAuthorizedArticle(slug, user);
+    Article updatedArticle = articleCommandService.updateArticle(article, updateArticleParam);
+    return ResponseEntity.ok(
+        articleResponse(articleQueryService.findBySlug(updatedArticle.getSlug(), user).get()));
   }
 
   @DeleteMapping
   public ResponseEntity deleteArticle(
       @PathVariable("slug") String slug, @AuthenticationPrincipal User user) {
-    return articleRepository
-        .findBySlug(slug)
-        .map(
-            article -> {
-              if (!AuthorizationService.canWriteArticle(user, article)) {
-                throw new NoAuthorizationException();
-              }
-              articleRepository.remove(article);
-              return ResponseEntity.noContent().build();
-            })
-        .orElseThrow(ResourceNotFoundException::new);
+    Article article = findAuthorizedArticle(slug, user);
+    articleRepository.remove(article);
+    return ResponseEntity.noContent().build();
+  }
+
+  private Article findAuthorizedArticle(String slug, User user) {
+    Article article =
+        articleRepository.findBySlug(slug).orElseThrow(ResourceNotFoundException::new);
+    if (!AuthorizationService.canWriteArticle(user, article)) {
+      throw new NoAuthorizationException();
+    }
+    return article;
   }
 
   private Map<String, Object> articleResponse(ArticleData articleData) {
-    return new HashMap<String, Object>() {
-      {
-        put("article", articleData);
-      }
-    };
+    return Collections.singletonMap("article", articleData);
   }
 }
