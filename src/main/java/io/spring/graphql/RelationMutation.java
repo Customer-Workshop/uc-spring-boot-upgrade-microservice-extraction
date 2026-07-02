@@ -15,6 +15,7 @@ import io.spring.graphql.types.Profile;
 import io.spring.graphql.types.ProfilePayload;
 import lombok.AllArgsConstructor;
 
+/** DGS mutation handler for follow and unfollow operations via GraphQL. */
 @DgsComponent
 @AllArgsConstructor
 public class RelationMutation {

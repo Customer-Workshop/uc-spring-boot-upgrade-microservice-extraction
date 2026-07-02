@@ -24,6 +24,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * REST controller for single-article operations identified by slug.
+ *
+ * <p>Handles retrieval, update, and deletion of an existing article.
+ */
 @RestController
 @RequestMapping(path = "/articles/{slug}")
 @AllArgsConstructor
@@ -32,6 +37,14 @@ public class ArticleApi {
   private ArticleRepository articleRepository;
   private ArticleCommandService articleCommandService;
 
+  /**
+   * Retrieves a single article by its slug.
+   *
+   * @param slug the URL-friendly article identifier
+   * @param user the currently authenticated user, or {@code null} if anonymous
+   * @return the article wrapped in an {@code {"article": ...}} envelope
+   * @throws ResourceNotFoundException if no article exists with the given slug
+   */
   @GetMapping
   public ResponseEntity<?> article(
       @PathVariable("slug") String slug, @AuthenticationPrincipal User user) {
@@ -41,6 +54,16 @@ public class ArticleApi {
         .orElseThrow(ResourceNotFoundException::new);
   }
 
+  /**
+   * Updates an existing article.
+   *
+   * @param slug the URL-friendly article identifier
+   * @param user the currently authenticated user
+   * @param updateArticleParam the fields to update (title, description, body)
+   * @return the updated article wrapped in an {@code {"article": ...}} envelope
+   * @throws ResourceNotFoundException if no article exists with the given slug
+   * @throws NoAuthorizationException if the authenticated user is not the article author
+   */
   @PutMapping
   public ResponseEntity<?> updateArticle(
       @PathVariable("slug") String slug,
@@ -62,6 +85,15 @@ public class ArticleApi {
         .orElseThrow(ResourceNotFoundException::new);
   }
 
+  /**
+   * Deletes an article by its slug.
+   *
+   * @param slug the URL-friendly article identifier
+   * @param user the currently authenticated user
+   * @return 204 No Content on success
+   * @throws ResourceNotFoundException if no article exists with the given slug
+   * @throws NoAuthorizationException if the authenticated user is not the article author
+   */
   @DeleteMapping
   public ResponseEntity deleteArticle(
       @PathVariable("slug") String slug, @AuthenticationPrincipal User user) {

@@ -32,6 +32,7 @@ import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import org.joda.time.format.ISODateTimeFormat;
 
+/** DGS data fetcher for article-related GraphQL queries including feed and article listing. */
 @DgsComponent
 @AllArgsConstructor
 public class ArticleDatafetcher {

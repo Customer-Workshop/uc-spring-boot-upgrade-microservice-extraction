@@ -11,6 +11,10 @@ import org.joda.time.format.ISODateTimeFormat;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+/**
+ * Jackson configuration that registers custom serializers for Joda {@link DateTime} as ISO 8601 in
+ * UTC.
+ */
 @Configuration
 public class JacksonCustomizations {
 

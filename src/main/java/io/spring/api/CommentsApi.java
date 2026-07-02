@@ -29,6 +29,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * REST controller for comment operations on articles.
+ *
+ * <p>Handles creating, listing, and deleting comments attached to a specific article.
+ */
 @RestController
 @RequestMapping(path = "/articles/{slug}/comments")
 @AllArgsConstructor
@@ -37,6 +42,15 @@ public class CommentsApi {
   private CommentRepository commentRepository;
   private CommentQueryService commentQueryService;
 
+  /**
+   * Creates a new comment on an article.
+   *
+   * @param slug the URL-friendly article identifier
+   * @param user the currently authenticated user
+   * @param newCommentParam the comment body
+   * @return 201 Created with the comment wrapped in a {@code {"comment": ...}} envelope
+   * @throws ResourceNotFoundException if no article exists with the given slug
+   */
   @PostMapping
   public ResponseEntity<?> createComment(
       @PathVariable("slug") String slug,
@@ -50,6 +64,14 @@ public class CommentsApi {
         .body(commentResponse(commentQueryService.findById(comment.getId(), user).get()));
   }
 
+  /**
+   * Lists all comments for an article.
+   *
+   * @param slug the URL-friendly article identifier
+   * @param user the currently authenticated user, or {@code null} if anonymous
+   * @return the list of comments wrapped in a {@code {"comments": [...]}} envelope
+   * @throws ResourceNotFoundException if no article exists with the given slug
+   */
   @GetMapping
   public ResponseEntity getComments(
       @PathVariable("slug") String slug, @AuthenticationPrincipal User user) {
@@ -64,6 +86,17 @@ public class CommentsApi {
         });
   }
 
+  /**
+   * Deletes a comment from an article.
+   *
+   * @param slug the URL-friendly article identifier
+   * @param commentId the unique comment identifier
+   * @param user the currently authenticated user
+   * @return 204 No Content on success
+   * @throws ResourceNotFoundException if the article or comment does not exist
+   * @throws NoAuthorizationException if the user is neither the article author nor the comment
+   *     author
+   */
   @RequestMapping(path = "{id}", method = RequestMethod.DELETE)
   public ResponseEntity deleteComment(
       @PathVariable("slug") String slug,
@@ -93,6 +126,7 @@ public class CommentsApi {
   }
 }
 
+/** Request payload DTO for creating a new comment. Deserialized from the {@code "comment"} root. */
 @Getter
 @NoArgsConstructor
 @JsonRootName("comment")

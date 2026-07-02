@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 import lombok.Getter;
 
+/** Paginated response wrapper containing a list of articles and the total count. */
 @Getter
 public class ArticleDataList {
   @JsonProperty("articles")

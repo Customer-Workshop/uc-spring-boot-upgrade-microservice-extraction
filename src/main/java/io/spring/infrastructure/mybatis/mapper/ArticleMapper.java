@@ -5,6 +5,7 @@ import io.spring.core.article.Tag;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+/** MyBatis write mapper for article and tag persistence operations. */
 @Mapper
 public interface ArticleMapper {
   void insert(@Param("article") Article article);

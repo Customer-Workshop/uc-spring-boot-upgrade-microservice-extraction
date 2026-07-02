@@ -25,6 +25,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+/** DGS mutation handler for user registration, login, and profile update via GraphQL. */
 @DgsComponent
 @AllArgsConstructor
 public class UserMutation {

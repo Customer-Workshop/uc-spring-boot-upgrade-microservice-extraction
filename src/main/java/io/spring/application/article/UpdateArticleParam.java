@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+/** Request payload DTO for updating an existing article. Empty strings indicate no change. */
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor

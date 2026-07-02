@@ -14,12 +14,24 @@ import lombok.AllArgsConstructor;
 import org.joda.time.DateTime;
 import org.springframework.stereotype.Service;
 
+/**
+ * Read-side service for querying comment data.
+ *
+ * <p>Enriches comment data with author follow status relative to the current user.
+ */
 @Service
 @AllArgsConstructor
 public class CommentQueryService {
   private CommentReadService commentReadService;
   private UserRelationshipQueryService userRelationshipQueryService;
 
+  /**
+   * Finds a comment by its unique identifier.
+   *
+   * @param id the comment's unique identifier
+   * @param user the current user for author follow context
+   * @return the enriched comment data, or empty if not found
+   */
   public Optional<CommentData> findById(String id, User user) {
     CommentData commentData = commentReadService.findById(id);
     if (commentData == null) {
@@ -34,6 +46,13 @@ public class CommentQueryService {
     return Optional.ofNullable(commentData);
   }
 
+  /**
+   * Finds all comments belonging to a specific article.
+   *
+   * @param articleId the article's unique identifier
+   * @param user the current user for author follow context, or {@code null} if anonymous
+   * @return list of enriched comment data
+   */
   public List<CommentData> findByArticleId(String articleId, User user) {
     List<CommentData> comments = commentReadService.findByArticleId(articleId);
     if (comments.size() > 0 && user != null) {
@@ -53,6 +72,14 @@ public class CommentQueryService {
     return comments;
   }
 
+  /**
+   * Finds comments for an article using cursor-based pagination.
+   *
+   * @param articleId the article's unique identifier
+   * @param user the current user for author follow context, or {@code null} if anonymous
+   * @param page cursor pagination parameters (cursor, limit, direction)
+   * @return a cursor-paginated result of enriched comment data
+   */
   public CursorPager<CommentData> findByArticleIdWithCursor(
       String articleId, User user, CursorPageParameter<DateTime> page) {
     List<CommentData> comments = commentReadService.findByArticleIdWithCursor(articleId, page);

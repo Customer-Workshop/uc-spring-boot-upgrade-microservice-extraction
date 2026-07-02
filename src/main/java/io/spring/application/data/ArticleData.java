@@ -8,6 +8,11 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.joda.time.DateTime;
 
+/**
+ * Read-model DTO for article data, including author profile and engagement metrics.
+ *
+ * <p>Implements {@link io.spring.application.Node} to support cursor-based pagination in GraphQL.
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

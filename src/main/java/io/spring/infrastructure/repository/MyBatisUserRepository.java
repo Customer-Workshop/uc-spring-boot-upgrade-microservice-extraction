@@ -8,6 +8,7 @@ import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
+/** MyBatis-backed implementation of {@link UserRepository} managing users and follow relations. */
 @Repository
 public class MyBatisUserRepository implements UserRepository {
   private final UserMapper userMapper;

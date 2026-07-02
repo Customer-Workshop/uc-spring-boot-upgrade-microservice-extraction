@@ -20,6 +20,11 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * REST controller for the currently authenticated user's account.
+ *
+ * <p>Provides endpoints to retrieve and update the current user's profile information.
+ */
 @RestController
 @RequestMapping(path = "/user")
 @AllArgsConstructor
@@ -28,6 +33,13 @@ public class CurrentUserApi {
   private UserQueryService userQueryService;
   private UserService userService;
 
+  /**
+   * Retrieves the currently authenticated user's profile.
+   *
+   * @param currentUser the authenticated user resolved from the JWT
+   * @param authorization the Authorization header containing the Bearer token
+   * @return the user data with token wrapped in a {@code {"user": ...}} envelope
+   */
   @GetMapping
   public ResponseEntity currentUser(
       @AuthenticationPrincipal User currentUser,
@@ -37,6 +49,14 @@ public class CurrentUserApi {
         userResponse(new UserWithToken(userData, authorization.split(" ")[1])));
   }
 
+  /**
+   * Updates the currently authenticated user's profile.
+   *
+   * @param currentUser the authenticated user resolved from the JWT
+   * @param token the Authorization header containing the Bearer token
+   * @param updateUserParam the fields to update (email, username, password, bio, image)
+   * @return the updated user data with token wrapped in a {@code {"user": ...}} envelope
+   */
   @PutMapping
   public ResponseEntity updateProfile(
       @AuthenticationPrincipal User currentUser,

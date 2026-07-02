@@ -1,5 +1,10 @@
 package io.spring.application;
 
+/**
+ * Abstract base for typed pagination cursors.
+ *
+ * @param <T> the underlying cursor data type
+ */
 public abstract class PageCursor<T> {
   private T data;
 

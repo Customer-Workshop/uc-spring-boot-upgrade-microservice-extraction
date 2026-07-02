@@ -7,6 +7,7 @@ import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+/** MyBatis-backed implementation of {@link CommentRepository}. */
 @Component
 public class MyBatisCommentRepository implements CommentRepository {
   private CommentMapper commentMapper;

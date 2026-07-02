@@ -7,6 +7,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+/** Request payload DTO for updating a user's profile. Empty strings indicate no change. */
 @Getter
 @JsonRootName("user")
 @NoArgsConstructor

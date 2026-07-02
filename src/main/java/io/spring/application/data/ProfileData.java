@@ -5,6 +5,9 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * Read-model DTO for a user's public profile, including the follow status relative to the viewer.
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

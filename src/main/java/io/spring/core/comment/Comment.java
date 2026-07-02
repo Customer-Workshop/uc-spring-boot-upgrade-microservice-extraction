@@ -6,6 +6,11 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.joda.time.DateTime;
 
+/**
+ * Domain entity representing a comment on an article.
+ *
+ * <p>Comments are identified by a UUID and belong to a specific article and author.
+ */
 @Getter
 @NoArgsConstructor
 @EqualsAndHashCode(of = "id")

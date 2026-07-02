@@ -24,6 +24,7 @@ import io.spring.graphql.types.UpdateArticleInput;
 import java.util.Collections;
 import lombok.AllArgsConstructor;
 
+/** DGS mutation handler for creating, updating, deleting, and favoriting articles via GraphQL. */
 @DgsComponent
 @AllArgsConstructor
 public class ArticleMutation {

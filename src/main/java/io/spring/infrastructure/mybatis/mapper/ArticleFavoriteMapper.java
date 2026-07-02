@@ -4,6 +4,7 @@ import io.spring.core.favorite.ArticleFavorite;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+/** MyBatis write mapper for article favorite persistence operations. */
 @Mapper
 public interface ArticleFavoriteMapper {
   ArticleFavorite find(@Param("articleId") String articleId, @Param("userId") String userId);

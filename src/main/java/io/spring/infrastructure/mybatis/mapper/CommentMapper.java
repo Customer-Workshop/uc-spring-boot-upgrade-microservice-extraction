@@ -4,6 +4,7 @@ import io.spring.core.comment.Comment;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+/** MyBatis write mapper for comment persistence operations. */
 @Mapper
 public interface CommentMapper {
   void insert(@Param("comment") Comment comment);

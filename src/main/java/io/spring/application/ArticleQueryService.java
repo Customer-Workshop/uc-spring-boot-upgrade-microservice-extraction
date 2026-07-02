@@ -20,6 +20,12 @@ import lombok.AllArgsConstructor;
 import org.joda.time.DateTime;
 import org.springframework.stereotype.Service;
 
+/**
+ * Read-side service for querying article data.
+ *
+ * <p>Enriches raw article data with contextual information such as favorite counts, whether the
+ * current user has favorited the article, and whether the current user follows the author.
+ */
 @Service
 @AllArgsConstructor
 public class ArticleQueryService {
@@ -27,6 +33,13 @@ public class ArticleQueryService {
   private UserRelationshipQueryService userRelationshipQueryService;
   private ArticleFavoritesReadService articleFavoritesReadService;
 
+  /**
+   * Finds an article by its unique identifier, enriched with user-specific context.
+   *
+   * @param id the article's unique identifier
+   * @param user the current user for favorite/follow context, or {@code null} if anonymous
+   * @return the enriched article data, or empty if not found
+   */
   public Optional<ArticleData> findById(String id, User user) {
     ArticleData articleData = articleReadService.findById(id);
     if (articleData == null) {
@@ -39,6 +52,13 @@ public class ArticleQueryService {
     }
   }
 
+  /**
+   * Finds an article by its slug, enriched with user-specific context.
+   *
+   * @param slug the URL-friendly article identifier
+   * @param user the current user for favorite/follow context, or {@code null} if anonymous
+   * @return the enriched article data, or empty if not found
+   */
   public Optional<ArticleData> findBySlug(String slug, User user) {
     ArticleData articleData = articleReadService.findBySlug(slug);
     if (articleData == null) {
@@ -51,6 +71,16 @@ public class ArticleQueryService {
     }
   }
 
+  /**
+   * Finds recent articles using cursor-based pagination with optional filters.
+   *
+   * @param tag filter by tag name, or {@code null} for no tag filter
+   * @param author filter by author username, or {@code null} for no author filter
+   * @param favoritedBy filter by username who favorited, or {@code null} for no favorite filter
+   * @param page cursor pagination parameters (cursor, limit, direction)
+   * @param currentUser the current user for favorite/follow context, or {@code null} if anonymous
+   * @return a cursor-paginated result of enriched article data
+   */
   public CursorPager<ArticleData> findRecentArticlesWithCursor(
       String tag,
       String author,
@@ -77,6 +107,13 @@ public class ArticleQueryService {
     }
   }
 
+  /**
+   * Finds articles authored by users that the given user follows, using cursor-based pagination.
+   *
+   * @param user the user whose feed is being retrieved
+   * @param page cursor pagination parameters (cursor, limit, direction)
+   * @return a cursor-paginated result of enriched article data from followed authors
+   */
   public CursorPager<ArticleData> findUserFeedWithCursor(
       User user, CursorPageParameter<DateTime> page) {
     List<String> followdUsers = userRelationshipQueryService.followedUsers(user.getId());
@@ -97,6 +134,16 @@ public class ArticleQueryService {
     }
   }
 
+  /**
+   * Finds recent articles using offset-based pagination with optional filters.
+   *
+   * @param tag filter by tag name, or {@code null} for no tag filter
+   * @param author filter by author username, or {@code null} for no author filter
+   * @param favoritedBy filter by username who favorited, or {@code null} for no favorite filter
+   * @param page offset pagination parameters (offset, limit)
+   * @param currentUser the current user for favorite/follow context, or {@code null} if anonymous
+   * @return a list of enriched article data with total article count
+   */
   public ArticleDataList findRecentArticles(
       String tag, String author, String favoritedBy, Page page, User currentUser) {
     List<String> articleIds = articleReadService.queryArticles(tag, author, favoritedBy, page);
@@ -110,6 +157,13 @@ public class ArticleQueryService {
     }
   }
 
+  /**
+   * Finds articles authored by users that the given user follows, using offset-based pagination.
+   *
+   * @param user the user whose feed is being retrieved
+   * @param page offset pagination parameters (offset, limit)
+   * @return a list of enriched article data with total article count
+   */
   public ArticleDataList findUserFeed(User user, Page page) {
     List<String> followdUsers = userRelationshipQueryService.followedUsers(user.getId());
     if (followdUsers.size() == 0) {

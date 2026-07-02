@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonRootName;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import java.util.List;
 
+/** JSON-serializable error envelope containing a list of field-level validation errors. */
 @JsonSerialize(using = ErrorResourceSerializer.class)
 @JsonIgnoreProperties(ignoreUnknown = true)
 @lombok.Getter

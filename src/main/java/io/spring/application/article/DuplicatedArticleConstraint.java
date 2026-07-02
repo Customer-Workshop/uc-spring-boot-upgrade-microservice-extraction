@@ -8,6 +8,7 @@ import java.lang.annotation.Target;
 import javax.validation.Constraint;
 import javax.validation.Payload;
 
+/** Validation constraint that rejects article titles whose derived slug already exists. */
 @Documented
 @Constraint(validatedBy = DuplicatedArticleValidator.class)
 @Target({ElementType.METHOD, ElementType.FIELD, ElementType.PARAMETER, ElementType.TYPE_USE})

@@ -9,6 +9,11 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.joda.time.DateTime;
 
+/**
+ * Read-model DTO for comment data, including the comment author's profile.
+ *
+ * <p>Implements {@link Node} to support cursor-based pagination in GraphQL.
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

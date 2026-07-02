@@ -12,6 +12,10 @@ import org.apache.ibatis.type.MappedTypes;
 import org.apache.ibatis.type.TypeHandler;
 import org.joda.time.DateTime;
 
+/**
+ * MyBatis {@link TypeHandler} that converts between Joda {@link DateTime} and SQL {@link
+ * java.sql.Timestamp} using UTC.
+ */
 @MappedTypes(DateTime.class)
 public class DateTimeHandler implements TypeHandler<DateTime> {
 

@@ -7,6 +7,7 @@ import io.spring.graphql.DgsConstants.QUERY;
 import java.util.List;
 import lombok.AllArgsConstructor;
 
+/** DGS data fetcher for the {@code tags} query returning all available article tags. */
 @DgsComponent
 @AllArgsConstructor
 public class TagDatafetcher {

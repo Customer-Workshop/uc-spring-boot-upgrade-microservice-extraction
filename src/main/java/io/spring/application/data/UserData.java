@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/** Read-model DTO for user account data (excludes password). */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

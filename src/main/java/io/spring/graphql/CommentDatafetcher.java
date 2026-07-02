@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import org.joda.time.format.ISODateTimeFormat;
 
+/** DGS data fetcher for article comment queries via GraphQL with cursor-based pagination. */
 @DgsComponent
 @AllArgsConstructor
 public class CommentDatafetcher {

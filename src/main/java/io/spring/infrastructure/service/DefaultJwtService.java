@@ -14,6 +14,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+/**
+ * Default {@link JwtService} implementation using JJWT with HMAC-SHA512 signing and configurable
+ * session expiration.
+ */
 @Component
 public class DefaultJwtService implements JwtService {
   private final SecretKey signingKey;

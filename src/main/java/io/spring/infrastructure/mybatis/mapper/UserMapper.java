@@ -5,6 +5,7 @@ import io.spring.core.user.User;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+/** MyBatis write mapper for user and follow-relation persistence operations. */
 @Mapper
 public interface UserMapper {
   void insert(@Param("user") User user);

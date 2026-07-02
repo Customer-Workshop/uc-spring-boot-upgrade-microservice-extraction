@@ -3,6 +3,11 @@ package io.spring.core.user;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * Value object representing a directed follow relationship from one user to another.
+ *
+ * <p>The {@code userId} follows the {@code targetId}.
+ */
 @NoArgsConstructor
 @Data
 public class FollowRelation {

@@ -11,6 +11,12 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.joda.time.DateTime;
 
+/**
+ * Domain entity representing a blog article.
+ *
+ * <p>Articles are identified by a UUID and addressed externally via a URL-friendly slug derived
+ * from the title. Each article belongs to a single author and may have zero or more tags.
+ */
 @Getter
 @NoArgsConstructor
 @EqualsAndHashCode(of = {"id"})
@@ -48,6 +54,14 @@ public class Article {
     this.updatedAt = createdAt;
   }
 
+  /**
+   * Updates the article's mutable fields. Only non-empty values are applied; the slug is
+   * regenerated when the title changes.
+   *
+   * @param title the new title, or empty/null to keep the current title
+   * @param description the new description, or empty/null to keep the current description
+   * @param body the new body, or empty/null to keep the current body
+   */
   public void update(String title, String description, String body) {
     if (!Util.isEmpty(title)) {
       this.title = title;
@@ -64,6 +78,13 @@ public class Article {
     }
   }
 
+  /**
+   * Converts a title to a URL-friendly slug by lowercasing and replacing special characters with
+   * hyphens.
+   *
+   * @param title the article title
+   * @return the slug string
+   */
   public static String toSlug(String title) {
     return title.toLowerCase().replaceAll("[\\&|[\\uFE30-\\uFFA0]|\\’|\\”|\\s\\?\\,\\.]+", "-");
   }

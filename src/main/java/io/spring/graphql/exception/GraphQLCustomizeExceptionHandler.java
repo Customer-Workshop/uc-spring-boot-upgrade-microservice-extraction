@@ -21,6 +21,10 @@ import javax.validation.ConstraintViolation;
 import javax.validation.ConstraintViolationException;
 import org.springframework.stereotype.Component;
 
+/**
+ * Custom DGS exception handler that translates domain exceptions into typed GraphQL errors with
+ * structured validation messages.
+ */
 @Component
 public class GraphQLCustomizeExceptionHandler implements DataFetcherExceptionHandler {
 

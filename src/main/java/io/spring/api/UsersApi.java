@@ -27,6 +27,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * REST controller for user registration and authentication.
+ *
+ * <p>Provides endpoints for creating new user accounts and logging in with existing credentials.
+ */
 @RestController
 @AllArgsConstructor
 public class UsersApi {
@@ -36,6 +41,12 @@ public class UsersApi {
   private JwtService jwtService;
   private UserService userService;
 
+  /**
+   * Registers a new user account.
+   *
+   * @param registerParam the registration payload (email, username, password)
+   * @return 201 Created with the user data and JWT token in a {@code {"user": ...}} envelope
+   */
   @RequestMapping(path = "/users", method = POST)
   public ResponseEntity createUser(@Valid @RequestBody RegisterParam registerParam) {
     User user = userService.createUser(registerParam);
@@ -44,6 +55,13 @@ public class UsersApi {
         .body(userResponse(new UserWithToken(userData, jwtService.toToken(user))));
   }
 
+  /**
+   * Authenticates a user with email and password.
+   *
+   * @param loginParam the login credentials (email, password)
+   * @return the user data and JWT token in a {@code {"user": ...}} envelope
+   * @throws InvalidAuthenticationException if the email is not found or the password does not match
+   */
   @RequestMapping(path = "/users/login", method = POST)
   public ResponseEntity userLogin(@Valid @RequestBody LoginParam loginParam) {
     Optional<User> optional = userRepository.findByEmail(loginParam.getEmail());
@@ -66,6 +84,7 @@ public class UsersApi {
   }
 }
 
+/** Request payload DTO for user login. Deserialized from the {@code "user"} root. */
 @Getter
 @JsonRootName("user")
 @NoArgsConstructor

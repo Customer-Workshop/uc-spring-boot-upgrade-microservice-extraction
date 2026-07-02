@@ -3,6 +3,11 @@ package io.spring.application;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * Parameters for offset-based pagination with configurable offset and limit.
+ *
+ * <p>The limit is capped at {@value #MAX_LIMIT}; negative offsets are ignored.
+ */
 @NoArgsConstructor
 @Data
 public class Page {

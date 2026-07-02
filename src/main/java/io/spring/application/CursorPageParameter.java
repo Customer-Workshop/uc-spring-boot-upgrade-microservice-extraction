@@ -4,6 +4,12 @@ import io.spring.application.CursorPager.Direction;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * Parameters for cursor-based pagination including cursor position, page limit, and traversal
+ * direction.
+ *
+ * @param <T> the cursor data type (e.g., {@link org.joda.time.DateTime})
+ */
 @Data
 @NoArgsConstructor
 public class CursorPageParameter<T> {

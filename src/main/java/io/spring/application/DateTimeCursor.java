@@ -3,6 +3,10 @@ package io.spring.application;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
+/**
+ * A {@link PageCursor} implementation backed by a Joda {@link DateTime}, serialized as epoch
+ * milliseconds for use in cursor-based pagination.
+ */
 public class DateTimeCursor extends PageCursor<DateTime> {
 
   public DateTimeCursor(DateTime data) {

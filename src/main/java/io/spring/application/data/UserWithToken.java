@@ -2,6 +2,7 @@ package io.spring.application.data;
 
 import lombok.Getter;
 
+/** Composite DTO combining user profile data with the current JWT for API responses. */
 @Getter
 public class UserWithToken {
   private String email;

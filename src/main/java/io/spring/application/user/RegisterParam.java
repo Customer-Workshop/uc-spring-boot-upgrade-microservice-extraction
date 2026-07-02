@@ -7,6 +7,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+/** Request payload DTO for new user registration. Deserialized from the {@code "user"} root. */
 @Getter
 @JsonRootName("user")
 @AllArgsConstructor

@@ -9,12 +9,24 @@ import java.util.Optional;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Component;
 
+/**
+ * Read-side service for querying user profile data.
+ *
+ * <p>Builds profile views that include whether the current user follows the queried profile.
+ */
 @Component
 @AllArgsConstructor
 public class ProfileQueryService {
   private UserReadService userReadService;
   private UserRelationshipQueryService userRelationshipQueryService;
 
+  /**
+   * Finds a user's profile by username.
+   *
+   * @param username the username to look up
+   * @param currentUser the current user for follow context, or {@code null} if anonymous
+   * @return the profile data including follow status, or empty if the user does not exist
+   */
   public Optional<ProfileData> findByUsername(String username, User currentUser) {
     UserData userData = userReadService.findByUsername(username);
     if (userData == null) {

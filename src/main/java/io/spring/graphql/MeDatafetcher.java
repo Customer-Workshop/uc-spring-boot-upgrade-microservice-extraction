@@ -18,6 +18,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.RequestHeader;
 
+/** DGS data fetcher for the {@code me} query, returning the currently authenticated user. */
 @DgsComponent
 @AllArgsConstructor
 public class MeDatafetcher {

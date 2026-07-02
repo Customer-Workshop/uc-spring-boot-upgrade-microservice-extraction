@@ -18,6 +18,11 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * REST controller for user profile operations.
+ *
+ * <p>Provides endpoints to view profiles and manage follow/unfollow relationships.
+ */
 @RestController
 @RequestMapping(path = "profiles/{username}")
 @AllArgsConstructor
@@ -25,6 +30,14 @@ public class ProfileApi {
   private ProfileQueryService profileQueryService;
   private UserRepository userRepository;
 
+  /**
+   * Retrieves a user's public profile.
+   *
+   * @param username the username of the profile to retrieve
+   * @param user the currently authenticated user, or {@code null} if anonymous
+   * @return the profile wrapped in a {@code {"profile": ...}} envelope
+   * @throws ResourceNotFoundException if no user exists with the given username
+   */
   @GetMapping
   public ResponseEntity getProfile(
       @PathVariable("username") String username, @AuthenticationPrincipal User user) {
@@ -34,6 +47,14 @@ public class ProfileApi {
         .orElseThrow(ResourceNotFoundException::new);
   }
 
+  /**
+   * Follows a user.
+   *
+   * @param username the username of the user to follow
+   * @param user the currently authenticated user
+   * @return the target user's profile with {@code following} set to {@code true}
+   * @throws ResourceNotFoundException if no user exists with the given username
+   */
   @PostMapping(path = "follow")
   public ResponseEntity follow(
       @PathVariable("username") String username, @AuthenticationPrincipal User user) {
@@ -48,6 +69,14 @@ public class ProfileApi {
         .orElseThrow(ResourceNotFoundException::new);
   }
 
+  /**
+   * Unfollows a user.
+   *
+   * @param username the username of the user to unfollow
+   * @param user the currently authenticated user
+   * @return the target user's profile with {@code following} set to {@code false}
+   * @throws ResourceNotFoundException if the user or follow relation does not exist
+   */
   @DeleteMapping(path = "follow")
   public ResponseEntity unfollow(
       @PathVariable("username") String username, @AuthenticationPrincipal User user) {

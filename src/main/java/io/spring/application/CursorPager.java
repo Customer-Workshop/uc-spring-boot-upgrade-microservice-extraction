@@ -3,6 +3,12 @@ package io.spring.application;
 import java.util.List;
 import lombok.Getter;
 
+/**
+ * Result container for cursor-based pagination, holding a page of data along with navigation
+ * metadata.
+ *
+ * @param <T> the node type, which must provide a cursor via {@link Node#getCursor()}
+ */
 @Getter
 public class CursorPager<T extends Node> {
   private List<T> data;

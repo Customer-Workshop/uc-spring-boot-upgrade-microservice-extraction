@@ -20,6 +20,7 @@ import io.spring.graphql.types.CommentPayload;
 import io.spring.graphql.types.DeletionStatus;
 import lombok.AllArgsConstructor;
 
+/** DGS mutation handler for creating and deleting comments via GraphQL. */
 @DgsComponent
 @AllArgsConstructor
 public class CommentMutation {

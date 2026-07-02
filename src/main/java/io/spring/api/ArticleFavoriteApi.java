@@ -18,6 +18,11 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * REST controller for favoriting and unfavoriting articles.
+ *
+ * <p>Manages the favorite relationship between the authenticated user and an article.
+ */
 @RestController
 @RequestMapping(path = "articles/{slug}/favorite")
 @AllArgsConstructor
@@ -26,6 +31,14 @@ public class ArticleFavoriteApi {
   private ArticleRepository articleRepository;
   private ArticleQueryService articleQueryService;
 
+  /**
+   * Marks an article as a favorite for the authenticated user.
+   *
+   * @param slug the URL-friendly article identifier
+   * @param user the currently authenticated user
+   * @return the article data with updated favorite status
+   * @throws ResourceNotFoundException if no article exists with the given slug
+   */
   @PostMapping
   public ResponseEntity favoriteArticle(
       @PathVariable("slug") String slug, @AuthenticationPrincipal User user) {
@@ -36,6 +49,14 @@ public class ArticleFavoriteApi {
     return responseArticleData(articleQueryService.findBySlug(slug, user).get());
   }
 
+  /**
+   * Removes the favorite mark from an article for the authenticated user.
+   *
+   * @param slug the URL-friendly article identifier
+   * @param user the currently authenticated user
+   * @return the article data with updated favorite status
+   * @throws ResourceNotFoundException if no article exists with the given slug
+   */
   @DeleteMapping
   public ResponseEntity unfavoriteArticle(
       @PathVariable("slug") String slug, @AuthenticationPrincipal User user) {

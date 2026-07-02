@@ -4,6 +4,11 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+/**
+ * Value object representing a user's favorite relationship with an article.
+ *
+ * <p>Composite key of {@code articleId} and {@code userId}.
+ */
 @NoArgsConstructor
 @Getter
 @EqualsAndHashCode

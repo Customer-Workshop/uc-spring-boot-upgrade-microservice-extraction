@@ -8,6 +8,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+/** Request payload DTO for creating a new article. Deserialized from the {@code "article"} root. */
 @Getter
 @JsonRootName("article")
 @NoArgsConstructor

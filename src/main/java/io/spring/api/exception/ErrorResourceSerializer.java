@@ -10,6 +10,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Custom Jackson serializer for {@link ErrorResource} that groups error messages by field name in
+ * the format {@code {"errors": {"field": ["message1", ...]}}}.
+ */
 public class ErrorResourceSerializer extends JsonSerializer<ErrorResource> {
   @Override
   public void serialize(ErrorResource value, JsonGenerator gen, SerializerProvider serializers)
