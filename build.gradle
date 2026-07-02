@@ -5,6 +5,7 @@ plugins {
     id "com.netflix.dgs.codegen" version "5.0.6"
     id "com.diffplug.spotless" version "6.2.1"
     id 'jacoco'
+    id 'info.solidsoft.pitest' version '1.7.4'
 }
 
 version = '0.0.1-SNAPSHOT'
@@ -43,6 +44,17 @@ jacocoTestCoverageVerification {
             }
         }
     }
+}
+
+pitest {
+    targetClasses = ['io.spring.core.article.*', 'io.spring.application.article.*']
+    targetTests = ['io.spring.core.article.*', 'io.spring.application.article.*']
+    pitestVersion = '1.7.4'
+    junit5PluginVersion = '0.15'
+    threads = 4
+    outputFormats = ['XML', 'HTML']
+    timestampedReports = false
+    mutators = ['DEFAULTS']
 }
 
 repositories {
