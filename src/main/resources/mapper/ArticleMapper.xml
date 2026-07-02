@@ -14,7 +14,7 @@
           #{article.updatedAt})
     </insert>
     <insert id="insertTag">
-        insert into tags (id, name) values (#{tag.id}, #{tag.name})
+        insert into tags (id, name, created_at) values (#{tag.id}, #{tag.name}, #{tag.createdAt})
     </insert>
     <insert id="insertArticleTagRelation">
         insert into article_tags (article_id, tag_id) values(#{articleId}, #{tagId})
@@ -55,8 +55,9 @@
     </select>
 
     <select id="findTag" resultType="io.spring.core.article.Tag">
-        select id, name from tags where name = #{tagName}
+        select id, name, created_at as createdAt from tags where name = #{tagName}
     </select>
+
 
     <select id="findBySlug" resultMap="article">
         <include refid="selectArticle"/>

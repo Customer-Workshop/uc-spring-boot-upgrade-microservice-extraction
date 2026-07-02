@@ -31,12 +31,16 @@ create table follows (
 
 create table tags (
   id varchar(255) primary key,
-  name varchar(255) not null
+  name varchar(255) not null UNIQUE,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 create table article_tags (
   article_id varchar(255) not null,
-  tag_id varchar(255) not null
+  tag_id varchar(255) not null,
+  PRIMARY KEY (article_id, tag_id),
+  FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE,
+  FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
 );
 
 create table comments (

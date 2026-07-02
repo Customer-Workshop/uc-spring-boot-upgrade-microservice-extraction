@@ -1,7 +1,29 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
 <mapper namespace="io.spring.infrastructure.mybatis.readservice.TagReadService">
+
+    <resultMap id="tagData" type="io.spring.application.data.TagData">
+        <id column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="created_at" property="createdAt"/>
+    </resultMap>
+
     <select id="all" resultType="string">
-        select name from tags
+        SELECT name FROM tags
+    </select>
+
+    <select id="findAll" resultMap="tagData">
+        SELECT id, name, created_at FROM tags ORDER BY name
+    </select>
+
+    <select id="findById" resultMap="tagData">
+        SELECT id, name, created_at FROM tags WHERE id = #{id}
+    </select>
+
+    <select id="findByArticleId" resultMap="tagData">
+        SELECT T.id, T.name, T.created_at
+        FROM tags T
+        INNER JOIN article_tags AT ON T.id = AT.tag_id
+        WHERE AT.article_id = #{articleId}
     </select>
 </mapper>
