@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="io.spring.infrastructure.mybatis.readservice.ArticleStatsReadService">
+    <select id="countCommentsByArticleId" resultType="java.lang.Integer">
+        select count(1) from comments where article_id = #{articleId}
+    </select>
+    <select id="countViewsByArticleId" resultType="java.lang.Integer">
+        select coalesce(view_count, 0) from articles where id = #{articleId}
+    </select>
+    <select id="findTrendingArticles" resultMap="transfer.data.articleData">
+        select
+        A.id articleId,
+        A.slug articleSlug,
+        A.title articleTitle,
+        A.description articleDescription,
+        A.body articleBody,
+        A.created_at articleCreatedAt,
+        A.updated_at articleUpdatedAt,
+        T.name tagName,
+        U.id userId,
+        U.username userUsername,
+        U.bio userBio,
+        U.image userImage
+        from articles A
+        left join article_tags AT on A.id = AT.article_id
+        left join tags T on T.id = AT.tag_id
+        left join users U on U.id = A.user_id
+        left join article_favorites AF on AF.article_id = A.id
+        where A.created_at >= #{since}
+        group by A.id, A.slug, A.title, A.description, A.body,
+                 A.created_at, A.updated_at, T.name,
+                 U.id, U.username, U.bio, U.image
+        order by count(AF.user_id) desc
+        limit #{limit}
+    </select>
+</mapper>
