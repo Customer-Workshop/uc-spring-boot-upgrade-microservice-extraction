@@ -2,76 +2,43 @@ package io.spring.application;
 
 import io.spring.application.data.CommentData;
 import io.spring.core.user.User;
-import io.spring.infrastructure.mybatis.readservice.CommentReadService;
-import io.spring.infrastructure.mybatis.readservice.UserRelationshipQueryService;
+import io.spring.infrastructure.rest.CommentServiceClient;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import org.joda.time.DateTime;
 import org.springframework.stereotype.Service;
 
+/**
+ * Reads comment data from the extracted comments microservice. Author profile enrichment (including
+ * the follow relationship) is performed by the microservice via a callback to this monolith.
+ */
 @Service
 @AllArgsConstructor
 public class CommentQueryService {
-  private CommentReadService commentReadService;
-  private UserRelationshipQueryService userRelationshipQueryService;
+  private CommentServiceClient commentServiceClient;
 
   public Optional<CommentData> findById(String id, User user) {
-    CommentData commentData = commentReadService.findById(id);
-    if (commentData == null) {
-      return Optional.empty();
-    } else {
-      commentData
-          .getProfileData()
-          .setFollowing(
-              userRelationshipQueryService.isUserFollowing(
-                  user.getId(), commentData.getProfileData().getId()));
-    }
-    return Optional.ofNullable(commentData);
+    return commentServiceClient.findCommentDataById(id, user == null ? null : user.getId());
   }
 
   public List<CommentData> findByArticleId(String articleId, User user) {
-    List<CommentData> comments = commentReadService.findByArticleId(articleId);
-    if (comments.size() > 0 && user != null) {
-      Set<String> followingAuthors =
-          userRelationshipQueryService.followingAuthors(
-              user.getId(),
-              comments.stream()
-                  .map(commentData -> commentData.getProfileData().getId())
-                  .collect(Collectors.toList()));
-      comments.forEach(
-          commentData -> {
-            if (followingAuthors.contains(commentData.getProfileData().getId())) {
-              commentData.getProfileData().setFollowing(true);
-            }
-          });
-    }
-    return comments;
+    return commentServiceClient.findByArticleId(articleId, user == null ? null : user.getId());
   }
 
   public CursorPager<CommentData> findByArticleIdWithCursor(
       String articleId, User user, CursorPageParameter<DateTime> page) {
-    List<CommentData> comments = commentReadService.findByArticleIdWithCursor(articleId, page);
+    List<CommentData> comments =
+        commentServiceClient.findByArticleIdWithCursor(
+            articleId,
+            user == null ? null : user.getId(),
+            page.getCursor(),
+            page.getQueryLimit(),
+            page.isNext());
     if (comments.isEmpty()) {
       return new CursorPager<>(new ArrayList<>(), page.getDirection(), false);
-    }
-    if (user != null) {
-      Set<String> followingAuthors =
-          userRelationshipQueryService.followingAuthors(
-              user.getId(),
-              comments.stream()
-                  .map(commentData -> commentData.getProfileData().getId())
-                  .collect(Collectors.toList()));
-      comments.forEach(
-          commentData -> {
-            if (followingAuthors.contains(commentData.getProfileData().getId())) {
-              commentData.getProfileData().setFollowing(true);
-            }
-          });
     }
     boolean hasExtra = comments.size() > page.getLimit();
     if (hasExtra) {

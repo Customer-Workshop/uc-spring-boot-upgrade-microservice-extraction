@@ -1,0 +1,8 @@
+.git
+.gradle
+build/
+comments-service/
+frontend/
+*.db
+.idea
+*.iml
