@@ -39,7 +39,8 @@ public class CommentServiceClientIntegrationTest {
     commentsService.start();
     client =
         new CommentServiceClient(
-            new RestTemplateBuilder().build(), "http://localhost:" + commentsService.port());
+            new RestClientConfig().commentServiceRestTemplate(new RestTemplateBuilder()),
+            "http://localhost:" + commentsService.port());
   }
 
   @AfterEach
