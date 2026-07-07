@@ -1,0 +1,10 @@
+{
+  "body": {
+    "errors": {
+      "title": [
+        "can't be empty"
+      ]
+    }
+  },
+  "status": 422
+}

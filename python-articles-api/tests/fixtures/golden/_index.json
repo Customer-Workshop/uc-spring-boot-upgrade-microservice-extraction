@@ -1,0 +1,97 @@
+{
+  "feed_bob": {
+    "auth": "bob",
+    "path": "/articles/feed",
+    "status": 200
+  },
+  "feed_bob_limit2_offset1": {
+    "auth": "bob",
+    "path": "/articles/feed?limit=2&offset=1",
+    "status": 200
+  },
+  "feed_john": {
+    "auth": "john",
+    "path": "/articles/feed",
+    "status": 200
+  },
+  "feed_john_limit1": {
+    "auth": "john",
+    "path": "/articles/feed?limit=1",
+    "status": 200
+  },
+  "list_authed_john": {
+    "auth": "john",
+    "path": "/articles",
+    "status": 200
+  },
+  "list_author_janedoe": {
+    "auth": null,
+    "path": "/articles?author=janedoe",
+    "status": 200
+  },
+  "list_default": {
+    "auth": null,
+    "path": "/articles",
+    "status": 200
+  },
+  "list_empty_tag": {
+    "auth": null,
+    "path": "/articles?tag=nonexistent",
+    "status": 200
+  },
+  "list_favorited_janedoe": {
+    "auth": null,
+    "path": "/articles?favorited=janedoe",
+    "status": 200
+  },
+  "list_limit2_offset1": {
+    "auth": null,
+    "path": "/articles?limit=2&offset=1",
+    "status": 200
+  },
+  "list_tag_java": {
+    "auth": null,
+    "path": "/articles?tag=java",
+    "status": 200
+  },
+  "single_authed_john_article1": {
+    "auth": "john",
+    "path": "/articles/getting-started-with-spring-boot",
+    "status": 200
+  },
+  "single_authed_john_article2": {
+    "auth": "john",
+    "path": "/articles/rest-api-best-practices",
+    "status": 200
+  },
+  "single_notfound": {
+    "auth": null,
+    "path": "/articles/does-not-exist",
+    "status": 404
+  },
+  "single_unauth_article1": {
+    "auth": null,
+    "path": "/articles/getting-started-with-spring-boot",
+    "status": 200
+  },
+  "single_unauth_article2": {
+    "auth": null,
+    "path": "/articles/rest-api-best-practices",
+    "status": 200
+  },
+  "single_unauth_article3": {
+    "auth": null,
+    "path": "/articles/microservices-architecture-guide",
+    "status": 200
+  },
+  "single_unauth_article4": {
+    "auth": null,
+    "path": "/articles/docker-for-java-developers",
+    "status": 200
+  },
+  "single_unauth_article5": {
+    "auth": null,
+    "path": "/articles/testing-spring-boot-applications",
+    "status": 200
+  }
+}

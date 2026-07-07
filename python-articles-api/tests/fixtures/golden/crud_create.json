@@ -1,0 +1,29 @@
+{
+  "body": {
+    "article": {
+      "author": {
+        "bio": "Full-stack developer and tech enthusiast",
+        "following": false,
+        "image": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
+        "username": "johndoe"
+      },
+      "body": "You have to believe",
+      "createdAt": "2026-07-07T16:39:49.050Z",
+      "cursor": {
+        "data": "2026-07-07T16:39:49.050Z"
+      },
+      "description": "Ever wonder how?",
+      "favorited": false,
+      "favoritesCount": 0,
+      "id": "e30e404a-ea42-41bd-a5ed-973504be6691",
+      "slug": "how-to-train-your-dragon",
+      "tagList": [
+        "training",
+        "dragons"
+      ],
+      "title": "How to Train Your Dragon",
+      "updatedAt": "2026-07-07T16:39:49.050Z"
+    }
+  },
+  "status": 200
+}

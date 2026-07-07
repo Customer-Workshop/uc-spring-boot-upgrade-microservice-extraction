@@ -1,0 +1,58 @@
+{
+  "body": {
+    "articles": [
+      {
+        "author": {
+          "bio": "DevOps engineer and cloud enthusiast",
+          "following": false,
+          "image": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bob",
+          "username": "bobsmith"
+        },
+        "body": "Docker has revolutionized how we deploy applications. In this tutorial, we'll learn how to containerize a Spring Boot application and deploy it using Docker.\\n\\n## Why Docker?\\n- Consistent environments\\n- Easy deployment\\n- Isolation\\n- Portability\\n\\n## Creating a Dockerfile\\nHere's a simple Dockerfile for a Spring Boot app...",
+        "createdAt": "2026-07-05T16:34:38.000Z",
+        "cursor": {
+          "data": "2026-07-05T16:34:38.000Z"
+        },
+        "description": "Containerize your Java applications with Docker",
+        "favorited": false,
+        "favoritesCount": 1,
+        "id": "article-4",
+        "slug": "docker-for-java-developers",
+        "tagList": [
+          "java",
+          "spring-boot",
+          "tutorial"
+        ],
+        "title": "Docker for Java Developers",
+        "updatedAt": "2026-07-05T16:34:38.000Z"
+      },
+      {
+        "author": {
+          "bio": "Full-stack developer and tech enthusiast",
+          "following": false,
+          "image": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
+          "username": "johndoe"
+        },
+        "body": "Microservices architecture has become increasingly popular, but it's not a silver bullet. This guide will help you understand when and how to implement microservices effectively.\\n\\n## What are Microservices?\\nMicroservices are an architectural style that structures an application as a collection of loosely coupled services...\\n\\n## Benefits\\n- Independent deployment\\n- Technology diversity\\n- Fault isolation\\n- Scalability",
+        "createdAt": "2026-07-04T16:34:38.000Z",
+        "cursor": {
+          "data": "2026-07-04T16:34:38.000Z"
+        },
+        "description": "Understanding microservices patterns and when to use them",
+        "favorited": false,
+        "favoritesCount": 1,
+        "id": "article-3",
+        "slug": "microservices-architecture-guide",
+        "tagList": [
+          "spring-boot",
+          "microservices",
+          "best-practices"
+        ],
+        "title": "Microservices Architecture Guide",
+        "updatedAt": "2026-07-04T16:34:38.000Z"
+      }
+    ],
+    "articlesCount": 5
+  },
+  "status": 200
+}

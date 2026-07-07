@@ -1,0 +1,30 @@
+{
+  "body": {
+    "article": {
+      "author": {
+        "bio": "Software architect passionate about clean code",
+        "following": false,
+        "image": "https://api.dicebear.com/7.x/avataaars/svg?seed=Jane",
+        "username": "janedoe"
+      },
+      "body": "Building a great REST API requires more than just exposing endpoints. In this article, we'll cover the best practices that will make your API intuitive, maintainable, and scalable.\\n\\n## Key Principles\\n1. Use proper HTTP methods\\n2. Implement consistent naming conventions\\n3. Version your API\\n4. Handle errors gracefully\\n5. Document everything\\n\\nLet's dive into each principle...",
+      "createdAt": "2026-07-02T16:34:38.000Z",
+      "cursor": {
+        "data": "2026-07-02T16:34:38.000Z"
+      },
+      "description": "Learn the essential principles for designing robust REST APIs",
+      "favorited": false,
+      "favoritesCount": 0,
+      "id": "article-2",
+      "slug": "rest-api-best-practices",
+      "tagList": [
+        "web-development",
+        "best-practices",
+        "api-design"
+      ],
+      "title": "REST API Best Practices",
+      "updatedAt": "2026-07-02T16:34:38.000Z"
+    }
+  },
+  "status": 200
+}
