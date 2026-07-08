@@ -1,0 +1,32 @@
+services:
+  monolith:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: realworld-monolith
+    ports:
+      - "8080:8080"
+    environment:
+      # Base URL the monolith uses to reach the Comments microservice
+      COMMENTS_SERVICE_URL: http://comments-service:8081
+    depends_on:
+      - comments-service
+    networks:
+      - realworld
+
+  comments-service:
+    build:
+      context: ./comments-service
+      dockerfile: Dockerfile
+    image: realworld-comments-service
+    ports:
+      - "8081:8081"
+    environment:
+      # Base URL the microservice uses to resolve author profiles from the monolith
+      MONOLITH_URL: http://monolith:8080
+    networks:
+      - realworld
+
+networks:
+  realworld:
+    driver: bridge

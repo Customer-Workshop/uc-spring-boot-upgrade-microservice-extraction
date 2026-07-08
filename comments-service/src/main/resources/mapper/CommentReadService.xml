@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="io.spring.comments.infrastructure.mybatis.readservice.CommentReadService">
+    <sql id="selectComment">
+        select
+          id commentId,
+          body commentBody,
+          user_id commentUserId,
+          article_id commentArticleId,
+          created_at commentCreatedAt
+        from comments
+    </sql>
+
+    <resultMap id="comment" type="io.spring.comments.core.comment.Comment">
+        <id column="commentId" property="id"/>
+        <result column="commentBody" property="body"/>
+        <result column="commentUserId" property="userId"/>
+        <result column="commentArticleId" property="articleId"/>
+        <result column="commentCreatedAt" property="createdAt"/>
+    </resultMap>
+
+    <select id="findByArticleId" resultMap="comment">
+        <include refid="selectComment"/>
+        where article_id = #{articleId}
+        order by created_at desc
+    </select>
+
+    <select id="findByArticleIdWithCursor" resultMap="comment">
+        <include refid="selectComment"/>
+        <where>
+            article_id = #{articleId}
+            <if test='cursor != null and direction == "NEXT"'>
+                AND created_at &lt; #{cursor}
+            </if>
+            <if test='cursor != null and direction == "PREV"'>
+                AND created_at > #{cursor}
+            </if>
+        </where>
+        <if test='direction == "NEXT"'>
+            order by created_at desc
+        </if>
+        <if test='direction == "PREV"'>
+            order by created_at asc
+        </if>
+    </select>
+</mapper>
