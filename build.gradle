@@ -49,6 +49,13 @@ repositories {
     mavenCentral()
 }
 
+// The JWT signing secret is provided via the JWT_SECRET environment variable
+// (see application.properties). Production deployments MUST set JWT_SECRET.
+// For local dev/test runs where it is not set, fall back to an insecure,
+// clearly-labelled value so `bootRun` and the test suite work out of the box.
+def jwtSecret = System.getenv('JWT_SECRET') ?:
+        'dev-only-insecure-jwt-secret-do-not-use-in-production-0123456789'
+
 configurations {
     compileOnly {
         extendsFrom annotationProcessor
@@ -91,6 +98,7 @@ dependencies {
 
 tasks.named('test') {
 	useJUnitPlatform()
+	environment 'JWT_SECRET', jwtSecret
 	// Exclude Selenium tests from JUnit test task
 	exclude 'io/spring/selenium/**'
 	finalizedBy jacocoTestReport
@@ -104,6 +112,8 @@ tasks.register('seleniumTest', Test) {
 	useTestNG {
 		suites 'src/test/resources/selenium/testng-smoke.xml'
 	}
+
+	environment 'JWT_SECRET', jwtSecret
 	
 	// Only include Selenium tests
 	include 'io/spring/selenium/**'
@@ -130,6 +140,7 @@ tasks.named('generateJava') {
 
 // Clean database before running to avoid Flyway migration conflicts
 tasks.named('bootRun') {
+    environment 'JWT_SECRET', jwtSecret
     doFirst {
         delete './dev.db'
     }

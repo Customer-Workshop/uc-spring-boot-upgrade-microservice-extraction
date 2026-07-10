@@ -36,7 +36,18 @@ And the code is organized as this:
 
 Integration with Spring Security and add other filter for jwt token process.
 
-The secret key is stored in `application.properties`.
+The JWT signing secret is **not** hardcoded. It is read from the `JWT_SECRET`
+environment variable (see `jwt.secret=${JWT_SECRET}` in `application.properties`).
+
+Production deployments must set `JWT_SECRET` to a strong, randomly generated
+value, e.g.:
+
+    export JWT_SECRET="$(openssl rand -base64 64)"
+
+For local development and the test suite, `bootRun`/`test` fall back to an
+insecure, clearly-labelled dev value when `JWT_SECRET` is not set (configured
+in `build.gradle`), so no extra setup is required to run locally. Never rely on
+that fallback in production.
 
 # Database
 
