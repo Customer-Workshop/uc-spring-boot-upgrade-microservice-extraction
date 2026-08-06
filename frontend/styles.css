@@ -30,3 +30,12 @@ img.lazyload:not([src]) {
     font-size: 15px;
   }
 }
+
+.tag-stats-table {
+  margin-top: 30px;
+}
+
+.tag-stats-table th,
+.tag-stats-table td {
+  vertical-align: middle;
+}
