@@ -23,4 +23,14 @@ public class TagsApi {
           }
         });
   }
+
+  @GetMapping("/stats")
+  public ResponseEntity getTagStats() {
+    return ResponseEntity.ok(
+        new HashMap<String, Object>() {
+          {
+            put("tags", tagsQueryService.tagStats());
+          }
+        });
+  }
 }

@@ -13,4 +13,8 @@ public class TagsQueryService {
   public List<String> allTags() {
     return tagReadService.all();
   }
+
+  public List<TagStatsData> tagStats() {
+    return tagReadService.stats();
+  }
 }
