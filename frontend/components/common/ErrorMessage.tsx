@@ -21,7 +21,7 @@ const ErrorMessage = ({ message }: ErrorMessageProps) => (
           border-radius: 4px;
           padding: 8px 15px;
           color: #f02d2d;
-          font-weight: 600
+          font-weight: 600;
           background-color: rgba(240, 45, 45, 0.1);
         }
       `}
