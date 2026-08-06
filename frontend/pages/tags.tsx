@@ -5,14 +5,14 @@ import useSWR from "swr";
 import ErrorMessage from "../components/common/ErrorMessage";
 import LoadingSpinner from "../components/common/LoadingSpinner";
 import TagStatsList from "../components/tags/TagStatsList";
+import TagAPI from "../lib/api/tag";
 import { TagStatsResponse } from "../lib/types/tagType";
 import { SERVER_BASE_URL } from "../lib/utils/constant";
-import fetcher from "../lib/utils/fetcher";
 
 const Tags = () => {
   const { data, error } = useSWR<TagStatsResponse>(
     `${SERVER_BASE_URL}/tags/stats`,
-    fetcher
+    () => TagAPI.getStats().then(({ data: response }) => response)
   );
 
   return (
