@@ -27,6 +27,11 @@ const Navbar = () => {
               <span onClick={handleClick}>Home</span>
             </NavLink>
           </li>
+          <li className="nav-item">
+            <NavLink href="/tags" as="/tags">
+              <span onClick={handleClick}>Popular Tags</span>
+            </NavLink>
+          </li>
           <Maybe test={isLoggedIn}>
             <li className="nav-item">
               <NavLink href="/editor/new" as="/editor/new">
