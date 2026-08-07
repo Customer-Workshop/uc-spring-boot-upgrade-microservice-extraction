@@ -4,4 +4,11 @@
     <select id="all" resultType="string">
         select name from tags
     </select>
+    <select id="stats" resultType="io.spring.application.TagStatsData">
+        select t.name, count(at.article_id) as articleCount
+        from tags t
+        left join article_tags at on t.id = at.tag_id
+        group by t.id, t.name
+        order by articleCount desc, t.name asc
+    </select>
 </mapper>
