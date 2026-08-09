@@ -2,6 +2,9 @@ package io.spring.infrastructure.mybatis;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -24,20 +27,19 @@ class DateTimeHandlerTest {
     PreparedStatement ps = mock(PreparedStatement.class);
     handler.setParameter(ps, 1, value, JdbcType.TIMESTAMP);
     handler.setParameter(ps, 2, null, JdbcType.TIMESTAMP);
-    verify(ps).setTimestamp(org.mockito.ArgumentMatchers.eq(1), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
+    verify(ps).setTimestamp(eq(1), any(), any());
 
     ResultSet rs = mock(ResultSet.class);
-    when(rs.getTimestamp(org.mockito.ArgumentMatchers.eq("created"), org.mockito.ArgumentMatchers.any(Calendar.class)))
+    when(rs.getTimestamp(eq("created"), any(Calendar.class)))
         .thenReturn(new Timestamp(value.getMillis()));
-    when(rs.getTimestamp(org.mockito.ArgumentMatchers.eq(1), org.mockito.ArgumentMatchers.any(Calendar.class)))
+    when(rs.getTimestamp(anyInt(), any(Calendar.class)))
         .thenReturn(null);
     assertEquals(value, handler.getResult(rs, "created"));
     assertNull(handler.getResult(rs, 1));
 
     CallableStatement cs = mock(CallableStatement.class);
-    when(cs.getTimestamp(org.mockito.ArgumentMatchers.eq(1), org.mockito.ArgumentMatchers.any(Calendar.class)))
+    when(cs.getTimestamp(anyInt(), any(Calendar.class)))
         .thenReturn(new Timestamp(value.getMillis()));
     assertEquals(value, handler.getResult(cs, 1));
   }
-
 }
