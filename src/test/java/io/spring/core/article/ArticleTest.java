@@ -70,14 +70,4 @@ public class ArticleTest {
 
     assertThat(first.equals(second), is(false));
   }
-
-  @Test
-  public void should_equal_tags_with_same_name_and_reject_different_names() {
-    Tag java = new Tag("java");
-    Tag anotherJava = new Tag("java");
-    Tag spring = new Tag("spring");
-
-    assertThat(java.equals(anotherJava), is(true));
-    assertThat(java.equals(spring), is(false));
-  }
 }

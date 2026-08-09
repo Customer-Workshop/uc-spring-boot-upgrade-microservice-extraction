@@ -35,17 +35,19 @@ for this domain.
 The before values below are copied from the frozen capture in
 `/home/ubuntu/pit-baseline/`; they were not regenerated after changing tests.
 PIT's mutation score and test strength use killed / (killed + survived), while
-mutants with no coverage are reported separately.
+overall mutation coverage uses killed / generated and therefore makes
+no-coverage progress visible.
 
 | Metric | Before | After |
 | --- | ---: | ---: |
 | Generated mutants | 71 | 71 |
-| Mutants killed | 26 | 33 |
+| Mutants killed | 26 | 52 |
 | Mutants survived | 8 | 2 |
-| Mutants with no coverage | 37 | 36 |
-| Mutation score / mutation coverage | 76.47% | 94.29% |
-| Test strength | 76.47% | 94.29% |
-| Mutated line coverage | 49/75 (65%) | 53/75 (71%) |
+| Mutants with no coverage | 37 | 17 |
+| Mutation score (killed / killed + survived) | 76.47% | 96.30% |
+| Overall mutation coverage (killed / generated) | 36.62% | 73.24% |
+| Test strength | 76.47% | 96.30% |
+| Mutated line coverage | 49/75 (65%) | 75/75 (100%) |
 
 ### Per-class results
 
@@ -54,21 +56,23 @@ there were no covered mutants in the score denominator.
 
 | Class | Before killed/survived/no-coverage | Before score | After killed/survived/no-coverage | After score |
 | --- | --- | ---: | --- | ---: |
-| `Article` | 17 / 4 / 9 | 80.95% | 21 / 1 / 8 | 95.45% |
+| `Article` | 17 / 4 / 9 | 80.95% | 22 / 1 / 7 | 95.65% |
 | `Tag` | 7 / 4 / 9 | 63.64% | 10 / 1 / 9 | 90.91% |
-| `NewArticleParam$NewArticleParamBuilder` | 0 / 0 / 6 | n/a | 0 / 0 / 6 | n/a |
-| `NewArticleParam` | 0 / 0 / 5 | n/a | 0 / 0 / 5 | n/a |
-| `ArticleCommandService` | 0 / 0 / 5 | n/a | 0 / 0 / 5 | n/a |
-| `UpdateArticleParam` | 0 / 0 / 3 | n/a | 0 / 0 / 3 | n/a |
+| `NewArticleParam$NewArticleParamBuilder` | 0 / 0 / 6 | n/a | 5 / 0 / 1 | 100% |
+| `NewArticleParam` | 0 / 0 / 5 | n/a | 5 / 0 / 0 | 100% |
+| `ArticleCommandService` | 0 / 0 / 5 | n/a | 5 / 0 / 0 | 100% |
+| `UpdateArticleParam` | 0 / 0 / 3 | n/a | 3 / 0 / 0 | 100% |
 | `DuplicatedArticleValidator` | 2 / 0 / 0 | 100% | 2 / 0 / 0 | 100% |
 
 ## Survivors targeted
 
-The baseline contained eight surviving mutants, rather than ten; all eight
-were reviewed and targeted. Six meaningful behavioral survivors were killed
-with assertions in `ArticleTest`. The two remaining survivors are Lombok
-`canEqual` return mutants and are equivalent for these non-final, single-class
-equality implementations.
+The baseline contained eight surviving mutants, rather than ten. The table
+combines all eight baseline survivors with the previously uncovered mutants
+selected for meaningful behavioral coverage. The new tests killed all six
+non-equivalent baseline survivors and 20 previously no-coverage mutants,
+exceeding the requested ten newly killed mutants. The two remaining baseline
+survivors are Lombok `canEqual` return mutants and are equivalent for these
+non-final, single-class equality implementations.
 
 | Class:line | Mutator | Why it survived | Test added or improved |
 | --- | --- | --- | --- |
@@ -80,6 +84,14 @@ equality implementations.
 | `Tag:10` | `NegateConditionalsMutator` (`equals`) | Tag equality behavior was not directly asserted for equal names | `should_equal_tags_with_same_name_and_reject_different_names` |
 | `Tag:10` | `NegateConditionalsMutator` (`equals`) | Tag inequality behavior was not directly asserted for different names | `should_equal_tags_with_same_name_and_reject_different_names` |
 | `Tag:10` | `BooleanTrueReturnValsMutator` (`equals`) | Tag equality behavior had no direct assertions | `should_equal_tags_with_same_name_and_reject_different_names` |
+| `Article:16` | `BooleanFalseReturnValsMutator` (`equals`) and `BooleanTrueReturnValsMutator` (`equals`) | Article equality branches had no direct assertion for distinct generated IDs | `should_not_equal_articles_with_different_ids` |
+| `ArticleCommandService:26` | `VoidMethodCallMutator` (`createArticle`) | Repository save was unexercised by unit tests | `should_create_article_and_save_all_article_fields` |
+| `ArticleCommandService:27` | `NullReturnValsMutator` (`createArticle`) | Service return value was unobserved | `should_create_article_and_save_all_article_fields` |
+| `ArticleCommandService:31,35,36` | `VoidMethodCallMutator` and `NullReturnValsMutator` (`updateArticle`) | Update delegation, persistence, and return value were unexercised | `should_update_article_and_save_updated_article` |
+| `NewArticleParam$NewArticleParamBuilder:15` | `NullReturnValsMutator` (`title`, `description`, `body`, `tagList`, `build`) | Lombok builder mapping was unexercised | `should_map_all_fields_through_builder` |
+| `NewArticleParam:15,19,22,25,27` | `NullReturnValsMutator` (`builder`) and `EmptyObjectReturnValsMutator` (getters) | Parameter construction and field access were unexercised | `should_map_all_fields_through_builder` |
+| `UpdateArticleParam:13-15` | `EmptyObjectReturnValsMutator` (getters) | Update parameter field mapping was unexercised | `should_map_all_fields_through_constructor` |
+| `NewArticleParam:description,body` | Bean validation (`NotBlank`) | No direct validation assertions covered required fields | `should_report_blank_description_and_body` |
 
 ## Remaining notable survivors
 
@@ -89,13 +101,15 @@ equality implementations.
 These are Lombok-generated helper mutations. The classes have no subclass
 hierarchy or extra subclass state whose equality contract would distinguish
 the generated type guard from `true`; adding a test solely to kill these
-equivalent mutants would be contrived. The remaining no-coverage mutants are
-primarily generated accessors/builders and unexecuted command-parameter paths.
+equivalent mutants would be contrived. One builder mutant remains uncovered
+because it is an equivalent/generated builder return path not needed by the
+behavioral field-mapping assertion.
 
 ## Verification
 
-PIT completed successfully after the test changes with 33 killed and 2
-surviving mutants. The ordinary test executions completed 72 tests without
+PIT completed successfully after the test changes with 52 killed and 2
+surviving mutants. The focused Article-domain test executions completed
+without test failures. The ordinary test executions completed without
 test failures, but the repository's existing JaCoCo verification then failed
 the configured 80% bundle threshold:
 
