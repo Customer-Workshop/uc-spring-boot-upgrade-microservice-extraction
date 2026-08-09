@@ -13,7 +13,6 @@ import io.spring.application.data.ProfileData;
 import io.spring.core.article.Article;
 import io.spring.core.comment.Comment;
 import io.spring.core.user.User;
-import io.spring.graphql.types.Profile;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -37,7 +36,9 @@ class ProfileDatafetcherTest extends GraphqlTestBase {
           fetcher.getUserProfile(GraphqlTestFixtures.environment(user)).getUsername());
       var environment = mock(graphql.schema.DataFetchingEnvironment.class);
       when(environment.getArgument("username")).thenReturn(user.getUsername());
-      assertEquals(user.getUsername(), fetcher.queryProfile("ignored", environment).getProfile().getUsername());
+      assertEquals(
+          user.getUsername(),
+          fetcher.queryProfile("ignored", environment).getProfile().getUsername());
     }
   }
 
@@ -49,16 +50,19 @@ class ProfileDatafetcherTest extends GraphqlTestBase {
     ArticleData articleData = GraphqlTestFixtures.articleData(article, user);
     CommentData commentData = GraphqlTestFixtures.commentData(comment, article, user);
     Map<String, ArticleData> articles = GraphqlTestFixtures.articleContext(article, articleData);
-    Map<String, CommentData> comments = java.util.Collections.singletonMap(comment.getId(), commentData);
+    Map<String, CommentData> comments =
+        java.util.Collections.singletonMap(comment.getId(), commentData);
     try (MockedStatic<SecurityUtil> security = org.mockito.Mockito.mockStatic(SecurityUtil.class)) {
       security.when(SecurityUtil::getCurrentUser).thenReturn(Optional.empty());
       var articleEnvironment = mock(graphql.schema.DataFetchingEnvironment.class);
       when(articleEnvironment.getLocalContext()).thenReturn(articles);
-      when(articleEnvironment.getSource()).thenReturn(io.spring.graphql.types.Article.newBuilder().slug(article.getSlug()).build());
+      when(articleEnvironment.getSource())
+          .thenReturn(io.spring.graphql.types.Article.newBuilder().slug(article.getSlug()).build());
       assertEquals(user.getUsername(), fetcher.getAuthor(articleEnvironment).getUsername());
       var commentEnvironment = mock(graphql.schema.DataFetchingEnvironment.class);
       when(commentEnvironment.getLocalContext()).thenReturn(comments);
-      when(commentEnvironment.getSource()).thenReturn(io.spring.graphql.types.Comment.newBuilder().id(comment.getId()).build());
+      when(commentEnvironment.getSource())
+          .thenReturn(io.spring.graphql.types.Comment.newBuilder().id(comment.getId()).build());
       assertEquals(user.getUsername(), fetcher.getCommentAuthor(commentEnvironment).getUsername());
     }
   }

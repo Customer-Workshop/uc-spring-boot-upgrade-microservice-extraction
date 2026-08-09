@@ -46,7 +46,8 @@ class RelationMutationTest extends GraphqlTestBase {
       when(users.findRelation(user.getId(), target.getId())).thenReturn(Optional.empty());
       assertThrows(ResourceNotFoundException.class, () -> mutation.unfollow("target"));
       when(users.findRelation(user.getId(), target.getId()))
-          .thenReturn(Optional.of(new io.spring.core.user.FollowRelation(user.getId(), target.getId())));
+          .thenReturn(
+              Optional.of(new io.spring.core.user.FollowRelation(user.getId(), target.getId())));
       assertEquals("target", mutation.unfollow("target").getProfile().getUsername());
     }
   }

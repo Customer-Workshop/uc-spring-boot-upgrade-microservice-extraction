@@ -16,7 +16,6 @@ import io.spring.graphql.types.UpdateUserInput;
 import java.util.Optional;
 import javax.validation.ConstraintViolationException;
 import org.junit.jupiter.api.Test;
-import org.mockito.MockedStatic;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -30,13 +29,15 @@ class UserMutationTest extends GraphqlTestBase {
   void createsUserAndReturnsValidationErrors() {
     UserService service = mock(UserService.class);
     when(service.createUser(any())).thenReturn(user);
-    UserMutation mutation = new UserMutation(mock(UserRepository.class), mock(PasswordEncoder.class), service);
+    UserMutation mutation =
+        new UserMutation(mock(UserRepository.class), mock(PasswordEncoder.class), service);
     assertEquals(
         user,
         mutation
             .createUser(CreateUserInput.newBuilder().email("e").username("u").password("p").build())
             .getLocalContext());
-    when(service.createUser(any())).thenThrow(new ConstraintViolationException("invalid", java.util.Collections.emptySet()));
+    when(service.createUser(any()))
+        .thenThrow(new ConstraintViolationException("invalid", java.util.Collections.emptySet()));
     assertEquals(
         "BAD_REQUEST",
         ((io.spring.graphql.types.Error)
@@ -53,7 +54,8 @@ class UserMutationTest extends GraphqlTestBase {
     when(encoder.matches("password", user.getPassword())).thenReturn(true);
     assertEquals(user, mutation.login("password", user.getEmail()).getLocalContext());
     when(encoder.matches("bad", user.getPassword())).thenReturn(false);
-    assertThrows(InvalidAuthenticationException.class, () -> mutation.login("bad", user.getEmail()));
+    assertThrows(
+        InvalidAuthenticationException.class, () -> mutation.login("bad", user.getEmail()));
     when(users.findByEmail("missing")).thenReturn(Optional.empty());
     assertThrows(InvalidAuthenticationException.class, () -> mutation.login("password", "missing"));
   }
@@ -61,11 +63,14 @@ class UserMutationTest extends GraphqlTestBase {
   @Test
   void updateUserReturnsNullWhenAnonymousAndUpdatesAuthenticatedUser() {
     UserService service = mock(UserService.class);
-    UserMutation mutation = new UserMutation(mock(UserRepository.class), mock(PasswordEncoder.class), service);
+    UserMutation mutation =
+        new UserMutation(mock(UserRepository.class), mock(PasswordEncoder.class), service);
     SecurityContextHolder.getContext()
         .setAuthentication(
             new AnonymousAuthenticationToken(
-                "key", "anonymous", java.util.Collections.singleton(new SimpleGrantedAuthority("ROLE_USER"))));
+                "key",
+                "anonymous",
+                java.util.Collections.singleton(new SimpleGrantedAuthority("ROLE_USER"))));
     assertNull(mutation.updateUser(UpdateUserInput.newBuilder().build()));
     SecurityContextHolder.getContext()
         .setAuthentication(new UsernamePasswordAuthenticationToken(user, null));

@@ -20,7 +20,8 @@ class GraphQLCustomizeExceptionHandlerTest {
 
   @Test
   void handlesAuthenticationAndDefaultExceptions() {
-    DataFetcherExceptionHandlerParameters params = mock(DataFetcherExceptionHandlerParameters.class);
+    DataFetcherExceptionHandlerParameters params =
+        mock(DataFetcherExceptionHandlerParameters.class);
     when(params.getException()).thenReturn(new InvalidAuthenticationException());
     when(params.getPath()).thenReturn(mock(ResultPath.class));
     DataFetcherExceptionHandlerResult result = handler.onException(params);
@@ -68,7 +69,8 @@ class GraphQLCustomizeExceptionHandlerTest {
     ConstraintViolationException exception =
         new ConstraintViolationException(
             "bad", Collections.singleton((javax.validation.ConstraintViolation<?>) violation));
-    DataFetcherExceptionHandlerParameters params = mock(DataFetcherExceptionHandlerParameters.class);
+    DataFetcherExceptionHandlerParameters params =
+        mock(DataFetcherExceptionHandlerParameters.class);
     when(params.getException()).thenReturn(exception);
     when(params.getPath()).thenReturn(mock(ResultPath.class));
     assertEquals(1, handler.onException(params).getErrors().size());

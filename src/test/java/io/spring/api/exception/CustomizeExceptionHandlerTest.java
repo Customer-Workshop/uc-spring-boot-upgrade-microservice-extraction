@@ -3,6 +3,9 @@ package io.spring.api.exception;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.Collections;
 import javax.validation.ConstraintViolationException;
@@ -13,13 +16,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.FieldError;
-import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import org.springframework.web.context.request.WebRequest;
 
 class CustomizeExceptionHandlerTest {
   private final CustomizeExceptionHandler handler = new CustomizeExceptionHandler();
@@ -30,13 +29,7 @@ class CustomizeExceptionHandlerTest {
     BeanPropertyBindingResult binding = new BeanPropertyBindingResult(new Object(), "article");
     binding.addError(
         new FieldError(
-            "article",
-            "title",
-            null,
-            false,
-            new String[] {"NotBlank"},
-            null,
-            "must not be blank"));
+            "article", "title", null, false, new String[] {"NotBlank"}, null, "must not be blank"));
     InvalidRequestException exception = new InvalidRequestException(binding);
     var response = handler.handleInvalidRequest(exception, request);
     assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, response.getStatusCode());
@@ -51,11 +44,14 @@ class CustomizeExceptionHandlerTest {
     var auth = handler.handleInvalidAuthentication(new InvalidAuthenticationException(), request);
     assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, auth.getStatusCode());
     assertEquals(
-        "invalid email or password",
-        ((java.util.Map<?, ?>) auth.getBody()).get("message"));
-    ErrorResource errors = handler.handleConstraintViolation(new ConstraintViolationException(Collections.emptySet()), request);
+        "invalid email or password", ((java.util.Map<?, ?>) auth.getBody()).get("message"));
+    ErrorResource errors =
+        handler.handleConstraintViolation(
+            new ConstraintViolationException(Collections.emptySet()), request);
     assertTrue(errors.getFieldErrors().isEmpty());
-    assertTrue(new InvalidRequestException(mock(org.springframework.validation.Errors.class)).getErrors() != null);
+    assertTrue(
+        new InvalidRequestException(mock(org.springframework.validation.Errors.class)).getErrors()
+            != null);
   }
 
   @Test

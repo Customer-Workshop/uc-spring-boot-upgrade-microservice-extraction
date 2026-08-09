@@ -32,8 +32,7 @@ class DateTimeHandlerTest {
     ResultSet rs = mock(ResultSet.class);
     when(rs.getTimestamp(eq("created"), any(Calendar.class)))
         .thenReturn(new Timestamp(value.getMillis()));
-    when(rs.getTimestamp(anyInt(), any(Calendar.class)))
-        .thenReturn(null);
+    when(rs.getTimestamp(anyInt(), any(Calendar.class))).thenReturn(null);
     assertEquals(value, handler.getResult(rs, "created"));
     assertNull(handler.getResult(rs, 1));
 

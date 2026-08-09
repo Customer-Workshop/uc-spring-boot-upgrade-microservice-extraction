@@ -33,7 +33,8 @@ class ArticleCommandServiceTest {
 
   @Test
   void updatesArticleAndPersistsIt() {
-    Article article = new Article("old", "old description", "old body", Arrays.asList("java"), user.getId());
+    Article article =
+        new Article("old", "old description", "old body", Arrays.asList("java"), user.getId());
     UpdateArticleParam param = new UpdateArticleParam("new", "new description", "new body");
     assertEquals(article, service.updateArticle(article, param));
     assertEquals("new", article.getTitle());

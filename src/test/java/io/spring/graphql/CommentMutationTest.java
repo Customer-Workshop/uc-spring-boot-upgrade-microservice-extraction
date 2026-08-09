@@ -46,7 +46,9 @@ class CommentMutationTest extends GraphqlTestBase {
   void rejectsUnauthenticatedAndMissingArticle() {
     CommentMutation unauthenticatedMutation =
         new CommentMutation(
-            mock(ArticleRepository.class), mock(CommentRepository.class), mock(CommentQueryService.class));
+            mock(ArticleRepository.class),
+            mock(CommentRepository.class),
+            mock(CommentQueryService.class));
     try (MockedStatic<SecurityUtil> security = org.mockito.Mockito.mockStatic(SecurityUtil.class)) {
       security.when(SecurityUtil::getCurrentUser).thenReturn(Optional.empty());
       assertThrows(
@@ -56,7 +58,8 @@ class CommentMutationTest extends GraphqlTestBase {
     ArticleRepository articles = mock(ArticleRepository.class);
     when(articles.findBySlug("missing")).thenReturn(Optional.empty());
     CommentMutation missingArticleMutation =
-        new CommentMutation(articles, mock(CommentRepository.class), mock(CommentQueryService.class));
+        new CommentMutation(
+            articles, mock(CommentRepository.class), mock(CommentQueryService.class));
     try (MockedStatic<SecurityUtil> security = org.mockito.Mockito.mockStatic(SecurityUtil.class)) {
       security.when(SecurityUtil::getCurrentUser).thenReturn(Optional.of(user));
       assertThrows(
@@ -71,7 +74,8 @@ class CommentMutationTest extends GraphqlTestBase {
     CommentRepository comments = mock(CommentRepository.class);
     when(articles.findBySlug(article.getSlug())).thenReturn(Optional.of(article));
     when(comments.findById(article.getId(), comment.getId())).thenReturn(Optional.of(comment));
-    CommentMutation mutation = new CommentMutation(articles, comments, mock(CommentQueryService.class));
+    CommentMutation mutation =
+        new CommentMutation(articles, comments, mock(CommentQueryService.class));
     try (MockedStatic<SecurityUtil> security = org.mockito.Mockito.mockStatic(SecurityUtil.class)) {
       security.when(SecurityUtil::getCurrentUser).thenReturn(Optional.of(user));
       assertTrue(mutation.removeComment(article.getSlug(), comment.getId()).getSuccess());
@@ -81,11 +85,16 @@ class CommentMutationTest extends GraphqlTestBase {
     Article otherArticle = GraphqlTestFixtures.article(other);
     io.spring.core.comment.Comment otherComment = GraphqlTestFixtures.comment(otherArticle, other);
     when(articles.findBySlug(otherArticle.getSlug())).thenReturn(Optional.of(otherArticle));
-    when(comments.findById(otherArticle.getId(), otherComment.getId())).thenReturn(Optional.of(otherComment));
+    when(comments.findById(otherArticle.getId(), otherComment.getId()))
+        .thenReturn(Optional.of(otherComment));
     try (MockedStatic<SecurityUtil> security = org.mockito.Mockito.mockStatic(SecurityUtil.class)) {
       security.when(SecurityUtil::getCurrentUser).thenReturn(Optional.of(user));
-      assertThrows(NoAuthorizationException.class, () -> mutation.removeComment(otherArticle.getSlug(), otherComment.getId()));
-      assertThrows(ResourceNotFoundException.class, () -> mutation.removeComment(article.getSlug(), "missing"));
+      assertThrows(
+          NoAuthorizationException.class,
+          () -> mutation.removeComment(otherArticle.getSlug(), otherComment.getId()));
+      assertThrows(
+          ResourceNotFoundException.class,
+          () -> mutation.removeComment(article.getSlug(), "missing"));
     }
   }
 }

@@ -35,14 +35,27 @@ class ArticleDatafetcherTest extends GraphqlTestBase {
     when(service.findUserFeedWithCursor(any(), any())).thenReturn(page);
     try (MockedStatic<SecurityUtil> security = org.mockito.Mockito.mockStatic(SecurityUtil.class)) {
       security.when(SecurityUtil::getCurrentUser).thenReturn(Optional.of(user));
-      assertEquals(1, fetcher.getFeed(1, null, null, null, mock(DgsDataFetchingEnvironment.class)).getData().getEdges().size());
-      assertEquals(1, fetcher.getFeed(null, null, 1, null, mock(DgsDataFetchingEnvironment.class)).getData().getEdges().size());
+      assertEquals(
+          1,
+          fetcher
+              .getFeed(1, null, null, null, mock(DgsDataFetchingEnvironment.class))
+              .getData()
+              .getEdges()
+              .size());
+      assertEquals(
+          1,
+          fetcher
+              .getFeed(null, null, 1, null, mock(DgsDataFetchingEnvironment.class))
+              .getData()
+              .getEdges()
+              .size());
     }
   }
 
   @Test
   void rejectsFeedWithoutPagination() {
-    ArticleDatafetcher fetcher = new ArticleDatafetcher(mock(ArticleQueryService.class), mock(UserRepository.class));
+    ArticleDatafetcher fetcher =
+        new ArticleDatafetcher(mock(ArticleQueryService.class), mock(UserRepository.class));
     assertThrows(
         IllegalArgumentException.class,
         () -> fetcher.getFeed(null, null, null, null, mock(DgsDataFetchingEnvironment.class)));
@@ -66,7 +79,13 @@ class ArticleDatafetcherTest extends GraphqlTestBase {
       assertEquals(1, fetcher.userFeed(1, null, null, null, dfe).getData().getEdges().size());
       assertEquals(1, fetcher.userFavorites(1, null, null, null, dfe).getData().getEdges().size());
       assertEquals(1, fetcher.userArticles(1, null, null, null, dfe).getData().getEdges().size());
-      assertEquals(1, fetcher.getArticles(1, null, null, null, null, null, null, dfe).getData().getEdges().size());
+      assertEquals(
+          1,
+          fetcher
+              .getArticles(1, null, null, null, null, null, null, dfe)
+              .getData()
+              .getEdges()
+              .size());
     }
   }
 
@@ -93,15 +112,25 @@ class ArticleDatafetcherTest extends GraphqlTestBase {
     ArticleDatafetcher fetcher = new ArticleDatafetcher(service, mock(UserRepository.class));
     when(service.findById(article.getId(), null)).thenReturn(Optional.of(data));
     when(service.findBySlug(article.getSlug(), null)).thenReturn(Optional.of(data));
-    CommentData comment = GraphqlTestFixtures.commentData(GraphqlTestFixtures.comment(article, user), article, user);
+    CommentData comment =
+        GraphqlTestFixtures.commentData(GraphqlTestFixtures.comment(article, user), article, user);
     try (MockedStatic<SecurityUtil> security = org.mockito.Mockito.mockStatic(SecurityUtil.class)) {
       security.when(SecurityUtil::getCurrentUser).thenReturn(Optional.empty());
-      assertEquals(article.getSlug(), fetcher.getArticle(GraphqlTestFixtures.environment(article)).getData().getSlug());
-      assertEquals(article.getSlug(), fetcher.findArticleBySlug(article.getSlug()).getData().getSlug());
-      assertEquals(article.getSlug(), fetcher.getCommentArticle(GraphqlTestFixtures.environment(comment)).getData().getSlug());
+      assertEquals(
+          article.getSlug(),
+          fetcher.getArticle(GraphqlTestFixtures.environment(article)).getData().getSlug());
+      assertEquals(
+          article.getSlug(), fetcher.findArticleBySlug(article.getSlug()).getData().getSlug());
+      assertEquals(
+          article.getSlug(),
+          fetcher.getCommentArticle(GraphqlTestFixtures.environment(comment)).getData().getSlug());
       when(service.findById(article.getId(), null)).thenReturn(Optional.empty());
-      assertThrows(ResourceNotFoundException.class, () -> fetcher.getArticle(GraphqlTestFixtures.environment(article)));
-      assertThrows(ResourceNotFoundException.class, () -> fetcher.getCommentArticle(GraphqlTestFixtures.environment(comment)));
+      assertThrows(
+          ResourceNotFoundException.class,
+          () -> fetcher.getArticle(GraphqlTestFixtures.environment(article)));
+      assertThrows(
+          ResourceNotFoundException.class,
+          () -> fetcher.getCommentArticle(GraphqlTestFixtures.environment(comment)));
       assertThrows(ResourceNotFoundException.class, () -> fetcher.findArticleBySlug("missing"));
     }
   }

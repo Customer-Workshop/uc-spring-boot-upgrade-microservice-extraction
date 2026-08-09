@@ -28,7 +28,13 @@ class UserServiceTest {
     assertEquals("default-image", created.getImage());
     verify(repository).save(created);
 
-    UpdateUserParam param = UpdateUserParam.builder().email("new@test.com").username("new").bio("bio").image("image").build();
+    UpdateUserParam param =
+        UpdateUserParam.builder()
+            .email("new@test.com")
+            .username("new")
+            .bio("bio")
+            .image("image")
+            .build();
     service.updateUser(new UpdateUserCommand(created, param));
     assertEquals("new@test.com", created.getEmail());
     verify(repository, times(2)).save(created);
@@ -40,7 +46,8 @@ class UserServiceTest {
     UpdateUserParam param = UpdateUserParam.builder().email("email").username("username").build();
     UpdateUserCommand command = new UpdateUserCommand(target, param);
     UpdateUserValidator validator = new UpdateUserValidator();
-    org.springframework.test.util.ReflectionTestUtils.setField(validator, "userRepository", repository);
+    org.springframework.test.util.ReflectionTestUtils.setField(
+        validator, "userRepository", repository);
     ConstraintValidatorContext context = mock(ConstraintValidatorContext.class);
     when(repository.findByEmail("email")).thenReturn(Optional.empty());
     when(repository.findByUsername("username")).thenReturn(Optional.empty());
@@ -52,7 +59,9 @@ class UserServiceTest {
         mock(ConstraintValidatorContext.ConstraintViolationBuilder.class);
     when(context.buildConstraintViolationWithTemplate(any())).thenReturn(builder);
     ConstraintValidatorContext.ConstraintViolationBuilder.NodeBuilderCustomizableContext node =
-        mock(ConstraintValidatorContext.ConstraintViolationBuilder.NodeBuilderCustomizableContext.class);
+        mock(
+            ConstraintValidatorContext.ConstraintViolationBuilder.NodeBuilderCustomizableContext
+                .class);
     when(builder.addPropertyNode(any())).thenReturn(node);
     when(node.addConstraintViolation()).thenReturn(context);
     assertEquals(false, validator.isValid(command, context));

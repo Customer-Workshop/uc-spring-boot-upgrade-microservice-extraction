@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -17,14 +16,14 @@ import io.spring.infrastructure.mybatis.readservice.UserRelationshipQueryService
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Optional;
 import java.util.Set;
 import org.joda.time.DateTime;
 import org.junit.jupiter.api.Test;
 
 class CommentQueryServiceUnitTest {
   private final CommentReadService comments = mock(CommentReadService.class);
-  private final UserRelationshipQueryService relationships = mock(UserRelationshipQueryService.class);
+  private final UserRelationshipQueryService relationships =
+      mock(UserRelationshipQueryService.class);
   private final CommentQueryService service = new CommentQueryService(comments, relationships);
   private final User user = new User("u@test.com", "user", "p", "", "");
   private final CommentData comment =
@@ -49,7 +48,11 @@ class CommentQueryServiceUnitTest {
   void findsCommentsWithAndWithoutAuthenticatedUser() {
     CommentData second =
         new CommentData(
-            "second", "body", "article", new DateTime(), new DateTime(),
+            "second",
+            "body",
+            "article",
+            new DateTime(),
+            new DateTime(),
             new ProfileData("other", "other", "", "", false));
     when(comments.findByArticleId("article")).thenReturn(Arrays.asList(comment, second));
     when(relationships.followingAuthors(user.getId(), Arrays.asList("author", "other")))
@@ -66,7 +69,11 @@ class CommentQueryServiceUnitTest {
   void findsCursorPagesAndHandlesEmptyPreviousAndExtraRows() {
     CommentData second =
         new CommentData(
-            "second", "body", "article", new DateTime().minusDays(1), new DateTime(),
+            "second",
+            "body",
+            "article",
+            new DateTime().minusDays(1),
+            new DateTime(),
             new ProfileData("other", "other", "", "", false));
     when(comments.findByArticleIdWithCursor(any(), any()))
         .thenAnswer(invocation -> new ArrayList<>(Arrays.asList(comment, second, comment)));

@@ -15,7 +15,6 @@ import io.spring.core.article.Article;
 import io.spring.core.user.User;
 import io.spring.graphql.types.Comment;
 import java.util.Collections;
-import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
@@ -39,16 +38,19 @@ class CommentDatafetcherTest extends GraphqlTestBase {
     CommentDatafetcher fetcher = new CommentDatafetcher(service);
     when(service.findByArticleIdWithCursor(eq(article.getId()), any(), any()))
         .thenReturn(
-            new CursorPager<>(
-                Collections.singletonList(data), CursorPager.Direction.NEXT, false));
+            new CursorPager<>(Collections.singletonList(data), CursorPager.Direction.NEXT, false));
     DgsDataFetchingEnvironment dfe =
         GraphqlTestFixtures.dgsEnvironment(
             io.spring.graphql.types.Article.newBuilder().slug(article.getSlug()).build(),
-            GraphqlTestFixtures.articleContext(article, GraphqlTestFixtures.articleData(article, user)));
+            GraphqlTestFixtures.articleContext(
+                article, GraphqlTestFixtures.articleData(article, user)));
     try (MockedStatic<SecurityUtil> security = org.mockito.Mockito.mockStatic(SecurityUtil.class)) {
       security.when(SecurityUtil::getCurrentUser).thenReturn(Optional.empty());
-      assertEquals(1, fetcher.articleComments(1, null, null, null, dfe).getData().getEdges().size());
-      assertThrows(IllegalArgumentException.class, () -> fetcher.articleComments(null, null, null, null, dfe));
+      assertEquals(
+          1, fetcher.articleComments(1, null, null, null, dfe).getData().getEdges().size());
+      assertThrows(
+          IllegalArgumentException.class,
+          () -> fetcher.articleComments(null, null, null, null, dfe));
     }
   }
 }

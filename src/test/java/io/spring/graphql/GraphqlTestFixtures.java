@@ -55,7 +55,8 @@ final class GraphqlTestFixtures {
   }
 
   static ProfileData profileData(User user, boolean following) {
-    return new ProfileData(user.getId(), user.getUsername(), user.getBio(), user.getImage(), following);
+    return new ProfileData(
+        user.getId(), user.getUsername(), user.getBio(), user.getImage(), following);
   }
 
   static DataFetchingEnvironment environment(Object localContext) {

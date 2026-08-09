@@ -10,7 +10,6 @@ import io.spring.api.exception.ResourceNotFoundException;
 import io.spring.application.UserQueryService;
 import io.spring.application.data.UserData;
 import io.spring.core.service.JwtService;
-import io.spring.core.user.User;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
@@ -27,7 +26,9 @@ class MeDatafetcherTest extends GraphqlTestBase {
     SecurityContextHolder.getContext()
         .setAuthentication(
             new AnonymousAuthenticationToken(
-                "key", "anonymous", java.util.Collections.singleton(new SimpleGrantedAuthority("ROLE_USER"))));
+                "key",
+                "anonymous",
+                java.util.Collections.singleton(new SimpleGrantedAuthority("ROLE_USER"))));
     assertNull(fetcher.getMe("Token token", mock(graphql.schema.DataFetchingEnvironment.class)));
   }
 
@@ -49,7 +50,10 @@ class MeDatafetcherTest extends GraphqlTestBase {
         .setAuthentication(new UsernamePasswordAuthenticationToken(currentUser, null));
     assertEquals(
         currentUser.getUsername(),
-        fetcher.getMe("Token jwt", mock(graphql.schema.DataFetchingEnvironment.class)).getData().getUsername());
+        fetcher
+            .getMe("Token jwt", mock(graphql.schema.DataFetchingEnvironment.class))
+            .getData()
+            .getUsername());
     assertEquals(
         currentUser.getUsername(),
         fetcher
