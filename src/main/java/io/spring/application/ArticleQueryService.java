@@ -20,6 +20,7 @@ import lombok.AllArgsConstructor;
 import org.joda.time.DateTime;
 import org.springframework.stereotype.Service;
 
+/** Provides article reads, filtering, pagination, and relationship enrichment. */
 @Service
 @AllArgsConstructor
 public class ArticleQueryService {
@@ -27,6 +28,7 @@ public class ArticleQueryService {
   private UserRelationshipQueryService userRelationshipQueryService;
   private ArticleFavoritesReadService articleFavoritesReadService;
 
+  /** Finds an article by identifier and enriches it for the current user when present. */
   public Optional<ArticleData> findById(String id, User user) {
     ArticleData articleData = articleReadService.findById(id);
     if (articleData == null) {
@@ -39,6 +41,7 @@ public class ArticleQueryService {
     }
   }
 
+  /** Finds an article by slug and enriches it for the current user when present. */
   public Optional<ArticleData> findBySlug(String slug, User user) {
     ArticleData articleData = articleReadService.findBySlug(slug);
     if (articleData == null) {
@@ -51,6 +54,16 @@ public class ArticleQueryService {
     }
   }
 
+  /**
+   * Finds filtered articles using cursor pagination ordered by creation time.
+   *
+   * @param tag optional tag filter
+   * @param author optional author username filter
+   * @param favoritedBy optional username whose favorites filter the results
+   * @param page cursor and direction parameters
+   * @param currentUser user whose favorite and following state enriches the results
+   * @return cursor page of filtered articles
+   */
   public CursorPager<ArticleData> findRecentArticlesWithCursor(
       String tag,
       String author,
@@ -77,6 +90,7 @@ public class ArticleQueryService {
     }
   }
 
+  /** Finds followed authors' articles using cursor pagination and relationship enrichment. */
   public CursorPager<ArticleData> findUserFeedWithCursor(
       User user, CursorPageParameter<DateTime> page) {
     List<String> followdUsers = userRelationshipQueryService.followedUsers(user.getId());
@@ -97,6 +111,7 @@ public class ArticleQueryService {
     }
   }
 
+  /** Finds a counted, offset-limited article list filtered by tag, author, or favorite username. */
   public ArticleDataList findRecentArticles(
       String tag, String author, String favoritedBy, Page page, User currentUser) {
     List<String> articleIds = articleReadService.queryArticles(tag, author, favoritedBy, page);
@@ -110,6 +125,7 @@ public class ArticleQueryService {
     }
   }
 
+  /** Finds a counted, offset-limited feed containing articles by followed users. */
   public ArticleDataList findUserFeed(User user, Page page) {
     List<String> followdUsers = userRelationshipQueryService.followedUsers(user.getId());
     if (followdUsers.size() == 0) {

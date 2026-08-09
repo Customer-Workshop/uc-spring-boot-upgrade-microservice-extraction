@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+/** Handles article collection operations under {@code /articles}. */
 @RestController
 @RequestMapping(path = "/articles")
 @AllArgsConstructor
@@ -25,6 +26,13 @@ public class ArticlesApi {
   private ArticleCommandService articleCommandService;
   private ArticleQueryService articleQueryService;
 
+  /**
+   * Handles {@code POST /articles} and returns the created article envelope.
+   *
+   * @param newArticleParam validated fields for the new article
+   * @param user authenticated principal who creates the article
+   * @return a response containing the created article
+   */
   @PostMapping
   public ResponseEntity createArticle(
       @Valid @RequestBody NewArticleParam newArticleParam, @AuthenticationPrincipal User user) {
@@ -37,6 +45,14 @@ public class ArticlesApi {
         });
   }
 
+  /**
+   * Handles {@code GET /articles/feed} for articles by followed users.
+   *
+   * @param offset zero-based result offset
+   * @param limit maximum number of articles to return
+   * @param user authenticated principal whose feed is requested
+   * @return the feed page and its count
+   */
   @GetMapping(path = "feed")
   public ResponseEntity getFeed(
       @RequestParam(value = "offset", defaultValue = "0") int offset,
@@ -45,6 +61,17 @@ public class ArticlesApi {
     return ResponseEntity.ok(articleQueryService.findUserFeed(user, new Page(offset, limit)));
   }
 
+  /**
+   * Handles {@code GET /articles} with optional tag, author, and favorite filters.
+   *
+   * @param offset zero-based result offset
+   * @param limit maximum number of articles to return
+   * @param tag optional tag filter
+   * @param favoritedBy optional username whose favorites filter the results
+   * @param author optional author username filter
+   * @param user authenticated principal used to enrich article data
+   * @return the filtered article page and its count
+   */
   @GetMapping
   public ResponseEntity getArticles(
       @RequestParam(value = "offset", defaultValue = "0") int offset,

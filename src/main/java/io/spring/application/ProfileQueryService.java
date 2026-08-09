@@ -9,12 +9,14 @@ import java.util.Optional;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Component;
 
+/** Provides profile reads with the current user's following state. */
 @Component
 @AllArgsConstructor
 public class ProfileQueryService {
   private UserReadService userReadService;
   private UserRelationshipQueryService userRelationshipQueryService;
 
+  /** Finds a profile by username and reports whether the current user follows it. */
   public Optional<ProfileData> findByUsername(String username, User currentUser) {
     UserData userData = userReadService.findByUsername(username);
     if (userData == null) {

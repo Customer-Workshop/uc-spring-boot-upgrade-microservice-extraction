@@ -14,12 +14,14 @@ import lombok.AllArgsConstructor;
 import org.joda.time.DateTime;
 import org.springframework.stereotype.Service;
 
+/** Provides comment reads with author profile relationship enrichment. */
 @Service
 @AllArgsConstructor
 public class CommentQueryService {
   private CommentReadService commentReadService;
   private UserRelationshipQueryService userRelationshipQueryService;
 
+  /** Finds a comment by identifier and marks whether its author is followed. */
   public Optional<CommentData> findById(String id, User user) {
     CommentData commentData = commentReadService.findById(id);
     if (commentData == null) {
@@ -34,6 +36,7 @@ public class CommentQueryService {
     return Optional.ofNullable(commentData);
   }
 
+  /** Finds all comments for an article and enriches followed-author state when possible. */
   public List<CommentData> findByArticleId(String articleId, User user) {
     List<CommentData> comments = commentReadService.findByArticleId(articleId);
     if (comments.size() > 0 && user != null) {
@@ -53,6 +56,7 @@ public class CommentQueryService {
     return comments;
   }
 
+  /** Finds an article's comments using creation-time cursor pagination. */
   public CursorPager<CommentData> findByArticleIdWithCursor(
       String articleId, User user, CursorPageParameter<DateTime> page) {
     List<CommentData> comments = commentReadService.findByArticleIdWithCursor(articleId, page);

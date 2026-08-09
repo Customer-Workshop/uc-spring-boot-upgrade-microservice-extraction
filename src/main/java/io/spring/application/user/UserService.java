@@ -14,6 +14,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
+/** Creates and updates users through the user repository. */
 @Service
 @Validated
 public class UserService {
@@ -31,6 +32,12 @@ public class UserService {
     this.passwordEncoder = passwordEncoder;
   }
 
+  /**
+   * Creates a user with an encoded password and the configured default image.
+   *
+   * @param registerParam validated registration fields
+   * @return the newly created user
+   */
   public User createUser(@Valid RegisterParam registerParam) {
     User user =
         new User(
@@ -43,6 +50,7 @@ public class UserService {
     return user;
   }
 
+  /** Applies the supplied profile fields to the target user and saves it. */
   public void updateUser(@Valid UpdateUserCommand command) {
     User user = command.getTargetUser();
     UpdateUserParam updateUserParam = command.getParam();

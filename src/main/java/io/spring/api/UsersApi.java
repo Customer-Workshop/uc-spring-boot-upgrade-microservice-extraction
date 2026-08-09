@@ -27,6 +27,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/** Handles registration and login endpoints under {@code /users}. */
 @RestController
 @AllArgsConstructor
 public class UsersApi {
@@ -36,6 +37,12 @@ public class UsersApi {
   private JwtService jwtService;
   private UserService userService;
 
+  /**
+   * Handles {@code POST /users} and returns the new user envelope.
+   *
+   * @param registerParam validated registration fields
+   * @return a created response containing the user and JWT
+   */
   @RequestMapping(path = "/users", method = POST)
   public ResponseEntity createUser(@Valid @RequestBody RegisterParam registerParam) {
     User user = userService.createUser(registerParam);
@@ -44,6 +51,13 @@ public class UsersApi {
         .body(userResponse(new UserWithToken(userData, jwtService.toToken(user))));
   }
 
+  /**
+   * Handles {@code POST /users/login} and returns the authenticated user envelope.
+   *
+   * @param loginParam validated login credentials
+   * @return a response containing the user and JWT
+   * @throws InvalidAuthenticationException if the email is unknown or the password does not match
+   */
   @RequestMapping(path = "/users/login", method = POST)
   public ResponseEntity userLogin(@Valid @RequestBody LoginParam loginParam) {
     Optional<User> optional = userRepository.findByEmail(loginParam.getEmail());

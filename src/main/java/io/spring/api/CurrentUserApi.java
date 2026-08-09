@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/** Handles the current user's operations under {@code /user}. */
 @RestController
 @RequestMapping(path = "/user")
 @AllArgsConstructor
@@ -28,6 +29,13 @@ public class CurrentUserApi {
   private UserQueryService userQueryService;
   private UserService userService;
 
+  /**
+   * Handles {@code GET /user} and returns the authenticated user envelope.
+   *
+   * @param currentUser authenticated principal
+   * @param authorization authorization header whose token is returned in the response
+   * @return a response containing the user and token
+   */
   @GetMapping
   public ResponseEntity currentUser(
       @AuthenticationPrincipal User currentUser,
@@ -37,6 +45,14 @@ public class CurrentUserApi {
         userResponse(new UserWithToken(userData, authorization.split(" ")[1])));
   }
 
+  /**
+   * Handles {@code PUT /user} and returns the updated user envelope.
+   *
+   * @param currentUser authenticated principal to update
+   * @param token authorization header whose token is returned in the response
+   * @param updateUserParam validated profile fields to update
+   * @return a response containing the updated user and token
+   */
   @PutMapping
   public ResponseEntity updateProfile(
       @AuthenticationPrincipal User currentUser,

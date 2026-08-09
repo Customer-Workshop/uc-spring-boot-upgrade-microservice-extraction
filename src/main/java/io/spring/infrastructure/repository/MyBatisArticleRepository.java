@@ -8,6 +8,7 @@ import java.util.Optional;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+/** Persists articles and their tags through MyBatis mappers. */
 @Repository
 public class MyBatisArticleRepository implements ArticleRepository {
   private ArticleMapper articleMapper;
@@ -16,6 +17,7 @@ public class MyBatisArticleRepository implements ArticleRepository {
     this.articleMapper = articleMapper;
   }
 
+  /** Inserts new articles and missing tags, or updates an existing article. */
   @Override
   @Transactional
   public void save(Article article) {
@@ -40,16 +42,19 @@ public class MyBatisArticleRepository implements ArticleRepository {
     articleMapper.insert(article);
   }
 
+  /** Finds an article by identifier. */
   @Override
   public Optional<Article> findById(String id) {
     return Optional.ofNullable(articleMapper.findById(id));
   }
 
+  /** Finds an article by slug. */
   @Override
   public Optional<Article> findBySlug(String slug) {
     return Optional.ofNullable(articleMapper.findBySlug(slug));
   }
 
+  /** Deletes an article by identifier. */
   @Override
   public void remove(Article article) {
     articleMapper.delete(article.getId());

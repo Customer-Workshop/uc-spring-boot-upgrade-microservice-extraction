@@ -29,6 +29,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
+/** Handles comment operations under {@code /articles/{slug}/comments}. */
 @RestController
 @RequestMapping(path = "/articles/{slug}/comments")
 @AllArgsConstructor
@@ -37,6 +38,15 @@ public class CommentsApi {
   private CommentRepository commentRepository;
   private CommentQueryService commentQueryService;
 
+  /**
+   * Handles {@code POST /articles/{slug}/comments} and returns a comment envelope.
+   *
+   * @param slug article slug
+   * @param user authenticated principal who creates the comment
+   * @param newCommentParam validated comment body
+   * @return a created response containing the comment
+   * @throws ResourceNotFoundException if no article has the supplied slug
+   */
   @PostMapping
   public ResponseEntity<?> createComment(
       @PathVariable("slug") String slug,
@@ -50,6 +60,14 @@ public class CommentsApi {
         .body(commentResponse(commentQueryService.findById(comment.getId(), user).get()));
   }
 
+  /**
+   * Handles {@code GET /articles/{slug}/comments} and returns the comments envelope.
+   *
+   * @param slug article slug
+   * @param user authenticated principal used to enrich comment profiles
+   * @return a response containing the article's comments
+   * @throws ResourceNotFoundException if no article has the supplied slug
+   */
   @GetMapping
   public ResponseEntity getComments(
       @PathVariable("slug") String slug, @AuthenticationPrincipal User user) {
@@ -64,6 +82,16 @@ public class CommentsApi {
         });
   }
 
+  /**
+   * Handles {@code DELETE /articles/{slug}/comments/{id}}.
+   *
+   * @param slug article slug
+   * @param commentId comment identifier
+   * @param user authenticated principal used for article or comment ownership authorization
+   * @return an empty no-content response
+   * @throws ResourceNotFoundException if the article or comment is absent
+   * @throws NoAuthorizationException if the user cannot write the comment
+   */
   @RequestMapping(path = "{id}", method = RequestMethod.DELETE)
   public ResponseEntity deleteComment(
       @PathVariable("slug") String slug,

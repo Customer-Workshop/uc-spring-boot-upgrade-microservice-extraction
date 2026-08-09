@@ -8,6 +8,7 @@ import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
+/** Persists users and follow relationships through the MyBatis mapper. */
 @Repository
 public class MyBatisUserRepository implements UserRepository {
   private final UserMapper userMapper;
@@ -17,6 +18,7 @@ public class MyBatisUserRepository implements UserRepository {
     this.userMapper = userMapper;
   }
 
+  /** Inserts a new user or updates an existing user. */
   @Override
   public void save(User user) {
     if (userMapper.findById(user.getId()) == null) {
@@ -26,21 +28,25 @@ public class MyBatisUserRepository implements UserRepository {
     }
   }
 
+  /** Finds a user by identifier. */
   @Override
   public Optional<User> findById(String id) {
     return Optional.ofNullable(userMapper.findById(id));
   }
 
+  /** Finds a user by username. */
   @Override
   public Optional<User> findByUsername(String username) {
     return Optional.ofNullable(userMapper.findByUsername(username));
   }
 
+  /** Finds a user by email address. */
   @Override
   public Optional<User> findByEmail(String email) {
     return Optional.ofNullable(userMapper.findByEmail(email));
   }
 
+  /** Saves a follow relationship only when it is not already present. */
   @Override
   public void saveRelation(FollowRelation followRelation) {
     if (!findRelation(followRelation.getUserId(), followRelation.getTargetId()).isPresent()) {
@@ -48,11 +54,13 @@ public class MyBatisUserRepository implements UserRepository {
     }
   }
 
+  /** Finds a follow relationship between two users. */
   @Override
   public Optional<FollowRelation> findRelation(String userId, String targetId) {
     return Optional.ofNullable(userMapper.findRelation(userId, targetId));
   }
 
+  /** Deletes a follow relationship. */
   @Override
   public void removeRelation(FollowRelation followRelation) {
     userMapper.deleteRelation(followRelation);

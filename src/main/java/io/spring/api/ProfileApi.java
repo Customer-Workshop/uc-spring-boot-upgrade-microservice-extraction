@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/** Handles profile operations under {@code /profiles/{username}}. */
 @RestController
 @RequestMapping(path = "profiles/{username}")
 @AllArgsConstructor
@@ -25,6 +26,14 @@ public class ProfileApi {
   private ProfileQueryService profileQueryService;
   private UserRepository userRepository;
 
+  /**
+   * Handles {@code GET /profiles/{username}} and returns the profile envelope.
+   *
+   * @param username profile username
+   * @param user authenticated principal used to calculate the following state
+   * @return a response containing the profile
+   * @throws ResourceNotFoundException if the username is absent
+   */
   @GetMapping
   public ResponseEntity getProfile(
       @PathVariable("username") String username, @AuthenticationPrincipal User user) {
@@ -34,6 +43,14 @@ public class ProfileApi {
         .orElseThrow(ResourceNotFoundException::new);
   }
 
+  /**
+   * Handles {@code POST /profiles/{username}/follow}.
+   *
+   * @param username username to follow
+   * @param user authenticated principal creating the relationship
+   * @return a response containing the updated profile
+   * @throws ResourceNotFoundException if the username is absent
+   */
   @PostMapping(path = "follow")
   public ResponseEntity follow(
       @PathVariable("username") String username, @AuthenticationPrincipal User user) {
@@ -48,6 +65,14 @@ public class ProfileApi {
         .orElseThrow(ResourceNotFoundException::new);
   }
 
+  /**
+   * Handles {@code DELETE /profiles/{username}/follow}.
+   *
+   * @param username username to unfollow
+   * @param user authenticated principal removing the relationship
+   * @return a response containing the updated profile
+   * @throws ResourceNotFoundException if the username or relationship is absent
+   */
   @DeleteMapping(path = "follow")
   public ResponseEntity unfollow(
       @PathVariable("username") String username, @AuthenticationPrincipal User user) {

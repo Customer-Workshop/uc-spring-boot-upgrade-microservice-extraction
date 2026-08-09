@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/** Handles article favorite operations under {@code /articles/{slug}/favorite}. */
 @RestController
 @RequestMapping(path = "articles/{slug}/favorite")
 @AllArgsConstructor
@@ -26,6 +27,14 @@ public class ArticleFavoriteApi {
   private ArticleRepository articleRepository;
   private ArticleQueryService articleQueryService;
 
+  /**
+   * Handles {@code POST /articles/{slug}/favorite}.
+   *
+   * @param slug article slug
+   * @param user authenticated principal who favorites the article
+   * @return a response containing the updated article
+   * @throws ResourceNotFoundException if no article has the supplied slug
+   */
   @PostMapping
   public ResponseEntity favoriteArticle(
       @PathVariable("slug") String slug, @AuthenticationPrincipal User user) {
@@ -36,6 +45,14 @@ public class ArticleFavoriteApi {
     return responseArticleData(articleQueryService.findBySlug(slug, user).get());
   }
 
+  /**
+   * Handles {@code DELETE /articles/{slug}/favorite}.
+   *
+   * @param slug article slug
+   * @param user authenticated principal who removes the favorite
+   * @return a response containing the updated article
+   * @throws ResourceNotFoundException if no article has the supplied slug
+   */
   @DeleteMapping
   public ResponseEntity unfavoriteArticle(
       @PathVariable("slug") String slug, @AuthenticationPrincipal User user) {

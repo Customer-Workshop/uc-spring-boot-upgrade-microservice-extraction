@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/** Handles article operations under {@code /articles/{slug}}. */
 @RestController
 @RequestMapping(path = "/articles/{slug}")
 @AllArgsConstructor
@@ -32,6 +33,14 @@ public class ArticleApi {
   private ArticleRepository articleRepository;
   private ArticleCommandService articleCommandService;
 
+  /**
+   * Handles {@code GET /articles/{slug}} and returns the article envelope.
+   *
+   * @param slug article slug
+   * @param user authenticated principal, or {@code null} for an anonymous request
+   * @return a response containing the article
+   * @throws ResourceNotFoundException if no article has the supplied slug
+   */
   @GetMapping
   public ResponseEntity<?> article(
       @PathVariable("slug") String slug, @AuthenticationPrincipal User user) {
@@ -41,6 +50,16 @@ public class ArticleApi {
         .orElseThrow(ResourceNotFoundException::new);
   }
 
+  /**
+   * Handles {@code PUT /articles/{slug}} and returns the updated article envelope.
+   *
+   * @param slug article slug
+   * @param user authenticated principal used for ownership authorization
+   * @param updateArticleParam validated article fields to update
+   * @return a response containing the updated article
+   * @throws ResourceNotFoundException if no article has the supplied slug
+   * @throws NoAuthorizationException if the user does not own the article
+   */
   @PutMapping
   public ResponseEntity<?> updateArticle(
       @PathVariable("slug") String slug,
@@ -62,6 +81,15 @@ public class ArticleApi {
         .orElseThrow(ResourceNotFoundException::new);
   }
 
+  /**
+   * Handles {@code DELETE /articles/{slug}}.
+   *
+   * @param slug article slug
+   * @param user authenticated principal used for ownership authorization
+   * @return an empty no-content response
+   * @throws ResourceNotFoundException if no article has the supplied slug
+   * @throws NoAuthorizationException if the user does not own the article
+   */
   @DeleteMapping
   public ResponseEntity deleteArticle(
       @PathVariable("slug") String slug, @AuthenticationPrincipal User user) {

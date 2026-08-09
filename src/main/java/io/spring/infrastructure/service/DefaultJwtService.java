@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+/** Signs and parses JWTs using the configured HMAC key and session duration. */
 @Component
 public class DefaultJwtService implements JwtService {
   private final SecretKey signingKey;
@@ -28,6 +29,7 @@ public class DefaultJwtService implements JwtService {
     this.signingKey = new SecretKeySpec(secret.getBytes(), signatureAlgorithm.getJcaName());
   }
 
+  /** Creates a signed token with the user's identifier as subject and configured expiration. */
   @Override
   public String toToken(User user) {
     return Jwts.builder()
@@ -37,6 +39,7 @@ public class DefaultJwtService implements JwtService {
         .compact();
   }
 
+  /** Parses a signed token and returns its subject, or empty for any parsing failure. */
   @Override
   public Optional<String> getSubFromToken(String token) {
     try {
