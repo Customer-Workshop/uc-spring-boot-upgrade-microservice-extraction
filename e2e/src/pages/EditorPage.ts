@@ -9,6 +9,7 @@ export class EditorPage {
   readonly tags: Locator;
   readonly tagPills: Locator;
   readonly publish: Locator;
+  readonly update: Locator;
   readonly errors: Locator;
 
   constructor(private readonly page: Page) {
@@ -18,6 +19,7 @@ export class EditorPage {
     this.tags = page.getByPlaceholder("Enter tags");
     this.tagPills = page.locator(".tag-list .tag-pill");
     this.publish = page.getByRole("button", { name: "Publish Article" });
+    this.update = page.getByRole("button", { name: "Update Article" });
     this.errors = page.locator("ul.error-messages li");
   }
 
@@ -34,9 +36,26 @@ export class EditorPage {
     await this.description.fill(article.description);
     await this.body.fill(article.body);
     for (const tag of article.tagList) {
-      await this.tags.fill(tag);
-      await this.tags.press("Enter");
+      await this.addTag(tag);
     }
+  }
+
+  tagPill(tag: string): Locator {
+    return this.tagPills.filter({ hasText: tag });
+  }
+
+  async addTag(tag: string): Promise<void> {
+    await this.tags.fill(tag);
+    await this.tags.press("Enter");
+  }
+
+  /**
+   * Each pill carries a close icon that drops the tag. The icon is drawn by the
+   * ionicons webfont, which is not served locally, so the element has a zero
+   * size and cannot be hit by a positional click; dispatch the event instead.
+   */
+  async removeTag(tag: string): Promise<void> {
+    await this.tagPill(tag).locator("i.ion-close-round").dispatchEvent("click");
   }
 
   async publishArticle(article: NewArticle): Promise<void> {
