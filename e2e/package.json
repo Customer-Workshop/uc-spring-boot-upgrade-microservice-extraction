@@ -1,0 +1,16 @@
+{
+  "name": "conduit-e2e",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Playwright end-to-end tests for the Conduit RealWorld app (Spring Boot API + Next.js frontend)",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.49.1",
+    "@types/node": "20.17.6",
+    "typescript": "5.6.3"
+  }
+}
