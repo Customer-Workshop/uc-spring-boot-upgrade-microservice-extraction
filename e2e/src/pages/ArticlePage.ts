@@ -32,6 +32,10 @@ export class ArticlePage {
     await visit(this.page, `/article/${encodeURIComponent(slug)}`);
   }
 
+  async reload(): Promise<void> {
+    await this.page.reload({ waitUntil: "domcontentloaded" });
+  }
+
   comment(body: string): Locator {
     return this.comments.filter({ hasText: body });
   }
@@ -41,8 +45,20 @@ export class ArticlePage {
     await this.postComment.click();
   }
 
+  commentAuthor(body: string): Locator {
+    return this.comment(body).locator(".card-footer .comment-author").last();
+  }
+
+  commentDeleteIcon(body: string): Locator {
+    return this.comment(body).locator(".mod-options i");
+  }
+
+  /**
+   * The icon font is served from a blocked CDN, so the trash glyph renders with a
+   * zero-sized box that cannot be hit with a real mouse click.
+   */
   async deleteComment(body: string): Promise<void> {
-    await this.comment(body).locator(".mod-options i").click();
+    await this.commentDeleteIcon(body).dispatchEvent("click");
   }
 
   /** The delete-article flow goes through window.confirm. */
