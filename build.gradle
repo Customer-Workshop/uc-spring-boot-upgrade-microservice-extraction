@@ -80,6 +80,12 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter-test:2.2.2'
     testImplementation 'org.mockito:mockito-inline:4.0.0'
+
+    // Cucumber BDD testing
+    testImplementation 'io.cucumber:cucumber-java:7.2.3'
+    testImplementation 'io.cucumber:cucumber-spring:7.2.3'
+    testImplementation 'io.cucumber:cucumber-junit-platform-engine:7.2.3'
+    testImplementation 'org.junit.platform:junit-platform-suite'
     
     // Selenium E2E testing
     testImplementation 'org.seleniumhq.selenium:selenium-java:4.15.0'
@@ -93,7 +99,26 @@ tasks.named('test') {
 	useJUnitPlatform()
 	// Exclude Selenium tests from JUnit test task
 	exclude 'io/spring/selenium/**'
+	// Cucumber scenarios run through the RunCucumberTest suite
+	systemProperty 'cucumber.junit-platform.naming-strategy', 'long'
 	finalizedBy jacocoTestReport
+}
+
+// Convenience task to run only the Cucumber scenarios
+tasks.register('cucumberTest', Test) {
+	description = 'Run the Cucumber BDD scenarios'
+	group = 'verification'
+
+	testClassesDirs = sourceSets.test.output.classesDirs
+	classpath = sourceSets.test.runtimeClasspath
+
+	useJUnitPlatform()
+	include 'io/spring/cucumber/RunCucumberTest.class'
+	systemProperty 'cucumber.junit-platform.naming-strategy', 'long'
+
+	testLogging {
+		events "passed", "skipped", "failed"
+	}
 }
 
 // Separate task for Selenium E2E tests using TestNG
