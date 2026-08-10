@@ -42,6 +42,34 @@ their default ports.
 | `src/pages/*.ts` | Page objects (navbar, home, login, register, settings, editor, article, profile) |
 | `tests/*.spec.ts` | Specs, one file per user-facing flow |
 
+## Coverage
+
+| Spec | Flows |
+| --- | --- |
+| `smoke.spec.ts` | Home feed + popular tags render, anonymous vs. authenticated navbar, article page reads back an API-created article |
+| `auth.spec.ts` | Sign up, duplicate-email validation error, sign in, settings update (bio + username), logout and the anonymous `/user/settings` redirect |
+| `articles.spec.ts` | Publish from the editor, tag pills add/remove, edit and republish, delete behind `window.confirm`, edit/delete visible to the author only |
+| `comments.spec.ts` | Anonymous sign-in prompt, posting comments, persistence across reload, deleting own comment, delete control scoped to own comments |
+| `feed.spec.ts` | Global feed ordering, popular-tag filtering (click and direct `?tag=` URL), `Your Feed` for followed authors, pagination to page two |
+| `favorites.spec.ts` | Favorite/unfavorite from a preview, anonymous favorite redirects to login, favorited vs. own articles on the profile tabs, follow another author, own-profile controls |
+
+## Known application defects (deliberately not asserted)
+
+These behaviors are broken in the app, so no test locks them in. Fixing them should come with the
+corresponding test.
+
+- **Wrong-password login crashes the frontend.** `/users/login` returns `{"message": ...}` without an
+  `errors` object, and `ListErrors` does `Object.keys(errors)` on `undefined`.
+- **Changing the password from settings breaks login.** `UserService.updateUser` stores the new password
+  without encoding it, so the next sign-in fails.
+- **Follow/unfollow on a profile shows a stale label.** `handleFollow` does not await `UserAPI.follow`
+  before revalidating, so the button often keeps reading `Follow`; `handleUnfollow` mutates
+  `following: true`, and the profile's `getInitialProps` fetches unauthenticated, so a reload always
+  renders `Follow`. The follow *effect* is asserted through the API instead.
+- **New articles are not first in the global feed.** Flyway seeds `articles.created_at` as text while the
+  app writes epoch millis, and SQLite orders integers before text, so seeded articles always sort first.
+  Feed specs assert relative ordering among app-created articles.
+
 ## Conventions
 
 - **Never rely on seed data for mutations.** Register users and create articles via
