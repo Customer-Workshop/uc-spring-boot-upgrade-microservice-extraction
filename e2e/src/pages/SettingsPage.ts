@@ -1,5 +1,6 @@
 import { Locator, Page } from "@playwright/test";
 import { visit } from "../navigation";
+import { Navbar } from "./Navbar";
 
 export class SettingsPage {
   readonly image: Locator;
@@ -22,5 +23,13 @@ export class SettingsPage {
 
   async goto(): Promise<void> {
     await visit(this.page, "/user/settings");
+  }
+
+  /**
+   * The session lives in localStorage, so a direct request to /user/settings is
+   * redirected to the home page server-side; reach the page through the navbar.
+   */
+  async open(): Promise<void> {
+    await new Navbar(this.page).settings.click();
   }
 }
