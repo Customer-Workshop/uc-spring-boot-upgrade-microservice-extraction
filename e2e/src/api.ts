@@ -58,6 +58,15 @@ export class ApiClient {
     return { ...body.user, password };
   }
 
+  async updateUser(token: string, fields: Partial<NewUser & { bio: string; image: string }>): Promise<AuthUser> {
+    const response = await this.request.put(`${API_URL}/user`, {
+      headers: this.headers(token),
+      data: { user: fields },
+    });
+    expect(response.ok(), `update user: ${await response.text()}`).toBeTruthy();
+    return (await response.json()).user;
+  }
+
   async createArticle(token: string, article: NewArticle): Promise<ArticleResponse> {
     const response = await this.request.post(`${API_URL}/articles`, {
       headers: this.headers(token),
