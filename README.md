@@ -112,6 +112,17 @@ The repository contains a lot of test cases to cover both api test and repositor
 
     ./gradlew test
 
+# Run the Cucumber BDD scenarios
+
+Gherkin features for the Articles API (create article, article feed, favorite article) live in
+`src/test/resources/features`, with step definitions in `src/test/java/io/spring/cucumber`. The
+scenarios boot the application on a random port and exercise the REST API end to end against a
+dedicated `build/cucumber.db` database.
+
+    ./gradlew cucumberTest
+
+Reports are written to `build/reports/cucumber/cucumber.html`.
+
 # Code format
 
 Use spotless for code format.
