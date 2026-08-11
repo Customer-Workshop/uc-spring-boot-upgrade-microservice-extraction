@@ -3,6 +3,7 @@ package io.spring.api;
 import static io.restassured.module.mockmvc.RestAssuredMockMvc.given;
 import static io.spring.TestHelper.articleDataFixture;
 import static java.util.Arrays.asList;
+import static org.hamcrest.core.IsEqual.equalTo;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
@@ -48,7 +49,18 @@ public class ListArticleApiTest extends TestWithCurrentUser {
     when(articleQueryService.findRecentArticles(
             eq(null), eq(null), eq(null), eq(new Page(0, 20)), eq(null)))
         .thenReturn(articleDataList);
-    RestAssuredMockMvc.when().get("/articles").prettyPeek().then().statusCode(200);
+    RestAssuredMockMvc.when()
+        .get("/articles")
+        .prettyPeek()
+        .then()
+        .statusCode(200)
+        .body("articlesCount", equalTo(2))
+        .body("articles.size()", equalTo(2))
+        .body("articles[0].slug", equalTo("title-1"))
+        .body("articles[0].title", equalTo("title 1"))
+        .body("articles[0].description", equalTo("desc 1"))
+        .body("articles[0].body", equalTo("body 1"))
+        .body("articles[1].slug", equalTo("title-2"));
   }
 
   @Test
@@ -70,6 +82,10 @@ public class ListArticleApiTest extends TestWithCurrentUser {
         .get("/articles/feed")
         .prettyPeek()
         .then()
-        .statusCode(200);
+        .statusCode(200)
+        .body("articlesCount", equalTo(2))
+        .body("articles.size()", equalTo(2))
+        .body("articles[0].slug", equalTo("title-1"))
+        .body("articles[0].author.username", equalTo(user.getUsername()));
   }
 }

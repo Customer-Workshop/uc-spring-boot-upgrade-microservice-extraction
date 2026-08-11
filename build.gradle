@@ -5,6 +5,7 @@ plugins {
     id "com.netflix.dgs.codegen" version "5.0.6"
     id "com.diffplug.spotless" version "6.2.1"
     id 'jacoco'
+    id 'info.solidsoft.pitest' version '1.9.11'
 }
 
 version = '0.0.1-SNAPSHOT'
@@ -43,6 +44,39 @@ jacocoTestCoverageVerification {
             }
         }
     }
+}
+
+// PIT mutation testing, scoped to the articles domain
+pitest {
+    pitestVersion = '1.9.11'
+    junit5PluginVersion = '1.1.2'
+    testPlugin = 'junit5'
+
+    targetClasses = [
+        'io.spring.core.article.*',
+        'io.spring.application.article.*',
+        'io.spring.application.ArticleQueryService*',
+        'io.spring.application.data.Article*',
+        'io.spring.api.Article*',
+        'io.spring.infrastructure.repository.MyBatisArticleRepository*'
+    ]
+    targetTests = [
+        'io.spring.core.article.*',
+        'io.spring.application.article.*',
+        'io.spring.infrastructure.article.*',
+        'io.spring.api.Article*',
+        'io.spring.api.ListArticleApiTest'
+    ]
+    excludedTestClasses = ['io.spring.selenium.*']
+
+    mutators = ['DEFAULTS']
+    outputFormats = ['HTML', 'XML']
+    timestampedReports = false
+    threads = 4
+    // Articles domain currently sits at 100%; the gate leaves a little slack.
+    failWhenNoMutations = false
+    mutationThreshold = 90
+    jvmArgs = ['-Duser.timezone=UTC']
 }
 
 repositories {
