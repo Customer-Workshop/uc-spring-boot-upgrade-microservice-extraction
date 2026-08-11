@@ -212,6 +212,39 @@ public class ArticleQueryServiceTest extends DbTestBase {
   }
 
   @Test
+  public void should_get_user_feed_by_cursor_with_multi_tagged_articles() {
+    User anotherUser = new User("other@email.com", "other", "123", "", "");
+    userRepository.save(anotherUser);
+    userRepository.saveRelation(new FollowRelation(anotherUser.getId(), user.getId()));
+
+    Article olderArticle =
+        new Article(
+            "new article",
+            "desc",
+            "body",
+            Arrays.asList("java", "test"),
+            user.getId(),
+            new DateTime().minusHours(1));
+    articleRepository.save(olderArticle);
+
+    CursorPager<ArticleData> firstPage =
+        queryService.findUserFeedWithCursor(
+            anotherUser, new CursorPageParameter<>(null, 1, Direction.NEXT));
+    Assertions.assertEquals(1, firstPage.getData().size());
+    Assertions.assertEquals(article.getId(), firstPage.getData().get(0).getId());
+    Assertions.assertTrue(firstPage.hasNext());
+
+    CursorPager<ArticleData> secondPage =
+        queryService.findUserFeedWithCursor(
+            anotherUser,
+            new CursorPageParameter<>(
+                DateTimeCursor.parse(firstPage.getEndCursor().toString()), 1, Direction.NEXT));
+    Assertions.assertEquals(1, secondPage.getData().size());
+    Assertions.assertEquals(olderArticle.getId(), secondPage.getData().get(0).getId());
+    Assertions.assertFalse(secondPage.hasNext());
+  }
+
+  @Test
   public void should_get_user_feed() {
     User anotherUser = new User("other@email.com", "other", "123", "", "");
     userRepository.save(anotherUser);
