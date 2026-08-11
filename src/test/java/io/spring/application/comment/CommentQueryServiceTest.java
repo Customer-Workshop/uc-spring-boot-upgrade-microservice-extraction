@@ -1,6 +1,9 @@
 package io.spring.application.comment;
 
 import io.spring.application.CommentQueryService;
+import io.spring.application.CursorPageParameter;
+import io.spring.application.CursorPager;
+import io.spring.application.CursorPager.Direction;
 import io.spring.application.data.CommentData;
 import io.spring.core.article.Article;
 import io.spring.core.article.ArticleRepository;
@@ -72,5 +75,74 @@ public class CommentQueryServiceTest extends DbTestBase {
 
     List<CommentData> comments = commentQueryService.findByArticleId(article.getId(), user);
     Assertions.assertEquals(comments.size(), 2);
+  }
+
+  @Test
+  public void should_return_empty_for_unknown_comment() {
+    Assertions.assertFalse(commentQueryService.findById("not-exist", user).isPresent());
+  }
+
+  @Test
+  public void should_return_empty_comments_for_unknown_article() {
+    Assertions.assertTrue(commentQueryService.findByArticleId("not-exist", user).isEmpty());
+  }
+
+  @Test
+  public void should_read_first_page_of_comments_with_cursor() {
+    Article article = articleWithTwoComments();
+
+    CursorPager<CommentData> firstPage =
+        commentQueryService.findByArticleIdWithCursor(
+            article.getId(), user, new CursorPageParameter<>(null, 1, Direction.NEXT));
+
+    Assertions.assertEquals(1, firstPage.getData().size());
+    Assertions.assertTrue(firstPage.hasNext());
+    Assertions.assertNotNull(firstPage.getStartCursor());
+  }
+
+  @Test
+  public void should_read_previous_page_of_comments_with_cursor() {
+    Article article = articleWithTwoComments();
+
+    CursorPager<CommentData> previousPage =
+        commentQueryService.findByArticleIdWithCursor(
+            article.getId(), user, new CursorPageParameter<>(null, 20, Direction.PREV));
+
+    Assertions.assertEquals(2, previousPage.getData().size());
+    Assertions.assertFalse(previousPage.hasPrevious());
+  }
+
+  @Test
+  public void should_read_comments_with_cursor_for_anonymous_user() {
+    Article article = articleWithTwoComments();
+
+    CursorPager<CommentData> page =
+        commentQueryService.findByArticleIdWithCursor(
+            article.getId(), null, new CursorPageParameter<>(null, 20, Direction.NEXT));
+
+    Assertions.assertEquals(2, page.getData().size());
+    Assertions.assertFalse(page.getData().get(0).getProfileData().isFollowing());
+  }
+
+  private Article articleWithTwoComments() {
+    Article article = new Article("title", "desc", "body", Arrays.asList("java"), user.getId());
+    articleRepository.save(article);
+
+    User user2 = new User("user2@email.com", "user2", "123", "", "");
+    userRepository.save(user2);
+    userRepository.saveRelation(new FollowRelation(user.getId(), user2.getId()));
+    commentRepository.save(new Comment("content1", user.getId(), article.getId()));
+    commentRepository.save(new Comment("content2", user2.getId(), article.getId()));
+    return article;
+  }
+
+  @Test
+  public void should_return_empty_cursor_page_for_unknown_article() {
+    CursorPager<CommentData> page =
+        commentQueryService.findByArticleIdWithCursor(
+            "not-exist", user, new CursorPageParameter<>(null, 20, Direction.NEXT));
+
+    Assertions.assertTrue(page.getData().isEmpty());
+    Assertions.assertNull(page.getStartCursor());
   }
 }
