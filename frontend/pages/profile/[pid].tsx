@@ -28,7 +28,12 @@ const Profile = ({ initialProfile }) => {
   const {
     data: fetchedProfile,
     error: profileError,
-  } = useSWR(profileUrl, fetcher, { initialData: initialProfile });
+  } = useSWR(profileUrl, fetcher, {
+    initialData: initialProfile,
+    // initialData comes from an unauthenticated SSR fetch, so `following` is
+    // always false there; SWR skips the mount fetch unless asked explicitly.
+    revalidateOnMount: true,
+  });
 
   if (profileError) return <ErrorMessage message="Can't load profile" />;
 
