@@ -10,6 +10,8 @@ import io.spring.core.user.User;
 import io.spring.core.user.UserRepository;
 import java.util.Optional;
 import javax.validation.ConstraintValidatorContext;
+import javax.validation.Validation;
+import javax.validation.Validator;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -69,6 +71,52 @@ public class UserServiceTest {
     Assertions.assertEquals("new@test.com", captor.getValue().getEmail());
     Assertions.assertEquals("new", captor.getValue().getUsername());
     Assertions.assertEquals("new bio", captor.getValue().getBio());
+  }
+
+  @Test
+  public void should_create_user_with_special_characters_in_profile() {
+    when(passwordEncoder.encode(eq("p@ss w?rd\\'\"🔐"))).thenReturn("encoded");
+
+    User created =
+        userService.createUser(
+            new RegisterParam("jose+tag@exämple.co.uk", "José_🚀", "p@ss w?rd\\'\"🔐"));
+
+    Assertions.assertEquals("jose+tag@exämple.co.uk", created.getEmail());
+    Assertions.assertEquals("José_🚀", created.getUsername());
+    Assertions.assertEquals("encoded", created.getPassword());
+  }
+
+  @Test
+  public void should_update_user_with_special_characters_in_bio() {
+    UpdateUserParam param =
+        UpdateUserParam.builder()
+            .bio("Ünïcödé bio — <b>html</b> & \"quotes\"\nsecond line 🎉")
+            .image("https://example.com/a b?x=1&y=2")
+            .build();
+
+    userService.updateUser(new UpdateUserCommand(user, param));
+
+    ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+    verify(userRepository).save(captor.capture());
+    Assertions.assertEquals(
+        "Ünïcödé bio — <b>html</b> & \"quotes\"\nsecond line 🎉", captor.getValue().getBio());
+    Assertions.assertEquals("https://example.com/a b?x=1&y=2", captor.getValue().getImage());
+  }
+
+  @Test
+  public void should_reject_email_with_invalid_special_characters() {
+    Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
+
+    Assertions.assertEquals(
+        1,
+        validator
+            .validateProperty(UpdateUserParam.builder().email("not an email 🚀").build(), "email")
+            .size());
+    Assertions.assertTrue(
+        validator
+            .validateProperty(
+                UpdateUserParam.builder().email("jose+tag@exämple.co.uk").build(), "email")
+            .isEmpty());
   }
 
   @Test

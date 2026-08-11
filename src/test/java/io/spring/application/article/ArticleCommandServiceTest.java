@@ -69,6 +69,82 @@ public class ArticleCommandServiceTest {
   }
 
   @Test
+  public void should_slugify_title_with_punctuation_and_separators() {
+    NewArticleParam param =
+        NewArticleParam.builder()
+            .title("Hello, World & Friends? Yes.")
+            .description("desc")
+            .body("body")
+            .tagList(Collections.singletonList("java"))
+            .build();
+
+    Article article = articleCommandService.createArticle(param, user);
+
+    Assertions.assertEquals("hello-world-friends-yes-", article.getSlug());
+    Assertions.assertEquals("Hello, World & Friends? Yes.", article.getTitle());
+  }
+
+  @Test
+  public void should_keep_unicode_characters_in_slug() {
+    NewArticleParam param =
+        NewArticleParam.builder()
+            .title("Café 日本語 🚀 title")
+            .description("desc")
+            .body("body")
+            .tagList(Collections.singletonList("java"))
+            .build();
+
+    Article article = articleCommandService.createArticle(param, user);
+
+    Assertions.assertEquals("café-日本語-🚀-title", article.getSlug());
+  }
+
+  @Test
+  public void should_slugify_smart_quotes_and_full_width_punctuation() {
+    NewArticleParam param =
+        NewArticleParam.builder()
+            .title("It’s a ”quoted” title，really")
+            .description("desc")
+            .body("body")
+            .tagList(Collections.singletonList("java"))
+            .build();
+
+    Article article = articleCommandService.createArticle(param, user);
+
+    Assertions.assertEquals("it-s-a-quoted-title-really", article.getSlug());
+  }
+
+  @Test
+  public void should_create_article_with_sql_and_html_special_characters() {
+    NewArticleParam param =
+        NewArticleParam.builder()
+            .title("Robert'); DROP TABLE articles;--")
+            .description("<script>alert(\"x\")</script>")
+            .body("100% \\ backslash & <b>bold</b>")
+            .tagList(Collections.singletonList("c++"))
+            .build();
+
+    Article article = articleCommandService.createArticle(param, user);
+
+    Assertions.assertEquals("Robert'); DROP TABLE articles;--", article.getTitle());
+    Assertions.assertEquals("<script>alert(\"x\")</script>", article.getDescription());
+    Assertions.assertEquals("100% \\ backslash & <b>bold</b>", article.getBody());
+    Assertions.assertEquals("c++", article.getTags().get(0).getName());
+  }
+
+  @Test
+  public void should_update_slug_when_new_title_contains_special_characters() {
+    Article article =
+        new Article("title", "desc", "body", Collections.singletonList("java"), user.getId());
+
+    Article updated =
+        articleCommandService.updateArticle(
+            article, new UpdateArticleParam("Ünïcödé & emoji 🎉", "", ""));
+
+    Assertions.assertEquals("ünïcödé-emoji-🎉", updated.getSlug());
+  }
+
+  @Test
   public void should_reject_blank_new_article_fields() {
     Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
     NewArticleParam param = NewArticleParam.builder().title("").description("").body("").build();

@@ -88,6 +88,29 @@ public class ArticleMutationTest extends GraphQLTestBase {
   }
 
   @Test
+  public void should_create_article_with_special_characters() {
+    setCurrentUser(user);
+    CreateArticleInput input =
+        CreateArticleInput.newBuilder()
+            .title("Emoji 🚀 & «quotes» — 日本語")
+            .description("<script>alert(\"x\")</script>")
+            .body("line1\nline2\ttabbed \\ 100%")
+            .tagList(Arrays.asList("c++", "c#", ".net"))
+            .build();
+    when(articleCommandService.createArticle(any(NewArticleParam.class), eq(user)))
+        .thenReturn(article);
+
+    articleMutation.createArticle(input);
+
+    ArgumentCaptor<NewArticleParam> captor = ArgumentCaptor.forClass(NewArticleParam.class);
+    verify(articleCommandService).createArticle(captor.capture(), eq(user));
+    Assertions.assertEquals("Emoji 🚀 & «quotes» — 日本語", captor.getValue().getTitle());
+    Assertions.assertEquals("<script>alert(\"x\")</script>", captor.getValue().getDescription());
+    Assertions.assertEquals("line1\nline2\ttabbed \\ 100%", captor.getValue().getBody());
+    Assertions.assertEquals(Arrays.asList("c++", "c#", ".net"), captor.getValue().getTagList());
+  }
+
+  @Test
   public void should_not_create_article_without_login() {
     setAnonymousUser();
     CreateArticleInput input = CreateArticleInput.newBuilder().title("title").build();

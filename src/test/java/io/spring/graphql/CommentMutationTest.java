@@ -27,6 +27,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -71,6 +72,31 @@ public class CommentMutationTest extends GraphQLTestBase {
 
     verify(commentRepository).save(any(Comment.class));
     Assertions.assertEquals("comment-id", ((CommentData) result.getLocalContext()).getId());
+  }
+
+  @Test
+  public void should_create_comment_with_special_characters() {
+    String body = "Nice 🎉 — \"quoted\" & <b>bold</b>;\nDROP TABLE comments;--\t\\o/";
+    setCurrentUser(user);
+    when(articleRepository.findBySlug(eq(article.getSlug()))).thenReturn(Optional.of(article));
+    when(commentQueryService.findById(any(), eq(user)))
+        .thenReturn(Optional.of(commentDataFixture("comment-id")));
+
+    commentMutation.createComment(article.getSlug(), body);
+
+    ArgumentCaptor<Comment> captor = ArgumentCaptor.forClass(Comment.class);
+    verify(commentRepository).save(captor.capture());
+    Assertions.assertEquals(body, captor.getValue().getBody());
+  }
+
+  @Test
+  public void should_not_create_comment_for_slug_with_special_characters() {
+    setCurrentUser(user);
+    when(articleRepository.findBySlug(eq("' OR '1'='1"))).thenReturn(Optional.empty());
+
+    Assertions.assertThrows(
+        ResourceNotFoundException.class,
+        () -> commentMutation.createComment("' OR '1'='1", "content"));
   }
 
   @Test

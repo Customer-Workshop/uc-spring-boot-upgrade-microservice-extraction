@@ -95,6 +95,48 @@ public class ArticlesApiTest extends TestWithCurrentUser {
   }
 
   @Test
+  public void should_create_article_with_special_characters_success() throws Exception {
+    String title = "Emoji 🚀, «quotes» & <script>alert(\"x\")</script>";
+    String description = "100% \"quoted\" — dash";
+    String body = "line1\nline2\ttabbed \\ backslash 日本語";
+    List<String> tagList = asList("c++", "c#", ".net");
+    Map<String, Object> param = prepareParam(title, description, body, tagList);
+
+    ArticleData articleData =
+        new ArticleData(
+            "123",
+            Article.toSlug(title),
+            title,
+            description,
+            body,
+            false,
+            0,
+            new DateTime(),
+            new DateTime(),
+            tagList,
+            new ProfileData("userid", user.getUsername(), user.getBio(), user.getImage(), false));
+
+    when(articleCommandService.createArticle(any(), any()))
+        .thenReturn(new Article(title, description, body, tagList, user.getId()));
+    when(articleQueryService.findBySlug(eq(Article.toSlug(title)), any()))
+        .thenReturn(Optional.empty());
+    when(articleQueryService.findById(any(), any())).thenReturn(Optional.of(articleData));
+
+    given()
+        .contentType("application/json")
+        .header("Authorization", "Token " + token)
+        .body(param)
+        .when()
+        .post("/articles")
+        .then()
+        .statusCode(200)
+        .body("article.title", equalTo(title))
+        .body("article.description", equalTo(description))
+        .body("article.body", equalTo(body))
+        .body("article.tagList", equalTo(tagList));
+  }
+
+  @Test
   public void should_get_error_message_with_wrong_parameter() throws Exception {
     String title = "How to train your dragon";
     String description = "Ever wonder how?";

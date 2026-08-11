@@ -57,6 +57,49 @@ public class MyBatisArticleRepositoryTest extends DbTestBase {
   }
 
   @Test
+  public void should_round_trip_article_with_special_characters() {
+    Article specialArticle =
+        new Article(
+            "Robert'); DROP TABLE articles;-- 日本語 🚀",
+            "100% \"quoted\" & <b>bold</b>",
+            "line1\nline2\ttabbed \\ backslash",
+            Arrays.asList("c++", "c#", ".net"),
+            article.getUserId());
+    articleRepository.save(specialArticle);
+
+    Optional<Article> optional = articleRepository.findById(specialArticle.getId());
+
+    Assertions.assertTrue(optional.isPresent());
+    Article fetched = optional.get();
+    Assertions.assertEquals("Robert'); DROP TABLE articles;-- 日本語 🚀", fetched.getTitle());
+    Assertions.assertEquals("100% \"quoted\" & <b>bold</b>", fetched.getDescription());
+    Assertions.assertEquals("line1\nline2\ttabbed \\ backslash", fetched.getBody());
+    Assertions.assertTrue(fetched.getTags().contains(new Tag("c++")));
+    Assertions.assertTrue(fetched.getTags().contains(new Tag(".net")));
+  }
+
+  @Test
+  public void should_fetch_article_by_slug_with_special_characters() {
+    Article specialArticle =
+        new Article(
+            "Ünïcödé & emoji 🎉 title", "desc", "body", Arrays.asList("java"), article.getUserId());
+    articleRepository.save(specialArticle);
+
+    Optional<Article> optional = articleRepository.findBySlug(specialArticle.getSlug());
+
+    Assertions.assertTrue(optional.isPresent());
+    Assertions.assertEquals(specialArticle.getId(), optional.get().getId());
+  }
+
+  @Test
+  public void should_not_match_slug_with_sql_wildcards() {
+    articleRepository.save(article);
+
+    Assertions.assertFalse(articleRepository.findBySlug("%").isPresent());
+    Assertions.assertFalse(articleRepository.findBySlug("' OR '1'='1").isPresent());
+  }
+
+  @Test
   public void should_delete_article() {
     articleRepository.save(article);
 

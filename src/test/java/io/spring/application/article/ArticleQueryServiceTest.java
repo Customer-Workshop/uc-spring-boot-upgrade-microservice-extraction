@@ -283,6 +283,28 @@ public class ArticleQueryServiceTest extends DbTestBase {
   }
 
   @Test
+  public void should_query_article_by_tag_with_special_characters() {
+    Article specialArticle =
+        new Article("special", "desc", "body", Arrays.asList("c++", "c#"), user.getId());
+    articleRepository.save(specialArticle);
+
+    ArticleDataList found = queryService.findRecentArticles("c++", null, null, new Page(), user);
+    Assertions.assertEquals(1, found.getCount());
+    Assertions.assertEquals(specialArticle.getId(), found.getArticleDatas().get(0).getId());
+
+    ArticleDataList wildcard = queryService.findRecentArticles("%", null, null, new Page(), user);
+    Assertions.assertEquals(0, wildcard.getCount());
+  }
+
+  @Test
+  public void should_query_article_by_author_with_special_characters() {
+    ArticleDataList injected =
+        queryService.findRecentArticles(null, "' OR '1'='1", null, new Page(), user);
+
+    Assertions.assertEquals(0, injected.getCount());
+  }
+
+  @Test
   public void should_show_following_if_user_followed_author() {
     User anotherUser = new User("other@email.com", "other", "123", "", "");
     userRepository.save(anotherUser);

@@ -35,6 +35,18 @@ public class MyBatisCommentRepositoryTest extends DbTestBase {
   }
 
   @Test
+  public void should_round_trip_comment_body_with_special_characters() {
+    String body = "Nice 🎉 — it's \"100%\" <b>correct</b>;\nDROP TABLE comments;--\tdone \\o/";
+    Comment comment = new Comment(body, "123", "456");
+    commentRepository.save(comment);
+
+    Optional<Comment> optional = commentRepository.findById("456", comment.getId());
+
+    Assertions.assertTrue(optional.isPresent());
+    Assertions.assertEquals(body, optional.get().getBody());
+  }
+
+  @Test
   public void should_return_empty_for_unknown_comment() {
     Assertions.assertFalse(commentRepository.findById("456", "not-exist").isPresent());
   }

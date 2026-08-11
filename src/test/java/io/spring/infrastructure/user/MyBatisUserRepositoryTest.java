@@ -50,6 +50,35 @@ public class MyBatisUserRepositoryTest extends DbTestBase {
   }
 
   @Test
+  public void should_save_and_fetch_user_with_special_characters() {
+    User specialUser =
+        new User(
+            "josé+tag@exämple.co.uk",
+            "José_🚀",
+            "123",
+            "Bio with \"quotes\", <b>html</b> & 100%\nsecond line",
+            "https://example.com/a b?x=1&y=2");
+    userRepository.save(specialUser);
+
+    Optional<User> byUsername = userRepository.findByUsername("José_🚀");
+    Assertions.assertTrue(byUsername.isPresent());
+    Assertions.assertEquals(
+        "Bio with \"quotes\", <b>html</b> & 100%\nsecond line", byUsername.get().getBio());
+
+    Optional<User> byEmail = userRepository.findByEmail("josé+tag@exämple.co.uk");
+    Assertions.assertTrue(byEmail.isPresent());
+    Assertions.assertEquals(specialUser.getId(), byEmail.get().getId());
+  }
+
+  @Test
+  public void should_not_match_user_with_sql_wildcards() {
+    userRepository.save(user);
+
+    Assertions.assertFalse(userRepository.findByUsername("%").isPresent());
+    Assertions.assertFalse(userRepository.findByEmail("' OR '1'='1").isPresent());
+  }
+
+  @Test
   public void should_create_new_user_follow_success() {
     User other = new User("other@example.com", "other", "123", "", "");
     userRepository.save(other);
