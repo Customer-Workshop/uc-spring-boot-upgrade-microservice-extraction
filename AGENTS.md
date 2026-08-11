@@ -26,6 +26,14 @@ Spring Boot 2.6.3 / Java 11 monolith implementing the RealWorld blogging platfor
 - Flyway migration scripts use `V1__` naming convention
 - Copy only the relevant entity tables and seed data to the extracted service
 
+### Testing
+
+- Follow the conventions in [TESTING.md](TESTING.md): MockMvc for controllers, Mockito for services
+  and GraphQL datafetchers/mutations, `DbTestBase` (`@MybatisTest`, real SQLite) for the persistence
+  layer. No TestContainers.
+- Every new test class covers the negative paths too: unauthenticated access, not-found entities,
+  unauthorized mutations, and invalid input via real Bean Validation.
+
 ### Code Quality
 
 - Follow existing code conventions: MyBatis XML mappers, Spring `@Service`/`@Repository` annotations, constructor injection
