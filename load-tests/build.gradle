@@ -1,0 +1,32 @@
+plugins {
+    id 'io.gatling.gradle' version '3.8.4'
+}
+
+repositories {
+    mavenCentral()
+}
+
+// Every knob is overridable from the command line, e.g.
+//   ../gradlew gatlingRun-io.spring.gatling.ArticlesLoadSimulation -PdurationSeconds=60 -Prate=10
+def simulationProperties = [
+        'baseUrl'         : 'http://localhost:8080',
+        'rate'            : '30',
+        'durationSeconds' : '300',
+        'readWeight'      : '80',
+        'writeWeight'     : '15',
+        'deleteWeight'    : '5',
+        'p95Ms'           : '200',
+        'errorRatePercent': '1',
+        'userEmail'       : 'john@example.com',
+        'userPassword'    : 'password123'
+]
+
+gatling {
+    // Fail the Gradle build when the SLO assertions are not met.
+    simulations = {
+        include '**/*Simulation.java'
+    }
+    systemProperties = simulationProperties.collectEntries { name, defaultValue ->
+        [name, project.findProperty(name)?.toString() ?: defaultValue]
+    }
+}
