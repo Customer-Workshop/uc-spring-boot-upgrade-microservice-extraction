@@ -5,6 +5,7 @@ plugins {
     id "com.netflix.dgs.codegen" version "5.0.6"
     id "com.diffplug.spotless" version "6.2.1"
     id 'jacoco'
+    id 'info.solidsoft.pitest' version '1.9.11'
 }
 
 version = '0.0.1-SNAPSHOT'
@@ -43,6 +44,19 @@ jacocoTestCoverageVerification {
             }
         }
     }
+}
+
+// Mutation testing for the Articles domain
+pitest {
+    junit5PluginVersion = '1.0.0'
+    pitestVersion = '1.9.11'
+    targetClasses = ['io.spring.core.article.*', 'io.spring.application.article.*']
+    targetTests = ['io.spring.*']
+    excludedTestClasses = ['io.spring.selenium.*']
+    outputFormats = ['HTML', 'XML']
+    timestampedReports = false
+    threads = 4
+    verbose = false
 }
 
 repositories {
