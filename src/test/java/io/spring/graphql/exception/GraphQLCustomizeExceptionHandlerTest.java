@@ -86,6 +86,18 @@ public class GraphQLCustomizeExceptionHandlerTest {
   }
 
   @Test
+  public void should_map_graphql_authentication_exception_to_unauthenticated_error() {
+    DataFetcherExceptionHandlerResult result =
+        handler.onException(parametersFor(new AuthenticationException()));
+
+    assertEquals(1, result.getErrors().size());
+    GraphQLError error = result.getErrors().get(0);
+    assertEquals("unauthenticated", error.getMessage());
+    assertEquals(
+        ErrorType.UNAUTHENTICATED.name(), error.getExtensions().get("errorType").toString());
+  }
+
+  @Test
   public void should_map_constraint_violation_to_bad_request_with_field_extensions() {
     DataFetcherExceptionHandlerResult result =
         handler.onException(parametersFor(constraintViolationException()));

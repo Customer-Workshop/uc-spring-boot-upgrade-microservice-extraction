@@ -30,11 +30,13 @@ public class GraphQLCustomizeExceptionHandler implements DataFetcherExceptionHan
   @Override
   public DataFetcherExceptionHandlerResult onException(
       DataFetcherExceptionHandlerParameters handlerParameters) {
-    if (handlerParameters.getException() instanceof InvalidAuthenticationException) {
+    if (handlerParameters.getException() instanceof InvalidAuthenticationException
+        || handlerParameters.getException() instanceof AuthenticationException) {
+      String message = handlerParameters.getException().getMessage();
       GraphQLError graphqlError =
           TypedGraphQLError.newBuilder()
               .errorType(ErrorType.UNAUTHENTICATED)
-              .message(handlerParameters.getException().getMessage())
+              .message(message == null ? "unauthenticated" : message)
               .path(handlerParameters.getPath())
               .build();
       return DataFetcherExceptionHandlerResult.newResult().error(graphqlError).build();
