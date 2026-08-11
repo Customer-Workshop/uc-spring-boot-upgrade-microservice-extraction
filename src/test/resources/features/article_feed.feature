@@ -102,29 +102,29 @@ Feature: Article Feed
     Then "page one" and "page two" should not share any article
 
   Scenario: Paginate the user feed
-    Given a registered user "carol" with email "carol@example.com" and password "password123"
-    And the following articles exist:
-      | author | title            | description  | body        | tags |
-      | carol  | Carol article 1  | carol desc 1 | carol body1 |      |
-      | carol  | Carol article 2  | carol desc 2 | carol body2 |      |
-      | carol  | Carol article 3  | carol desc 3 | carol body3 |      |
-    And I am logged in as "bobsmith"
-    And I follow "carol"
-    When I request my user feed with limit 2 and offset 0
+    Given I am logged in as "bobsmith"
+    And I follow "johndoe"
+    And I follow "janedoe"
+    When I request my user feed with limit 3 and offset 0
     Then the response status should be 200
-    And the feed should contain 2 articles
-    And the articles count should be 3
+    And the feed should contain 3 articles
+    And the articles count should be 4
 
   Scenario: Second page of the user feed
-    Given a registered user "carol" with email "carol@example.com" and password "password123"
-    And the following articles exist:
-      | author | title            | description  | body        | tags |
-      | carol  | Carol article 1  | carol desc 1 | carol body1 |      |
-      | carol  | Carol article 2  | carol desc 2 | carol body2 |      |
-      | carol  | Carol article 3  | carol desc 3 | carol body3 |      |
-    And I am logged in as "bobsmith"
-    And I follow "carol"
-    When I request my user feed with limit 2 and offset 2
+    Given I am logged in as "bobsmith"
+    And I follow "johndoe"
+    And I follow "janedoe"
+    When I request my user feed with limit 3 and offset 3
     Then the response status should be 200
     And the feed should contain 1 articles
-    And the articles count should be 3
+    And the articles count should be 4
+
+  Scenario: User feed pages do not overlap
+    Given I am logged in as "bobsmith"
+    And I follow "johndoe"
+    And I follow "janedoe"
+    When I request my user feed with limit 2 and offset 0
+    And I remember the returned article titles as "page one"
+    And I request my user feed with limit 2 and offset 2
+    And I remember the returned article titles as "page two"
+    Then "page one" and "page two" should not share any article
