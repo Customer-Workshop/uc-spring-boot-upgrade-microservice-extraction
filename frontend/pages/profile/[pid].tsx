@@ -21,14 +21,14 @@ const Profile = ({ initialProfile }) => {
     query: { pid },
   } = router;
 
+  const profileUrl = `${SERVER_BASE_URL}/profiles/${encodeURIComponent(
+    String(pid)
+  )}`;
+
   const {
     data: fetchedProfile,
     error: profileError,
-  } = useSWR(
-    `${SERVER_BASE_URL}/profiles/${encodeURIComponent(String(pid))}`,
-    fetcher,
-    { initialData: initialProfile }
-  );
+  } = useSWR(profileUrl, fetcher, { initialData: initialProfile });
 
   if (profileError) return <ErrorMessage message="Can't load profile" />;
 
@@ -40,23 +40,15 @@ const Profile = ({ initialProfile }) => {
   const isUser = currentUser && username === currentUser?.username;
 
   const handleFollow = async () => {
-    mutate(
-      `${SERVER_BASE_URL}/profiles/${pid}`,
-      { profile: { ...profile, following: true } },
-      false
-    );
-    UserAPI.follow(pid);
-    trigger(`${SERVER_BASE_URL}/profiles/${pid}`);
+    mutate(profileUrl, { profile: { ...profile, following: true } }, false);
+    await UserAPI.follow(pid);
+    trigger(profileUrl);
   };
 
   const handleUnfollow = async () => {
-    mutate(
-      `${SERVER_BASE_URL}/profiles/${pid}`,
-      { profile: { ...profile, following: true } },
-      true
-    );
-    UserAPI.unfollow(pid);
-    trigger(`${SERVER_BASE_URL}/profiles/${pid}`);
+    mutate(profileUrl, { profile: { ...profile, following: false } }, false);
+    await UserAPI.unfollow(pid);
+    trigger(profileUrl);
   };
 
   return (

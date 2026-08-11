@@ -27,7 +27,8 @@ const LoginForm = () => {
     try {
       const { data, status } = await UserAPI.login(email, password);
       if (status !== 200) {
-        setErrors(data.errors);
+        // the API answers either {errors: {field: [...]}} or {message: "..."}
+        setErrors(data?.errors ?? (data?.message ? { "": [data.message] } : {}));
       }
 
       if (data?.user) {
