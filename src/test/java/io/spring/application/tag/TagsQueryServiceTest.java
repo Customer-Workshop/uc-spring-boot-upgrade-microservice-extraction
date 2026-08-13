@@ -35,7 +35,10 @@ public class TagsQueryServiceTest extends DbTestBase {
     articleRepository.save(
         new Article("second", "test", "test", Arrays.asList("java", "spring"), "123"));
     articleRepository.save(new Article("third", "test", "test", Arrays.asList("java"), "123"));
-    jdbcTemplate.update("insert into tags (id, name) values (?, ?)", "unused-id", "unused");
+    articleRepository.save(new Article("zeta", "test", "test", Arrays.asList("zeta"), "123"));
+    articleRepository.save(new Article("alpha", "test", "test", Arrays.asList("alpha"), "123"));
+    jdbcTemplate.update("insert into tags (id, name) values (?, ?)", "zulu-zero-id", "zulu-zero");
+    jdbcTemplate.update("insert into tags (id, name) values (?, ?)", "alpha-zero-id", "alpha-zero");
 
     List<TagStatsData> stats = tagsQueryService.tagStats();
 
@@ -43,7 +46,10 @@ public class TagsQueryServiceTest extends DbTestBase {
         Arrays.asList(
             new TagStatsData("java", 3),
             new TagStatsData("spring", 2),
-            new TagStatsData("unused", 0)),
+            new TagStatsData("alpha", 1),
+            new TagStatsData("zeta", 1),
+            new TagStatsData("alpha-zero", 0),
+            new TagStatsData("zulu-zero", 0)),
         stats);
   }
 }
