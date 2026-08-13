@@ -55,4 +55,17 @@ public class TagsQueryServiceTest extends DbTestBase {
         stats.stream().filter(tag -> tag.getName().equals("unused")).findFirst().get();
     Assertions.assertEquals(0, unused.getArticleCount());
   }
+
+  @Test
+  public void should_ignore_article_tags_for_deleted_articles() {
+    Article article = new Article("orphaned", "test", "test", Arrays.asList("orphaned-tag"), "123");
+    articleRepository.save(article);
+    articleRepository.remove(article);
+
+    List<TagStatsData> stats = tagsQueryService.tagStats();
+
+    TagStatsData orphanedTag =
+        stats.stream().filter(tag -> tag.getName().equals("orphaned-tag")).findFirst().get();
+    Assertions.assertEquals(0, orphanedTag.getArticleCount());
+  }
 }
