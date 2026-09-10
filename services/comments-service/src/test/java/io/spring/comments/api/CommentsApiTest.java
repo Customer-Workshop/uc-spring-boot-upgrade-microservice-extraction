@@ -62,7 +62,7 @@ public class CommentsApiTest extends TestWithCurrentUser {
             Arrays.asList("test", "java"),
             profile);
     when(monolithClient.findArticleBySlug(eq(article.getSlug()))).thenReturn(article);
-    comment = new Comment("comment", user.getId(), article.getId());
+    comment = new Comment("comment content", user.getId(), article.getId());
     commentData =
         new CommentData(
             comment.getId(),
@@ -89,8 +89,6 @@ public class CommentsApiTest extends TestWithCurrentUser {
           }
         };
 
-    when(commentQueryService.findById(anyString(), eq(user))).thenReturn(Optional.of(commentData));
-
     given()
         .contentType("application/json")
         .header("Authorization", "Token " + token)
@@ -99,7 +97,9 @@ public class CommentsApiTest extends TestWithCurrentUser {
         .post("/articles/{slug}/comments", article.getSlug())
         .then()
         .statusCode(201)
-        .body("comment.body", equalTo(commentData.getBody()));
+        .body("comment.body", equalTo(commentData.getBody()))
+        .body("comment.author.username", equalTo(user.getUsername()))
+        .body("comment.author.following", equalTo(false));
   }
 
   @Test

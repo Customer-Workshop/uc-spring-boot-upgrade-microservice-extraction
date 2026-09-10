@@ -5,6 +5,7 @@ import io.spring.comments.api.exception.NoAuthorizationException;
 import io.spring.comments.api.exception.ResourceNotFoundException;
 import io.spring.comments.application.CommentQueryService;
 import io.spring.comments.application.data.CommentData;
+import io.spring.comments.application.data.ProfileData;
 import io.spring.comments.core.comment.Comment;
 import io.spring.comments.core.comment.CommentRepository;
 import io.spring.comments.core.service.AuthorizationService;
@@ -45,8 +46,21 @@ public class CommentsApi {
     ArticleDTO article = monolithClient.findArticleBySlug(slug);
     Comment comment = new Comment(newCommentParam.getBody(), user.getId(), article.getId());
     commentRepository.save(comment);
-    return ResponseEntity.status(201)
-        .body(commentResponse(commentQueryService.findById(comment.getId(), user).get()));
+    return ResponseEntity.status(201).body(commentResponse(createdCommentData(comment, user)));
+  }
+
+  /**
+   * The author of a freshly created comment is always the caller, so the response is assembled from
+   * the already resolved principal rather than a remote read after the insert commits.
+   */
+  private CommentData createdCommentData(Comment comment, CurrentUser user) {
+    return new CommentData(
+        comment.getId(),
+        comment.getBody(),
+        comment.getArticleId(),
+        comment.getCreatedAt(),
+        comment.getCreatedAt(),
+        new ProfileData(user.getId(), user.getUsername(), user.getBio(), user.getImage(), false));
   }
 
   @GetMapping
