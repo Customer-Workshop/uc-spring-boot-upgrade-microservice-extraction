@@ -2,6 +2,7 @@ package io.spring.favorites.api.security;
 
 import static java.util.Arrays.asList;
 
+import jakarta.servlet.DispatcherType;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -38,6 +39,8 @@ public class WebSecurityConfig {
         .authorizeHttpRequests(
             requests ->
                 requests
+                    .dispatcherTypeMatchers(DispatcherType.ERROR)
+                    .permitAll()
                     .requestMatchers(HttpMethod.OPTIONS)
                     .permitAll()
                     .requestMatchers("/internal/**")
