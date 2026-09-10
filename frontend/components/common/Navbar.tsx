@@ -27,6 +27,11 @@ const Navbar = () => {
               <span onClick={handleClick}>Home</span>
             </NavLink>
           </li>
+          <li className="nav-item">
+            <NavLink href="/system" as="/system">
+              System
+            </NavLink>
+          </li>
           <Maybe test={isLoggedIn}>
             <li className="nav-item">
               <NavLink href="/editor/new" as="/editor/new">
