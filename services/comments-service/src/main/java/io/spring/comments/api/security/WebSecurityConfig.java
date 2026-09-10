@@ -4,6 +4,7 @@ import static java.util.Arrays.asList;
 
 import io.spring.comments.core.service.JwtService;
 import io.spring.comments.infrastructure.monolith.MonolithClient;
+import jakarta.servlet.DispatcherType;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -42,6 +43,8 @@ public class WebSecurityConfig {
         .authorizeHttpRequests(
             requests ->
                 requests
+                    .dispatcherTypeMatchers(DispatcherType.ERROR, DispatcherType.ASYNC)
+                    .permitAll()
                     .requestMatchers(HttpMethod.OPTIONS, "/**")
                     .permitAll()
                     .requestMatchers("/internal/**")
