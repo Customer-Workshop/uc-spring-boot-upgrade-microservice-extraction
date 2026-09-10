@@ -1,5 +1,10 @@
 import React from "react";
 
+import { APP_NAME } from "../../lib/utils/constant";
+
+const REPO_URL =
+  "https://github.com/Cognition-Partner-Workshops/uc-spring-boot-upgrade-microservice-extraction";
+
 const Footer = () => (
   <footer>
     <div className="container">
@@ -7,9 +12,11 @@ const Footer = () => (
         conduit
       </a>
       <span className="attribution">
-        An interactive learning project from{" "}
-        <a href="https://thinkster.io">Thinkster</a>. Code &amp; design licensed
-        under MIT.
+        &copy; {new Date().getFullYear()} {APP_NAME} &middot; Spring Boot 2.6.3
+        / Java 11 monolith &middot;{" "}
+        <a href={REPO_URL} target="_blank" rel="noopener noreferrer">
+          GitHub
+        </a>
       </span>
     </div>
   </footer>
