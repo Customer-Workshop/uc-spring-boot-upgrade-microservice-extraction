@@ -1,5 +1,6 @@
 package io.spring.comments.api;
 
+import io.spring.comments.api.exception.InvalidCursorException;
 import io.spring.comments.application.CommentQueryService;
 import io.spring.comments.application.CursorPageParameter;
 import io.spring.comments.application.CursorPager;
@@ -31,7 +32,7 @@ public class InternalCommentsApi {
       @RequestParam(value = "limit", defaultValue = "20") int limit,
       @RequestParam(value = "direction", defaultValue = "NEXT") Direction direction) {
     CursorPageParameter<DateTime> page =
-        new CursorPageParameter<>(DateTimeCursor.parse(cursor), limit, direction);
+        new CursorPageParameter<>(parseCursor(cursor), limit, direction);
     CursorPager<CommentData> pager =
         commentQueryService.findByArticleIdWithCursor(articleId, null, page);
     Map<String, Object> response = new LinkedHashMap<>();
@@ -41,6 +42,17 @@ public class InternalCommentsApi {
     response.put("startCursor", cursorValue(pager.getStartCursor()));
     response.put("endCursor", cursorValue(pager.getEndCursor()));
     return ResponseEntity.ok(response);
+  }
+
+  private DateTime parseCursor(String cursor) {
+    if (cursor == null || cursor.isEmpty()) {
+      return null;
+    }
+    try {
+      return DateTimeCursor.parse(cursor);
+    } catch (NumberFormatException e) {
+      throw new InvalidCursorException(cursor);
+    }
   }
 
   private String cursorValue(PageCursor cursor) {

@@ -108,4 +108,12 @@ public class InternalCommentsApiTest extends TestWithCurrentUser {
     org.junit.jupiter.api.Assertions.assertEquals(Direction.PREV, page.getDirection());
     org.junit.jupiter.api.Assertions.assertEquals(123456789L, page.getCursor().getMillis());
   }
+
+  @Test
+  public void should_return_400_for_a_malformed_cursor() {
+    RestAssuredMockMvc.when()
+        .get("/internal/comments?articleId=article-1&cursor=abc")
+        .then()
+        .statusCode(400);
+  }
 }
